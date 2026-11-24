@@ -1,0 +1,1161 @@
+# Upstream watch
+
+Open and recently merged pull requests in the upstreams. Before starting a task,
+search this page (and the upstreams' issues) for the same area: if the work is
+already in progress there, wait for it or cherry-pick it instead of redoing it.
+Updated automatically by `.github/workflows/upstream-sync.yml`.
+
+> ⚠️ **Marvisak/VIctory main does not merge cleanly into our main.** Merge it by hand (see docs/upstream-sync.md).
+
+## fxceless/victory-gta6
+
+main: `4e17478` — The game is no longer named in the tree
+(**not yet in our main**: 3 commits)
+
+### Open pull requests
+
+- [#71](https://github.com/fxceless/victory-fork/pull/71) GPU: use D3D12 COPY queue for relay card-copy fetches and parallelize CARD_COMPARE — @MartinIndra02
+- [#142](https://github.com/fxceless/victory-fork/pull/142) GPU diagnostics: encode completed frame captures off the present thread — @Cuebert
+- [#141](https://github.com/fxceless/victory-fork/pull/141) GPU: wait before overwriting an in-flight texture staging buffer under VICTORY_LATE_WAIT/RELAY — @adritoyalser
+- [#140](https://github.com/fxceless/victory-fork/pull/140) GPU: a texture pass with no room gives up the oldest slots' host copies — @undeadhuman37 (draft)
+- [#139](https://github.com/fxceless/victory-fork/pull/139) Shaders: v_writelane_b32 writes its lane whenever the wave runs it — @marketingwithlux
+- [#114](https://github.com/fxceless/victory-fork/pull/114) GPU: mirror placed unordered texture views onto host textures — @Kaivyyy
+- [#20](https://github.com/fxceless/victory-fork/pull/20) GPU: compile our run-time HLSL with DXC when the system compiler refuses it (Wine/Proton) — @ErRusso
+- [#116](https://github.com/fxceless/victory-fork/pull/116) Docs: AGENTS.md for agent contributors — @ericomeehan
+- [#52](https://github.com/fxceless/victory-fork/pull/52) Shaders: retain live interpolation first halves — @jaschinski97-ops
+- [#40](https://github.com/fxceless/victory-fork/pull/40) Shaders: lower row permutations on wave32 hosts — @jaschinski97-ops
+- [#137](https://github.com/fxceless/victory-fork/pull/137) Shaders: lower SV_RenderTargetArrayIndex and SV_ViewportArrayIndex exports — @davi713albano-coder
+- [#135](https://github.com/fxceless/victory-fork/pull/135) Shaders: 64-bit integer compares on their dwords (AMD orders a shared-dword i64 compare wrong) — @alexdeliu
+- [#134](https://github.com/fxceless/victory-fork/pull/134) AMD: clamp view heap indices on every host (fixes device removal on RDNA3); add v_cvt_f32_f64, v_permlane16/x16 — @triippywhale
+- [#86](https://github.com/fxceless/victory-fork/pull/86) Add experimental PC FSR upscaling — @AwkGrep256
+- [#132](https://github.com/fxceless/victory-fork/pull/132) Add a hardware and performance issue template — @juliptree
+- [#87](https://github.com/fxceless/victory-fork/pull/87) Formats: linear volume depth_pitch follows the mip — @davutsimsekk
+- [#76](https://github.com/fxceless/victory-fork/pull/76) Use the test adapter's wave width for offline pipeline checks — @dervoxx
+- [#78](https://github.com/fxceless/victory-fork/pull/78) Shaders: do not require a fixed WaveSize for 1-thread LDS compute shaders — @vicennpacheco
+- [#9](https://github.com/fxceless/victory-fork/pull/9) Shaders: lower v_cvt_f32_f64 and model v_add_f64 whole-wave sums — @MartinIndra02
+- [#131](https://github.com/fxceless/victory-fork/pull/131) Make the VIctory game window borderless by default — @gmankab
+- [#130](https://github.com/fxceless/victory-fork/pull/130) HLE: gamepads from SDL3 (SDL3.dll), with trigger rumble — @DaviTostes
+- [#129](https://github.com/fxceless/victory-fork/pull/129) Shaders: query untyped buffer dimensions through a raw handle — @vicennpacheco
+- [#128](https://github.com/fxceless/victory-fork/pull/128) Linux: compile, test and run the analysis commands — @LazyHatGuy
+- [#35](https://github.com/fxceless/victory-fork/pull/35) Key cached shader translations by effective host wave width — @ryotdev
+- [#83](https://github.com/fxceless/victory-fork/pull/83) Shaders: keep empty-EXEC branches that can reactivate lanes — @ryotdev
+- [#77](https://github.com/fxceless/victory-fork/pull/77) Shaders: v_fma_mixlo/mixhi over an f16 first interpolation half keeps zero (8 pixel programs) — @m335671
+- [#81](https://github.com/fxceless/victory-fork/pull/81) Shaders: a descriptor only read as data of eight dwords is a measured image — @undeadhuman37
+- [#127](https://github.com/fxceless/victory-fork/pull/127) GPU: compile internal HLSL and serialize root signatures natively under Wine/Proton — @BitWuehler
+- [#36](https://github.com/fxceless/victory-fork/pull/36) Shaders: track uniform LDS reads and exact operand widths in lane_uniform (#16) — @adriaespii
+- [#124](https://github.com/fxceless/victory-fork/pull/124) Shaders: match DXIL validator layout for ISG1/OSG1 signatures — @vicennpacheco
+- [#123](https://github.com/fxceless/victory-fork/pull/123) Shaders: lower image_gather4_c_lz(_o) and remaining offset sample variants — @davi713albano-coder
+- [#122](https://github.com/fxceless/victory-fork/pull/122) Shaders: recompute ISG1 input usage and barycentrics flag after bitcode opt — @davi713albano-coder
+- [#121](https://github.com/fxceless/victory-fork/pull/121) Preserve VGPR slots observed by relative reads — @Kamiloj9
+- [#28](https://github.com/fxceless/victory-fork/pull/28) Linux/Proton: DXC fallback for the argument clamp, watchdog hooks, and 32 MiB pipeline-worker stacks — @meeyao
+- [#119](https://github.com/fxceless/victory-fork/pull/119) Shaders: write v_writelane_b32 under wave-level EXEC (#111) — @adritoyalser
+- [#41](https://github.com/fxceless/victory-fork/pull/41) docs: what a Linux/Proton run needs, and where its frame goes on RADV — @rostaddotcc
+- [#64](https://github.com/fxceless/victory-fork/pull/64) Add experimental Linux support via GE-Proton/umu and Nix shells — @MiguVT
+- [#32](https://github.com/fxceless/victory-fork/pull/32) GPU: 16-bit float RGBA stands in for R9G9B9E5 render targets — @arminkhaleghirod
+- [#80](https://github.com/fxceless/victory-fork/pull/80) GPU: upload dirty title textures in HostList::prelude — @adritoyalser
+- [#90](https://github.com/fxceless/victory-fork/pull/90) Shaders: a rectangle's corners match within a tolerance, not bit for bit — @T0ns1
+- [#115](https://github.com/fxceless/victory-fork/pull/115) Texture guard: see writes through every view of its pages (boot video glitch) — @Spexivus
+- [#112](https://github.com/fxceless/victory-fork/pull/112) Shader: fix DXIL signature ordering for packed semantics — @avt0m4t48
+- [#110](https://github.com/fxceless/victory-fork/pull/110) Shaders: emit canonical system-value names and preserve in-row order in ISG1/OSG1 (#53) — @adritoyalser
+- [#108](https://github.com/fxceless/victory-fork/pull/108) Batch adjacent physical-page scatter unmaps — @Kamiloj9
+- [#106](https://github.com/fxceless/victory-fork/pull/106) Texture queue limits configurable; VICTORY_SKIP_PIPELINES in release builds — @PastiiJay
+- [#105](https://github.com/fxceless/victory-fork/pull/105) hle/gameinput: match keyboard controls by physical position, not letter — @omeuniercombet
+- [#92](https://github.com/fxceless/victory-fork/pull/92) Textures: detile big subresources in bands on several threads — @marquezinii
+- [#82](https://github.com/fxceless/victory-fork/pull/82) GPU: pass the depth bounds test through to host pipelines and command lists — @Kaivyyy
+- [#104](https://github.com/fxceless/victory-fork/pull/104) GPU: limit staged constant-buffer uploads to 64 KiB — @avt0m4t48
+- [#74](https://github.com/fxceless/victory-fork/pull/74) Keep keyboard controls working when a controller is connected — @MiguVT
+- [#102](https://github.com/fxceless/victory-fork/pull/102) Shader tests: bind raw SRVs in the waterfall buffer test — @vicennpacheco
+- [#100](https://github.com/fxceless/victory-fork/pull/100) Turn the last three switched-off style lints back on — @stojbde
+- [#98](https://github.com/fxceless/victory-fork/pull/98) Cap the host view heap on every GPU: AMD page-faulted at view slot 2^23 — @sillynocodecat
+- [#97](https://github.com/fxceless/victory-fork/pull/97) DirectStorage: read a page list naming page 0 again before failing its request — @npanu420
+- [#49](https://github.com/fxceless/victory-fork/pull/49) perf: scale shadow, pipeline, and DirectStorage worker counts with CPU cores — @fever308
+- [#48](https://github.com/fxceless/victory-fork/pull/48) gpu: tighten idle eviction and library trim timers under VRAM/RAM pressure — @fever308
+- [#47](https://github.com/fxceless/victory-fork/pull/47) gpu: scale snapshot, scratch, and command-list pools from system RAM — @fever308
+- [#45](https://github.com/fxceless/victory-fork/pull/45) gpu: scale texture VRAM floor and per-frame staging budget from VRAM — @fever308
+- [#42](https://github.com/fxceless/victory-fork/pull/42) gpu: auto-scale card buffer limits from local VRAM budget — @fever308
+- [#95](https://github.com/fxceless/victory-fork/pull/95) Textures no longer wait for remappings of other title memory — @LastThylacine
+- [#91](https://github.com/fxceless/victory-fork/pull/91) GPU: read VICTORY_SKIP_PIPELINES in release builds too — @omeuniercombet
+- [#61](https://github.com/fxceless/victory-fork/pull/61) Shaders: write every PSV0 semantic name again, as DXC does (fixes #12) — @srcamarda
+- [#85](https://github.com/fxceless/victory-fork/pull/85) HLE: the retail console ID has the documented dotted form — @davutsimsekk
+- [#84](https://github.com/fxceless/victory-fork/pull/84) DirectStorage: clear the factory out pointer on failure — @davutsimsekk
+- [#69](https://github.com/fxceless/victory-fork/pull/69) Windows 10: the D3D12 Agility SDK runtime for shader model 6.6 (upstream #362) — @simplesmenterafael (draft)
+- [#79](https://github.com/fxceless/victory-fork/pull/79) Stability: bound direct compute dispatch work — @space-de
+- [#24](https://github.com/fxceless/victory-fork/pull/24) GPU: constant buffer views of at most 64 KiB — @NuraadGit
+- [#51](https://github.com/fxceless/victory-fork/pull/51) GPU: no blending on integer render targets in host pipelines (port of upstream #806) — @FrancescoGelosoEterea
+- [#67](https://github.com/fxceless/victory-fork/pull/67) GPU: release directly indexed buffer ranges with their heap — @ryotdev
+- [#46](https://github.com/fxceless/victory-fork/pull/46) Shader tests: measure the emulated ray-tracing node test on the card — @marquezinii
+- [#68](https://github.com/fxceless/victory-fork/pull/68) Input: read PlayStation and generic HID pads that XInput does not list — @marquezinii
+- [#66](https://github.com/fxceless/victory-fork/pull/66) Stability: lower the default compute shader loop cap — @space-de
+- [#38](https://github.com/fxceless/victory-fork/pull/38) GPU: parallelize host-copy refreshes on multicore systems — @space-de
+- [#23](https://github.com/fxceless/victory-fork/pull/23) hle/gameinput: increase reading history from 32 to 256 for low-FPS frames — @youroot-code
+- [#33](https://github.com/fxceless/victory-fork/pull/33) Test ray-box intersections across two backing pages on WARP — @ryotdev
+- [#25](https://github.com/fxceless/victory-fork/pull/25) Shaders: lower immediate samplers chosen by uniform control flow (100% mesh, +37 PS) — @MartinIndra02
+- [#59](https://github.com/fxceless/victory-fork/pull/59) GPU: clarify slow command-list timing diagnostics — @space-de
+- [#44](https://github.com/fxceless/victory-fork/pull/44) Log process CPU, GPU engines, memory pressure and dependency versions on Windows — @Castyan
+- [#43](https://github.com/fxceless/victory-fork/pull/43) Turn five of the switched-off style lints back on — @viktoschi
+- [#37](https://github.com/fxceless/victory-fork/pull/37) Add Linux build support and update .gitignore — @Satanas1275
+- [#30](https://github.com/fxceless/victory-fork/pull/30) Turn undocumented_unsafe_blocks back on: six SAFETY comments the lint can read — @viktoschi
+- [#22](https://github.com/fxceless/victory-fork/pull/22) Windows 10 support (upstream #175 Agility SDK) + RTX 3080/Win10 verification — @justlovett0
+
+### Recently merged (last 30)
+
+- [#11](https://github.com/fxceless/victory-fork/pull/11) Shaders: restore parked lane-mask pairs a few instructions apart; relative VGPR reads keep parked lanes — merged 2026-11-24
+- [#14](https://github.com/fxceless/victory-fork/pull/14) Fix mesh pipeline test on unsupported GPUs — merged 2026-11-24
+- [#1](https://github.com/fxceless/victory-fork/pull/1) Make host pipeline waits configurable and prewarm pending requests — merged 2026-11-24
+
+## Marvisak/VIctory
+
+main: `70564ae` — README: status of 2026-11-24
+(**not yet in our main**: 28 commits)
+
+### Open pull requests
+
+- [#1198](https://github.com/Marvisak/VIctory/pull/1198) Shaders, GPU: emulate the BVH intersection instructions, and reach title memory at computed addresses — @powplusplus
+- [#1319](https://github.com/Marvisak/VIctory/pull/1319) [BUNDLE] Lane-mask, scalar descriptor read and cube-sample shader fixes: #1057 #1073 #1074 #1084 #953 #1056 #1015 #1055 #563 #1004 — @MamaLeVrai
+- [#928](https://github.com/Marvisak/VIctory/pull/928) GPU: GetDeviceRemovedReason reports the host device's state instead of E_NOTIMPL — @BastienRodz
+- [#926](https://github.com/Marvisak/VIctory/pull/926) Shaders: 16-bit compares read the low halves whatever op_sel says, as RDNA2 does — @BastienRodz
+- [#1407](https://github.com/Marvisak/VIctory/pull/1407) Shaders: lane masks holding lanes elsewhere, and mask joins, read as numbers — @marquezinii
+- [#1267](https://github.com/Marvisak/VIctory/pull/1267) GPU: keep only the bytes shaders may write, each once per submission — @TG0000
+- [#1743](https://github.com/Marvisak/VIctory/pull/1743) GPU tests: replay a world frame's copies of title memory (benchmark for the copy PRs) — @marquezinii
+- [#1731](https://github.com/Marvisak/VIctory/pull/1731) GPU: occlusion queries measure on the host instead of reporting every draw visible — @fiestorra
+- [#511](https://github.com/Marvisak/VIctory/pull/511) Shaders: coalesce aligned constant-buffer loads — @aycow
+- [#67](https://github.com/Marvisak/VIctory/pull/67) GPU: implement CopyTextureRegion texture-to-buffer readbacks — @alessiodeia
+- [#1690](https://github.com/Marvisak/VIctory/pull/1690) GPU: zero pipeline library description padding — @Calvix2k
+- [#1621](https://github.com/Marvisak/VIctory/pull/1621) bound the bytes one part's native blobs unpack to and hand out — @imjustprism
+- [#1739](https://github.com/Marvisak/VIctory/pull/1739) GPU: clear final pipeline stream padding after moves (on #1690) — @jaschinski97-ops
+- [#1737](https://github.com/Marvisak/VIctory/pull/1737) Shaders: honor permlane EXEC and FI/BC flags (on #1014) — @jaschinski97-ops
+- [#1676](https://github.com/Marvisak/VIctory/pull/1676) Shaders, CLI: name a host without mesh shaders in the pipeline census — @fiestorra
+- [#985](https://github.com/Marvisak/VIctory/pull/985) GPU frame test: tolerate a late wake-up instead of requiring consecutive flips — @Makto94
+- [#385](https://github.com/Marvisak/VIctory/pull/385) Shaders: track every incoming edge of a lane-mask phi — @nathanbzrr
+- [#1740](https://github.com/Marvisak/VIctory/pull/1740) GPU: occlusion queries and timestamps run on the host (FIND-8) — @JurajSimicevic
+- [#1723](https://github.com/Marvisak/VIctory/pull/1723) GPU diagnostics: pipeline statistics per noted command with VICTORY_GPU_TIMING — @LarryBebou
+- [#1703](https://github.com/Marvisak/VIctory/pull/1703) README: the GPU timing switch needs DRED for the per-command notes — @fiestorra
+- [#1741](https://github.com/Marvisak/VIctory/pull/1741) Docs: AGENTS.md for AI agents working on VIctory — @ThiagoAlexsander
+- [#1695](https://github.com/Marvisak/VIctory/pull/1695) Shader tests: require a device readback in every waterfall test — @zhaibingye
+- [#1639](https://github.com/Marvisak/VIctory/pull/1639) PE: map header RVAs and read TLS data from the headers — @sandivd
+- [#1636](https://github.com/Marvisak/VIctory/pull/1636) Shaders: GFX10 FLAT offsets ignore bit 11 — @davutsimsekk
+- [#1642](https://github.com/Marvisak/VIctory/pull/1642) Shaders: preserve signaling NaNs in typed buffer loads — @zhaibingye
+- [#1646](https://github.com/Marvisak/VIctory/pull/1646) Shaders: fold constant bin/cmp/select/cast ops and identity ops at emit time — @adamdotpy
+- [#1649](https://github.com/Marvisak/VIctory/pull/1649) shader: lower s_cmov_b32, s_cmov_b64, and s_cmovk_i32 — @geiyiliyabumo
+- [#1647](https://github.com/Marvisak/VIctory/pull/1647) shader: lower v_mul_hi_i32_i24 and v_mul_hi_u32_u24 without INT64 — @geiyiliyabumo
+- [#1654](https://github.com/Marvisak/VIctory/pull/1654) shader: lower v_mad_u64_u32 and v_mad_i64_i32 without INT64 — @geiyiliyabumo
+- [#1659](https://github.com/Marvisak/VIctory/pull/1659) shader: lower v_frexp_{exp,mant}_{f32,f16} in pure 32-bit DXIL — @geiyiliyabumo
+- [#1662](https://github.com/Marvisak/VIctory/pull/1662) Shaders: lower RDNA 2 quad-byte SAD instructions to DXIL — @THE-PRO-GAME
+- [#1663](https://github.com/Marvisak/VIctory/pull/1663) Shaders: lower RDNA 2 ADDTID memory instructions to DXIL — @THE-PRO-GAME
+- [#1668](https://github.com/Marvisak/VIctory/pull/1668) Shaders: read inline floats as f32 bits in 16-bit integer ops — @Calvix2k
+- [#1691](https://github.com/Marvisak/VIctory/pull/1691) GPU: track D3D12 shadow-buffer states (#1670) — @Elensito
+- [#1681](https://github.com/Marvisak/VIctory/pull/1681) GPU: verify exact dirty-page masks on D3D12 — @avt0m4t48
+- [#1712](https://github.com/Marvisak/VIctory/pull/1712) victory-shader: support line-topology mesh shaders — @tjthebigbearcat-hub
+- [#1680](https://github.com/Marvisak/VIctory/pull/1680) GPU: pipeline library loads take a lock for their name, not one for all — @Calvix2k
+- [#1673](https://github.com/Marvisak/VIctory/pull/1673) HLE: XTaskQueueTerminate cancels only its own tasks on shared ports — @Calvix2k
+- [#1677](https://github.com/Marvisak/VIctory/pull/1677) HLE: show title windows through a stand-in that always reads its messages — @Calvix2k
+- [#1641](https://github.com/Marvisak/VIctory/pull/1641) GameInput: answer IUnknown and own-IID queries on the COM objects — @Calvix2k
+- [#1650](https://github.com/Marvisak/VIctory/pull/1650) translate: identify unsupported ACCC/FSPX shader containers — @JamesHoi (draft)
+- [#1640](https://github.com/Marvisak/VIctory/pull/1640) GPU: constant buffer views of at most 64 KiB — @NuraadGit
+- [#1664](https://github.com/Marvisak/VIctory/pull/1664) hle: return S_OK with null handle when PowerSetRequest returns ERROR_NOT_SUPPORTED — @Satanyuga
+- [#1657](https://github.com/Marvisak/VIctory/pull/1657) XSystem: name the analytics family Windows.Xbox — @Calvix2k
+- [#1667](https://github.com/Marvisak/VIctory/pull/1667) flush a kept save blob that had to be copied — @imjustprism
+- [#1734](https://github.com/Marvisak/VIctory/pull/1734) victory-shader: make the test dispatches cheap - an event wait and reused command objects (emit suite -33% wall, -48% CPU) — @pes7
+- [#211](https://github.com/Marvisak/VIctory/pull/211) GPU: composite multiple PresentX planes (fixes Series S black UI/menus) — @Yaekai
+- [#1730](https://github.com/Marvisak/VIctory/pull/1730) translate: --cache DIR fills the runtime's shader cache — @Nixitov
+- [#1727](https://github.com/Marvisak/VIctory/pull/1727) GPU: 1D textures are 2D on the host, one texel high (GBV id=940) — @Bullet18x
+- [#1733](https://github.com/Marvisak/VIctory/pull/1733) Shaders: a helper lane's v_readfirstlane reads its own value (#908) — @moe-miau
+- [#672](https://github.com/Marvisak/VIctory/pull/672) CLI: report all varying descriptor-word opcodes in translation refusals — @MichaelSmithAI
+- [#1738](https://github.com/Marvisak/VIctory/pull/1738) Shaders: preserve live interpolation first halves (on #453) — @jaschinski97-ops
+- [#1669](https://github.com/Marvisak/VIctory/pull/1669) shader: handle dword-straddling 16-bit typed buffer loads at byte offset 3 — @geiyiliyabumo
+- [#1674](https://github.com/Marvisak/VIctory/pull/1674) Shaders: guard speculative and EXEC-predicated heap descriptor loads (#1595) — @ESAT586
+- [#1682](https://github.com/Marvisak/VIctory/pull/1682) Shaders: interpolations with any i/j by hand; barycentrics read as data — @federalcontraband
+- [#1675](https://github.com/Marvisak/VIctory/pull/1675) shader: lower s_absdiff_i32 and s_pack_{ll,lh,hh}_b32_b16 — @geiyiliyabumo
+- [#1684](https://github.com/Marvisak/VIctory/pull/1684) shader: lower 10 scalar bitops (bcnt0/ff0/flbit64/brev64/bitset64/bitreplicate) without INT64 — @geiyiliyabumo
+- [#1685](https://github.com/Marvisak/VIctory/pull/1685) Shaders: lower v_cmp_{f,t}_{i64,u64} constant 64-bit compares — @Calvix2k
+- [#1686](https://github.com/Marvisak/VIctory/pull/1686) Shaders: lower pixel shader SV_Coverage input via dx.op.coverage — @Calvix2k
+- [#1687](https://github.com/Marvisak/VIctory/pull/1687) Shaders: lower image_gather4_c_lz(_o) and offset sample variants — @Calvix2k
+- [#1688](https://github.com/Marvisak/VIctory/pull/1688) Shaders: lower v_mad_u32_u16, v_mad_i32_i16, and v_lerp_u8 — @Calvix2k
+- [#1420](https://github.com/Marvisak/VIctory/pull/1420) Shaders: a mask built up in a loop every lane runs the same way (stacked on #1407) — @marquezinii
+- [#1694](https://github.com/Marvisak/VIctory/pull/1694) shader: lower 6 RDNA2 integer dot-product instructions without INT64 — @geiyiliyabumo
+- [#1696](https://github.com/Marvisak/VIctory/pull/1696) Shaders: honor op_sel, omod and clamp on v_interp_p2_f16 — @Calvix2k
+- [#1699](https://github.com/Marvisak/VIctory/pull/1699) shader: lower v_add_nc_i16, v_sub_nc_i16, v_mad_i16, and v_mad_u16 with clamp — @geiyiliyabumo
+- [#1709](https://github.com/Marvisak/VIctory/pull/1709) Shaders: flush subnormals in f32 min/max/median and cube — @Calvix2k
+- [#1718](https://github.com/Marvisak/VIctory/pull/1718) victory-shader: mask mesh primitive vertex indices to 9 bits (drop edge flags) — @tjthebigbearcat-hub
+- [#1716](https://github.com/Marvisak/VIctory/pull/1716) victory-shader: fold constants and eliminate dead pure ops in bitcode — @bartikele
+- [#643](https://github.com/Marvisak/VIctory/pull/643) GPU: share live host textures across aliased addresses and canonicalize view descriptors — @nathanbzrr
+- [#1652](https://github.com/Marvisak/VIctory/pull/1652) Add native GTA VI launcher and D3D12 rendering updates — @namitahlawat
+- [#1648](https://github.com/Marvisak/VIctory/pull/1648) GPU: mesh shaders emulated as compute + unpack vertex on SM 6.6 cards without a mesh tier — @yoraudev
+- [#305](https://github.com/Marvisak/VIctory/pull/305) Shaders: lower 64-bit image atomics — @tarcisioads
+- [#1725](https://github.com/Marvisak/VIctory/pull/1725) GPU: placed copies take the bytes a GPU write leaves in their memory — @Nixitov
+- [#644](https://github.com/Marvisak/VIctory/pull/644) GPU: spill oversized host root signatures' user data to root CBVs — @nathanbzrr
+- [#1732](https://github.com/Marvisak/VIctory/pull/1732) GPU: f32_to_half keeps NaN and rounds normals to nearest even (#843) — @moe-miau
+- [#1729](https://github.com/Marvisak/VIctory/pull/1729) XGameSave: a stray or unreadable version folder never costs the save (#870) — @moe-miau
+- [#1728](https://github.com/Marvisak/VIctory/pull/1728) Pipelines: VICTORY_PIPELINE_WORKERS sets the worker count — @npanu420
+- [#1726](https://github.com/Marvisak/VIctory/pull/1726) DirectStorage: read a page list naming page 0 again before failing its request — @npanu420
+- [#1724](https://github.com/Marvisak/VIctory/pull/1724) Make the VIctory game window borderless by default — @gmankab
+- [#1722](https://github.com/Marvisak/VIctory/pull/1722) GPU: the host pipeline library works under Wine (null blob for an empty library, loads outside the lock) — @Impre-visible
+- [#1720](https://github.com/Marvisak/VIctory/pull/1720) report apu heap allocations that fail — @imjustprism
+- [#961](https://github.com/Marvisak/VIctory/pull/961) Shaders, GPU: draw mesh pipelines without mesh shaders through a compute fallback (#3) — @EduBertozzi
+- [#609](https://github.com/Marvisak/VIctory/pull/609) GPU: retain and retire released host textures, staging, shadow buffers, and descriptor resources across submissions — @LAKSHYA-cmd-tech
+- [#477](https://github.com/Marvisak/VIctory/pull/477) Shaders: fix DXIL validator UB on null error blobs, unchecked GetStatus, and COM/DLL handle leaks — @nathanbzrr
+- [#1735](https://github.com/Marvisak/VIctory/pull/1735) GPU: time commands by pipeline in VICTORY_GPU_TIMING — @Nixitov
+- [#1399](https://github.com/Marvisak/VIctory/pull/1399) Shader & GPU: support merged ES+GS geometry stages (vs_6_6 / gs_6_6) — @wbkepler
+- [#1423](https://github.com/Marvisak/VIctory/pull/1423) victory-shader: lazily lower non-active console lane-mask SOPs bitwise — @bartikele
+- [#150](https://github.com/Marvisak/VIctory/pull/150) Input: read DualSense pads over HID when XInput has none — @Kam471
+- [#185](https://github.com/Marvisak/VIctory/pull/185) GPU: maintain shadow-buffer coherency for directly indexed SRVs — @aycow (draft)
+- [#602](https://github.com/Marvisak/VIctory/pull/602) GPU diagnostics: report retained copy memory — @lucaseddd
+- [#509](https://github.com/Marvisak/VIctory/pull/509) GPU: add an opt-in execution performance census — @aycow
+- [#1700](https://github.com/Marvisak/VIctory/pull/1700) GPU: say when a draw's render target has no host copy or lost its permission — @fiestorra
+- [#1159](https://github.com/Marvisak/VIctory/pull/1159) loader(crash): verify unwind against known caller frames when RtlCaptureStackBackTrace returns empty — @geiyiliyabumo
+- [#189](https://github.com/Marvisak/VIctory/pull/189) Shaders: emulate Wave64 compute shaders on Wave32 and narrower hosts — @alfycs
+- [#1359](https://github.com/Marvisak/VIctory/pull/1359) Shaders coalesce conditional branches to their fallthrough — @BaggyALPHA
+- [#1056](https://github.com/Marvisak/VIctory/pull/1056) Shaders: scalar loads from a root view's address read its memory — @adamdotpy
+- [#1717](https://github.com/Marvisak/VIctory/pull/1717) HLE: the retail console ID has the documented dotted form — @davutsimsekk
+- [#1510](https://github.com/Marvisak/VIctory/pull/1510) GPU: the indirect budget is charged in record order and no longer wraps — @rouges78
+- [#1719](https://github.com/Marvisak/VIctory/pull/1719) DirectStorage: clear the factory out pointer on failure — @davutsimsekk
+- [#387](https://github.com/Marvisak/VIctory/pull/387) GPU: preserve execution ordering for buffer copies — @aycow (draft)
+- [#1408](https://github.com/Marvisak/VIctory/pull/1408) Shaders: lower float wave prefix sums via lane reads — @fuzeofficlal
+- [#1630](https://github.com/Marvisak/VIctory/pull/1630) GPU: adapter choice and logging, presenter backoff, a texture-description ladder, and a display-deferral test a headless session can pass — @fiestorra
+- [#1635](https://github.com/Marvisak/VIctory/pull/1635) victory-gpu: drop an indirect call before its clamp, not after (1 400-1 750 a frame) — @pes7
+- [#1461](https://github.com/Marvisak/VIctory/pull/1461) GPU: handle DXGI Present failures and occlusion — @Luizbc2
+- [#1215](https://github.com/Marvisak/VIctory/pull/1215) GPU: copy back with NtWriteVirtualMemory, no VirtualQuery before a copy into the title (copy back 1.5 s -> 0.13 s) — @LooperSalty
+- [#1076](https://github.com/Marvisak/VIctory/pull/1076) Fix NVIDIA Ada Lovelace (`RTX 4060`) D3D12 compatibility, 2s TDR submissions, and 16 GB host OOM — @legayclightning22
+- [#1101](https://github.com/Marvisak/VIctory/pull/1101) Revert 2 fix/format support native query — @Super-cod
+- [#1483](https://github.com/Marvisak/VIctory/pull/1483) Pick the discrete GPU on laptops; fix driver-dependent and wrong shader lowering — @spy0eye-beep
+- [#1632](https://github.com/Marvisak/VIctory/pull/1632) [BUNDLE] World-run stack from Impre-visible's report: 12 PRs (#1077 #1175 #523 #530 #1040 #1406 #1392 #1407 #1516 #1388 #1189 #542), stacked on #1511 — @MamaLeVrai
+- [#1638](https://github.com/Marvisak/VIctory/pull/1638) [BUNDLE] NVIDIA stack: Impre-visible's tree (wave64 #189 + the world-run list, 12 PRs) checked together, stacked on #1589 — @MamaLeVrai
+- [#1655](https://github.com/Marvisak/VIctory/pull/1655) xtask: the Forge and claims (one branch of every pull request that builds; who works on what) — @KevinPratap
+- [#1130](https://github.com/Marvisak/VIctory/pull/1130) Shaders: a descriptor read only as data takes the kind of its entry's… — @felicienradio
+- [#1291](https://github.com/Marvisak/VIctory/pull/1291) victory-shader: emit zero for padding halves in f16 pixel input interpolation — @bartikele
+- [#1721](https://github.com/Marvisak/VIctory/pull/1721) Launcher: a GUI that checks the game directory and runs victory.exe — @moe-miau
+- [#1163](https://github.com/Marvisak/VIctory/pull/1163) Core: normalize trailing .. and Windows verbatim paths in policy::resolve — @geiyiliyabumo
+- [#562](https://github.com/Marvisak/VIctory/pull/562) GPU: reuse immutable descriptor tables across command lists — @aycow (draft)
+- [#1266](https://github.com/Marvisak/VIctory/pull/1266) Tests: keep the D3D12 pipeline smoke check portable under Wine — @BaggyALPHA
+- [#1489](https://github.com/Marvisak/VIctory/pull/1489) Shaders: lower image_gather4_c_lz and image_gather4_c_lz_o (MIMG 0x4f, 0x5f) — @AscilCH
+- [#1333](https://github.com/Marvisak/VIctory/pull/1333) Shaders: bindless through pointer chasing, bias means only the pointer's own adds — @MagiccConch
+- [#1350](https://github.com/Marvisak/VIctory/pull/1350) GPU: scan virtual regions on copy_mapped and write_mapped fallback (#783) — @wbkepler
+- [#1446](https://github.com/Marvisak/VIctory/pull/1446) GPU list: bind initial pipeline state in create_list and create_list_x — @geiyiliyabumo
+- [#1492](https://github.com/Marvisak/VIctory/pull/1492) [BUNDLE] Shader instruction lowering: 21 PRs, #98 #156 #162 #168 #169 #368 #379 #456 #587 #990 #1021 #1048 #1052 #1053 #1095 #1142 #1190 #1211 #1223 #1259 #1293, stacked on #1402 — @MamaLeVrai
+- [#1602](https://github.com/Marvisak/VIctory/pull/1602) Shader tests: f32/int conversions saturate, take NaN as 0, round to even — @vladbondarenko97
+- [#1046](https://github.com/Marvisak/VIctory/pull/1046) Shaders: hardware test for the s_cmpk_* scalar comparisons — @LouisRiverstone
+- [#1048](https://github.com/Marvisak/VIctory/pull/1048) Shaders: hardware test for s_bfe_u32 — @LouisRiverstone
+- [#1050](https://github.com/Marvisak/VIctory/pull/1050) Shaders: negative-zero ordering test for the f16 min/max forms — @LouisRiverstone
+- [#1608](https://github.com/Marvisak/VIctory/pull/1608) Shaders: single-round v_fma_mixlo_f16 and v_fma_mixhi_f16 to binary16 — @geiyiliyabumo
+- [#72](https://github.com/Marvisak/VIctory/pull/72) GPU: retry pipeline cache saves after write failures — @FIocker
+- [#1597](https://github.com/Marvisak/VIctory/pull/1597) Shaders: hidden descriptor words joined with data are an undefined path (+494 programs, stacked on #1402) — @sinan-cmyk
+- [#1280](https://github.com/Marvisak/VIctory/pull/1280) Shaders: gradient samples with a level clamp, and cube gradients in face space — @nicogunvis-boop
+- [#1445](https://github.com/Marvisak/VIctory/pull/1445) HLE reuses freed physical page numbers — @BaggyALPHA
+- [#413](https://github.com/Marvisak/VIctory/pull/413) GPU: materialize bindless ResourceDescriptorHeap views, refreshing only changed slots — @wbkepler
+- [#1438](https://github.com/Marvisak/VIctory/pull/1438) XPackage: wire XPackageEnumerateChunkAvailability — @ashrafsdrop
+- [#1656](https://github.com/Marvisak/VIctory/pull/1656) victory-gpu: dedupe copy-back ranges in a set, and take the 64 KiB piece buffer from the pool — @pes7
+- [#694](https://github.com/Marvisak/VIctory/pull/694) Shaders: support image_sample_d_cl and image_gather4_l lowering (#293, #653) — @LAKSHYA-cmd-tech
+- [#1475](https://github.com/Marvisak/VIctory/pull/1475) HLE: clear blocked DNS lookup results — @ToxicmaggotRP
+- [#89](https://github.com/Marvisak/VIctory/pull/89) gpu: packed 16-bit render targets are R8G8B8A8 where the GPU cannot render to them — @HenriqueSBueno
+- [#578](https://github.com/Marvisak/VIctory/pull/578) GPU: refuse wave64 mesh and compute programs on hosts without 64-lane waves — @wbkepler
+- [#175](https://github.com/Marvisak/VIctory/pull/175) Windows 10: load the D3D12 Agility SDK runtime for shader model 6.6 — @kykifox1337-source
+- [#1715](https://github.com/Marvisak/VIctory/pull/1715) FidelityFX: DLSS frame generation on frames the title upscales (stacked on #1704) — @marquezinii
+- [#1422](https://github.com/Marvisak/VIctory/pull/1422) GPU: ignore clear values on non-target textures and avoid caching failed host textures in PLACED_TEXTURES — @ESAT586
+- [#439](https://github.com/Marvisak/VIctory/pull/439) Shaders: one console wave sharing LDS runs in the console flow on 32-lane hosts — @r4tedx
+- [#298](https://github.com/Marvisak/VIctory/pull/298) Shaders: lane masks spilled to VGPR lanes and read back — @permadiego
+- [#1164](https://github.com/Marvisak/VIctory/pull/1164) Shaders: add hardware tests for v_cmp_class_f32, integer min3/max3/med3, and f16 signed-zero min/max — @geiyiliyabumo
+- [#1209](https://github.com/Marvisak/VIctory/pull/1209) Shaders: fix GFX10 independent a16/g16 gradient dword packing in fields.rs with 21 tests — @geiyiliyabumo
+- [#1212](https://github.com/Marvisak/VIctory/pull/1212) HLE: expand synthetic unit tests for apu.rs (1 -> 19 tests) — @geiyiliyabumo
+- [#1204](https://github.com/Marvisak/VIctory/pull/1204) GPU: guard zero/overflowing stride in expand_rects and add primitive.rs unit tests — @geiyiliyabumo
+- [#1478](https://github.com/Marvisak/VIctory/pull/1478) Shaders: lower VOP3 integer clamp saturation for add/sub ops — @geiyiliyabumo
+- [#1431](https://github.com/Marvisak/VIctory/pull/1431) HLE: reopen the emulated OEM key on a null or empty subkey — @fuzeofficlal
+- [#1707](https://github.com/Marvisak/VIctory/pull/1707) Docs: add AGENTS.md for agent contributors — @Calvix2k
+- [#1549](https://github.com/Marvisak/VIctory/pull/1549) Formats: test texture layouts against addrlib's own sizes and addresses — @venglov
+- [#1450](https://github.com/Marvisak/VIctory/pull/1450) Formats texture: add thick-3D mip-tail regression tests matching AMD addrlib — @geiyiliyabumo
+- [#1653](https://github.com/Marvisak/VIctory/pull/1653) victory-gpu: split the pipeline library into shards so a save writes only what changed (was 600 MB per save) — @pes7
+- [#1457](https://github.com/Marvisak/VIctory/pull/1457) DirectStorage: keep raw reads running while staging drains — @Luizbc2
+- [#1336](https://github.com/Marvisak/VIctory/pull/1336) Shaders: fix RPO resource tracking, SMEM alignment, raw VCC branch, and readlane/writelane semantics (#1249) — @wbkepler
+- [#308](https://github.com/Marvisak/VIctory/pull/308) Shaders: follow lane writes and scalar steps in whole-wave sections — @AntoninMichelq
+- [#704](https://github.com/Marvisak/VIctory/pull/704) Shaders, GPU: unknown-stride buffers are read through a raw view of the same bytes (stacked on #193) — @r4tedx
+- [#1373](https://github.com/Marvisak/VIctory/pull/1373) HLE: guard against null GWLP_USERDATA in XGameUi dialog WM_COMMAND handler — @mgunes1311-lab
+- [#1710](https://github.com/Marvisak/VIctory/pull/1710) GPU: keep dropped draws in the full frame reporting interval — @zhaibingye
+- [#1380](https://github.com/Marvisak/VIctory/pull/1380) Net: allow local machine hostname in resolvable and loopback_name — @ashrafsdrop
+- [#1448](https://github.com/Marvisak/VIctory/pull/1448) GPU: invalidate root bindings when a root signature changes — @Luizbc2
+- [#1421](https://github.com/Marvisak/VIctory/pull/1421) hle: parse prefixed title ids in manifests — @ToxicmaggotRP
+- [#1349](https://github.com/Marvisak/VIctory/pull/1349) GPU: reserve 2^18 dynamic slots on capped view heaps and trim fresh tables (#747) — @wbkepler
+- [#1453](https://github.com/Marvisak/VIctory/pull/1453) GPU: interpolate normalized rectangle vertex attributes — @Luizbc2
+- [#1312](https://github.com/Marvisak/VIctory/pull/1312) Shaders: mask v_readlane/v_writelane lane index and bypass EXEC on writelane — @ashrafsdrop
+- [#1484](https://github.com/Marvisak/VIctory/pull/1484) Shaders: prune unreachable blocks before SSA construction — @chiperandrei42
+- [#1237](https://github.com/Marvisak/VIctory/pull/1237) Shaders: implicit-level samples in compute take their gradients from the quad — @felicienradio
+- [#242](https://github.com/Marvisak/VIctory/pull/242) GPU: make ExecuteIndirect clamping countBuffer-aware and non-destructive — @wbkepler
+- [#1274](https://github.com/Marvisak/VIctory/pull/1274) HLE: complete XPackage progress callback unregistration — @EatCodeSleep2
+- [#1704](https://github.com/Marvisak/VIctory/pull/1704) FidelityFX: answer the upscale calls with DLSS through Streamline (stacked on #1284) — @marquezinii
+- [#233](https://github.com/Marvisak/VIctory/pull/233) Shaders: wave64 compute on 32-lane hosts, in halves and in the console flow — @r4tedx
+- [#1693](https://github.com/Marvisak/VIctory/pull/1693) victory-shader: lower TFE image loads/samples/gathers via CheckAccessFullyMapped — @tjthebigbearcat-hub
+- [#1432](https://github.com/Marvisak/VIctory/pull/1432) HLE: set ERROR_PROC_NOT_FOUND for missing pseudo-module exports — @fuzeofficlal
+- [#1331](https://github.com/Marvisak/VIctory/pull/1331) GPU: rebind replaced descriptor heaps by host identity — @EatCodeSleep2
+- [#1406](https://github.com/Marvisak/VIctory/pull/1406) GPU: fix NULL/UNKNOWN SRV/UAVs on promoted-typeless textures and MSAA/array/3D NULL RTV/DSVs — @ESAT586
+- [#1614](https://github.com/Marvisak/VIctory/pull/1614) Shader tests: a cross-device VALU fuzzer (hardware adapters vs WARP) — @alexdeliu
+- [#1388](https://github.com/Marvisak/VIctory/pull/1388) GPU: honor command-list 64-bit memory waits without blocking submissions (#700) — @wbkepler
+- [#1023](https://github.com/Marvisak/VIctory/pull/1023) gpu: implement ordered 32-bit and 64-bit command-list memory waits — @KLeek5
+- [#1702](https://github.com/Marvisak/VIctory/pull/1702) HLE: add VICTORY_NO_HOST_PAD to hide host gamepads — @Calvix2k
+- [#1287](https://github.com/Marvisak/VIctory/pull/1287) Add experimental AMD frame generation test path — @AwkGrep256
+- [#1185](https://github.com/Marvisak/VIctory/pull/1185) Stream shader archive scans in bounded batches — @Jitheswar
+- [#1414](https://github.com/Marvisak/VIctory/pull/1414) GPU: avoid clobbering HostList prelude allocator when a list executes twice in one submission — @ESAT586
+- [#595](https://github.com/Marvisak/VIctory/pull/595) GPU: run submissions asynchronously on a host fence timeline — @wbkepler
+- [#223](https://github.com/Marvisak/VIctory/pull/223) Shaders: translate for the host's wave sizes — @r4tedx
+- [#1701](https://github.com/Marvisak/VIctory/pull/1701) GPU: VICTORY_MODE overrides the reported console display mode — @Calvix2k
+- [#1610](https://github.com/Marvisak/VIctory/pull/1610) [BUNDLE] Eight more fixes carried from contributors' forks: #745 #776 #787 #805 #845 #852 #915 #918 — @MamaLeVrai
+- [#424](https://github.com/Marvisak/VIctory/pull/424) README: quote the executable path in the PowerShell launch example — @TurGangS
+- [#1299](https://github.com/Marvisak/VIctory/pull/1299) docs: explain Windows shader-test validator prerequisite — @omeyasawant
+- [#1307](https://github.com/Marvisak/VIctory/pull/1307) GPU dxgi: null out on NOT_FOUND, preserve display mode format, add GetDesc1 — @geiyiliyabumo
+- [#1418](https://github.com/Marvisak/VIctory/pull/1418) [BUNDLE] GPU fixes (write watch, textures, device, DXGI, objects, primitives, capture): 17 PRs, #124 #119 #515 #934 #484 #143 #1191 #278 #553 #153 #270 #1158 #1204 #1220 #488 #1146 #631 — @MamaLeVrai
+- [#1517](https://github.com/Marvisak/VIctory/pull/1517) Input: add Windows DualSense / DualSense Edge support — @Asem912
+- [#497](https://github.com/Marvisak/VIctory/pull/497) GPU: keep what shaders may write by page, in reused page buffers — @wbkepler
+- [#312](https://github.com/Marvisak/VIctory/pull/312) HLE: SDL3 gamepad backend for the gameinput shim — @DaviTostes
+- [#1454](https://github.com/Marvisak/VIctory/pull/1454) [BUNDLE] Docs: README and docs additions, 10 PRs, #280 #323 #354 #424 #532 #686 #1091 #1161 #1278 #1299 — @MamaLeVrai
+- [#1224](https://github.com/Marvisak/VIctory/pull/1224) HLE: coalesce split placeholders on map and group runs in map_alias — @matheusfrta
+- [#1564](https://github.com/Marvisak/VIctory/pull/1564) GPU: MakeResident succeeds, as the console's memory is always resident — @LouisRiverstone
+- [#1565](https://github.com/Marvisak/VIctory/pull/1565) GPU: Evict succeeds, as the console's memory is never evicted — @LouisRiverstone
+- [#1296](https://github.com/Marvisak/VIctory/pull/1296) GPU: add VICTORY_TEXTURE_MIP_DROP and DXGI auto-default for <= 8 GB GPUs (fixes #737, #1226) — @antikohza
+- [#490](https://github.com/Marvisak/VIctory/pull/490) GPU: ask whether guarded memory is a view once per block, not per asking — @wbkepler
+- [#354](https://github.com/Marvisak/VIctory/pull/354) docs: explain Series S render profile and memory limits — @ToxicmaggotRP
+- [#1514](https://github.com/Marvisak/VIctory/pull/1514) Add opt-in GPU memory synchronization tracing — @draggygaggy-maker
+- [#1455](https://github.com/Marvisak/VIctory/pull/1455) HLE: allow an explicit maximum title window size — @fluffyflattershy-afk
+- [#1404](https://github.com/Marvisak/VIctory/pull/1404) Shaders: test raw VCC on s_cbranch_vccz and vccnz without EXEC masking — @ashrafsdrop
+- [#1371](https://github.com/Marvisak/VIctory/pull/1371) Shaders: compress replaced phi chains in remove_trivial_phis — @fuzeofficlal
+- [#1463](https://github.com/Marvisak/VIctory/pull/1463) GPU: cap command lists per submission (VICTORY_SUBMIT_MAX_RUNS) — @Bebrik229
+- [#1370](https://github.com/Marvisak/VIctory/pull/1370) Shaders: zero missing channels on typed buffer loads — @fuzeofficlal
+- [#1366](https://github.com/Marvisak/VIctory/pull/1366) Shaders: do not parse VS inputs when reading mesh shader stage I/O — @mgunes1311-lab
+- [#1365](https://github.com/Marvisak/VIctory/pull/1365) Shaders: hardware test for s_bfm_b32 and s_bitset0/1_b32 — @LouisRiverstone
+- [#197](https://github.com/Marvisak/VIctory/pull/197) Input: apply VICTORY_KEYS to a connected host pad too — @Alpaca-exe
+- [#1364](https://github.com/Marvisak/VIctory/pull/1364) Shaders: hardware test for s_mul_i32, s_mul_hi_u32 and s_mul_hi_i32 — @LouisRiverstone
+- [#1362](https://github.com/Marvisak/VIctory/pull/1362) Shaders: hardware test for s_lshl1..4_add_u32 — @LouisRiverstone
+- [#1361](https://github.com/Marvisak/VIctory/pull/1361) Shaders: hardware test for the scalar bit-scan, reverse and abs ops — @LouisRiverstone
+- [#1405](https://github.com/Marvisak/VIctory/pull/1405) GPU: a view's own copy that shaders feed reads its buffer's copy on the GPU (stacked on #334 and #1019) — @SantannaCarlos
+- [#1382](https://github.com/Marvisak/VIctory/pull/1382) GPU: batch resource barriers, reuse draw scratch buffers, range-lock copy_simple, and pool list uploads — @wbkepler
+- [#1374](https://github.com/Marvisak/VIctory/pull/1374) GPU: read same-list GPU writes in placed buffer-to-texture copies — @fuzeofficlal
+- [#1430](https://github.com/Marvisak/VIctory/pull/1430) Input: keep keyboard stand-in pad active while XInput slots are idle — @fuzeofficlal
+- [#1396](https://github.com/Marvisak/VIctory/pull/1396) GPU: preserve sub-64 KiB alignments and check bounds in allocation_info — @fuzeofficlal
+- [#1369](https://github.com/Marvisak/VIctory/pull/1369) GPU: query native format support and multisample quality levels — @fuzeofficlal
+- [#1383](https://github.com/Marvisak/VIctory/pull/1383) Preserve Win32 errors from DirectStorage OpenFile — @EatCodeSleep2
+- [#1392](https://github.com/Marvisak/VIctory/pull/1392) gpu: emit UAV barrier after a dropped compute dispatch — @kunalkhude99
+- [#1390](https://github.com/Marvisak/VIctory/pull/1390) GPU: keep A8_UNORM out of the R8 typeless family — @AnoHunted
+- [#1502](https://github.com/Marvisak/VIctory/pull/1502) fix(gpu): transition shadow buffers before VB/IB binding — @Thomas73737
+- [#1547](https://github.com/Marvisak/VIctory/pull/1547) GPU: invalidate HOST_WRITTEN textures when title memory is written — @n-romanovich
+- [#464](https://github.com/Marvisak/VIctory/pull/464) GPU: remember unmapped guarded view blocks instead of re-copying them every submission — @wbkepler
+- [#1210](https://github.com/Marvisak/VIctory/pull/1210) GPU: upload a host-copied texture again once the title writes its memory — @powplusplus
+- [#1692](https://github.com/Marvisak/VIctory/pull/1692) [BUNDLE] GPU diagnostics: 16 PRs, #279 #491 #500 #537 #602 #669 #1064 #1081 #1233 #1236 #1251 #1254 #1320 #1344 #1449 #1604 — @MamaLeVrai
+- [#1520](https://github.com/Marvisak/VIctory/pull/1520) Draft: reproduce RTX 5080 world-transition GPU hang on combined renderer patches — @alladeen321123 (draft)
+- [#1010](https://github.com/Marvisak/VIctory/pull/1010) GPU: copy title memory into host memory without a system call — @TG0000
+- [#292](https://github.com/Marvisak/VIctory/pull/292) Shader: lower WQM QuadAny, clamp LDS accesses, and guard loop budgets & barriers — @wbkepler
+- [#1112](https://github.com/Marvisak/VIctory/pull/1112) Shaders: round normalized MTBUF loads without Int64ShaderOps — @Razdva122
+- [#422](https://github.com/Marvisak/VIctory/pull/422) Shaders: narrow f32 to f16 to nearest even, as the console does — @LouisRiverstone
+- [#501](https://github.com/Marvisak/VIctory/pull/501) gpu: probe a CPU-visible placed-buffer arena — @ToxicmaggotRP
+- [#1554](https://github.com/Marvisak/VIctory/pull/1554) Shaders: flush subnormals in f32 MAD and MAC — @Calvix2k
+- [#1604](https://github.com/Marvisak/VIctory/pull/1604) GPU diagnostics: measure pipeline worker backlog during shared shader waits — @ToxicmaggotRP
+- [#1666](https://github.com/Marvisak/VIctory/pull/1666) GPU: small first scratch chunk per list; log host memory against budget — @cyudev
+- [#1391](https://github.com/Marvisak/VIctory/pull/1391) Shaders: lower v_cvt_off_f32_i4 — @AnoHunted
+- [#1395](https://github.com/Marvisak/VIctory/pull/1395) Shaders: lower s_bfe_u64, s_bfe_i64 and s_bfm_b64 — @AnoHunted
+- [#1398](https://github.com/Marvisak/VIctory/pull/1398) Shaders: honor clamp on unsigned VOP3 add and subtract — @EatCodeSleep2
+- [#1416](https://github.com/Marvisak/VIctory/pull/1416) Shaders: return zero for inactive compute swizzle sources — @EatCodeSleep2
+- [#1417](https://github.com/Marvisak/VIctory/pull/1417) Shaders: lower SV_RenderTargetArrayIndex and SV_ViewportArrayIndex exports — @fuzeofficlal
+- [#1433](https://github.com/Marvisak/VIctory/pull/1433) Shaders: console flow for groups of several console waves on 32-lane hosts — @anasssssssss1
+- [#1437](https://github.com/Marvisak/VIctory/pull/1437) Shaders: preserve the unwritten high half of packed D16 image loads — @EatCodeSleep2
+- [#1441](https://github.com/Marvisak/VIctory/pull/1441) Shaders: preserve the unwritten high half of packed D16 buffer loads — @EatCodeSleep2
+- [#1460](https://github.com/Marvisak/VIctory/pull/1460) Shaders: keep distinct critical-edge blocks for duplicate branch targets — @piyonchu
+- [#1462](https://github.com/Marvisak/VIctory/pull/1462) CLI: report emitted shader wave sizes in translate — @gurvancampion
+- [#1469](https://github.com/Marvisak/VIctory/pull/1469) Shaders: lower binary64 class comparisons — @Luizbc2
+- [#1575](https://github.com/Marvisak/VIctory/pull/1575) Shaders: sweep typed buffer formats and f16 ALU against exact references — @DovisLe
+- [#322](https://github.com/Marvisak/VIctory/pull/322) GPU: copy into title memory without asking for its region first — @jsthope
+- [#1609](https://github.com/Marvisak/VIctory/pull/1609) victory doctor: name the known problems a run shows, in plain words (stacked on #959) — @EduBertozzi
+- [#230](https://github.com/Marvisak/VIctory/pull/230) GPU: skip unchanged texture uploads via prelude copy recording — @wbkepler
+- [#996](https://github.com/Marvisak/VIctory/pull/996) victory-shader: lower a16 biased image samples and sub-dword LDS access — @bartikele
+- [#250](https://github.com/Marvisak/VIctory/pull/250) GPU & CLI: configurable/uncapped FPS limit, high-res pacing, high-refresh modes, and tearing swapchain — @wbkepler
+- [#234](https://github.com/Marvisak/VIctory/pull/234) HLE: overlapped DirectStorage I/O and persistent xmem section views — @wbkepler
+- [#1058](https://github.com/Marvisak/VIctory/pull/1058) CI: serialize Windows workspace tests — @divyeshganta
+- [#1052](https://github.com/Marvisak/VIctory/pull/1052) Shaders: hardware test for the integer v_min3/v_max3/v_med3 — @LouisRiverstone
+- [#1080](https://github.com/Marvisak/VIctory/pull/1080) HLE: constrain the title before suspending it (window close never suspended) — @giusepperainone
+- [#216](https://github.com/Marvisak/VIctory/pull/216) Loader & HLE: harden VEH crash handler, PE prep/exports/TLS, and allow oleaut32 — @wbkepler
+- [#1665](https://github.com/Marvisak/VIctory/pull/1665) Docs: add Windows 10 and GPU compatibility guide — @Elensito
+- [#306](https://github.com/Marvisak/VIctory/pull/306) Shader: fix biased 16-bit image samples and DXIL validator failures — @wbkepler
+- [#294](https://github.com/Marvisak/VIctory/pull/294) GPU & shader: full Root SRV extent refresh, safe fallback VAs, and Root UAVs — @wbkepler
+- [#438](https://github.com/Marvisak/VIctory/pull/438) CI: consolidate Linux and native Apple Silicon offline validation — @pedrofort
+- [#1661](https://github.com/Marvisak/VIctory/pull/1661) GPU: route non-overlapping CopyMemoryToMemoryX through Step::Copy and scope invalidation to written ranges — @anlnimus
+- [#1660](https://github.com/Marvisak/VIctory/pull/1660) GPU: serialize pipeline library atomic writes with unique temp files — @HailLucifer666
+- [#1658](https://github.com/Marvisak/VIctory/pull/1658) GPU: keep Staging::detile inside the staging buffer and harden committed() — @HailLucifer666
+- [#1493](https://github.com/Marvisak/VIctory/pull/1493) Shaders: key immediate samplers by comparison mode — @piyonchu
+- [#1599](https://github.com/Marvisak/VIctory/pull/1599) Shaders: 64-bit integer compares on their dwords (AMD orders a shared-dword i64 compare wrong) — @alexdeliu
+- [#32](https://github.com/Marvisak/VIctory/pull/32) GPU: fence waits, direct memory-write wakes, queue timeline and host list pool — @AndyLatimer
+- [#1651](https://github.com/Marvisak/VIctory/pull/1651) GPU: save only changed host pipeline-library shards — @avt0m4t48
+- [#319](https://github.com/Marvisak/VIctory/pull/319) GPU: end a late flip wait on the tick it missed, not the next — @xmvo
+- [#1402](https://github.com/Marvisak/VIctory/pull/1402) [BUNDLE] High-yield shader PRs (+295/+520/+153/+117 programs in #1247): #1067 #305 #306 #176, stacked on #1319 — @MamaLeVrai
+- [#1221](https://github.com/Marvisak/VIctory/pull/1221) victory-shader: resolve Structured::other and constant masks in v_cndmask_b32 — @bartikele
+- [#452](https://github.com/Marvisak/VIctory/pull/452) Shaders: spin-wait loops stop after 4096 iterations; loop limit in release builds — @AntoninMichelq
+- [#558](https://github.com/Marvisak/VIctory/pull/558) CLI: check every extension the title uses unchecked, not only AVX2 (depends on #238) — @mercuryVM
+- [#1589](https://github.com/Marvisak/VIctory/pull/1589) [BUNDLE] Wave64 compute on 32-lane hosts: #189 merged onto the shader stack, stacked on #1511 — @MamaLeVrai
+- [#575](https://github.com/Marvisak/VIctory/pull/575) GPU: release resources the CPU is done with behind the queue — @Len1k
+- [#492](https://github.com/Marvisak/VIctory/pull/492) GPU: substitute R9G9B9E5_SHAREDEXP render targets and UAVs with R16G16B16A16_FLOAT — @Yaekai
+- [#1326](https://github.com/Marvisak/VIctory/pull/1326) Shaders: fold always-false and always-true compares to boolean constants — @fuzeofficlal
+- [#493](https://github.com/Marvisak/VIctory/pull/493) GPU: bind root SRVs as one-view tables bounded to their host copy — @hophaver
+- [#1643](https://github.com/Marvisak/VIctory/pull/1643) GPU: register pipeline demand after asynchronous compilation timeout — @santiago-andreiu
+- [#587](https://github.com/Marvisak/VIctory/pull/587) Shaders: guard mesh output bounds, init all primitives, and omit sync on divergent s_barrier — @FibbS6
+- [#1315](https://github.com/Marvisak/VIctory/pull/1315) Shaders, GPU: translate single-stream triangle geometry programs — @r4tedx
+- [#182](https://github.com/Marvisak/VIctory/pull/182) Files: `..` in a title path stops at the virtual drive's root — @Maraco91
+- [#585](https://github.com/Marvisak/VIctory/pull/585) Shaders: lower untracked v_cndmask_b32/carry-in masks via lane_bit and descriptor-only GetDimensions — @FibbS6
+- [#1067](https://github.com/Marvisak/VIctory/pull/1067) Shaders: a descriptor only read as data takes its kind from its table — @undeadhuman37
+- [#1644](https://github.com/Marvisak/VIctory/pull/1644) [BUNDLE] Unknown-stride buffers: #704 on #193, stacked on #1511 — @MamaLeVrai
+- [#1376](https://github.com/Marvisak/VIctory/pull/1376) Shader: lower scalar Root CBV/SRV loads and descriptor-as-data queries — @wbkepler
+- [#1229](https://github.com/Marvisak/VIctory/pull/1229) Shaders: handle redundant partial descriptor writes and lane-preserving VGPR moves (#750) — @Ctrl-Alt-Haze
+- [#1625](https://github.com/Marvisak/VIctory/pull/1625) CLI: compare runtime shader failures with offline coverage — @srijann07
+- [#334](https://github.com/Marvisak/VIctory/pull/334) GPU: transition host copies of title memory between shader writes and reads — @realhenners
+- [#180](https://github.com/Marvisak/VIctory/pull/180) Shaders: twin descriptor loads and quad gradients for compute samples — @permadiego
+- [#426](https://github.com/Marvisak/VIctory/pull/426) Shaders: lower native 16-bit buffer stores — @ToxicmaggotRP
+- [#601](https://github.com/Marvisak/VIctory/pull/601) GPU: bound texture upload and capture slices to the allocated buffer — @AwsAli05
+- [#1544](https://github.com/Marvisak/VIctory/pull/1544) GPU: refresh and transition ResourceDescriptorHeap views before draws — @n-romanovich
+- [#1186](https://github.com/Marvisak/VIctory/pull/1186) GPU: fix 8 overflow, lookup, and snapshot bugs in shadow.rs with regression tests — @geiyiliyabumo
+- [#1537](https://github.com/Marvisak/VIctory/pull/1537) HLE: update shared XMA context words atomically — @Texbirds
+- [#1379](https://github.com/Marvisak/VIctory/pull/1379) Shaders: hardware test for v_alignbit/alignbyte, v_bfi, v_bfm and v_bcnt — @LouisRiverstone
+- [#1367](https://github.com/Marvisak/VIctory/pull/1367) XPackage: wire XPackageUnregisterInstallationProgressChanged returning bool — @ashrafsdrop
+- [#324](https://github.com/Marvisak/VIctory/pull/324) fix(pe): detect incomplete TLS callback arrays — @pedrofort
+- [#1471](https://github.com/Marvisak/VIctory/pull/1471) Shaders: fold empty loop latches containing only dead phis — @Texbirds
+- [#1473](https://github.com/Marvisak/VIctory/pull/1473) Shaders: track per-lane export state across mixed pixel-shader joins — @Texbirds
+- [#1474](https://github.com/Marvisak/VIctory/pull/1474) Shaders: set WAVE_OPS feature flag when lane_bit emits waveGetLaneIndex — @Texbirds
+- [#1477](https://github.com/Marvisak/VIctory/pull/1477) Shaders: key immediate sampler slots by descriptor and comparison mode — @geiyiliyabumo
+- [#1480](https://github.com/Marvisak/VIctory/pull/1480) Shaders: unpack a16 image coordinates and gradients after whole 32-bi… — @Texbirds
+- [#1486](https://github.com/Marvisak/VIctory/pull/1486) Shaders: track source lane in whole-wave Sym::Own to prevent miscompiled shuffles — @AscilCH
+- [#1488](https://github.com/Marvisak/VIctory/pull/1488) Shaders: lower ds_add{_rtn}_f32 and ds_cmpst{_rtn}_f32 LDS atomics — @AscilCH
+- [#116](https://github.com/Marvisak/VIctory/pull/116) Shaders: byte and halfword LDS reads and writes — @dragoso
+- [#1548](https://github.com/Marvisak/VIctory/pull/1548) GPU: preserve full DYNAMIC descriptor range when host view heap is capped at PORTABLE_VIEWS — @n-romanovich
+- [#398](https://github.com/Marvisak/VIctory/pull/398) HLE: report the single supported offline user — @ToxicmaggotRP
+- [#1360](https://github.com/Marvisak/VIctory/pull/1360) Shaders: hardware test for s_min_i32/u32 and s_max_i32/u32 — @LouisRiverstone
+- [#1354](https://github.com/Marvisak/VIctory/pull/1354) Shaders: infer heap UAVs program-wide and emit IsGloballyCoherent on glc UAVs — @wbkepler
+- [#1342](https://github.com/Marvisak/VIctory/pull/1342) Shaders: lower buffer_atomic_{sub,csub,inc,dec,fcmpswap,fmin,fmax} — @AscilCH
+- [#1341](https://github.com/Marvisak/VIctory/pull/1341) Shaders: lower v_ldexp_f32 (VOP3 0x362) — @AscilCH
+- [#1340](https://github.com/Marvisak/VIctory/pull/1340) Shaders: mask M0[7:0] on v_movrel* and allow scalar/const src0 on v_movreld_b32 — @AscilCH
+- [#1339](https://github.com/Marvisak/VIctory/pull/1339) Shaders: support clamp output modifier on v_cvt_pkrtz_f16_f32 — @AscilCH
+- [#1277](https://github.com/Marvisak/VIctory/pull/1277) GPU: remember which title memory is view memory until it is remapped — @TG0000
+- [#1338](https://github.com/Marvisak/VIctory/pull/1338) Shaders: honor op_sel[3], clamp, and omod on v_interp_p2_f16 — @AscilCH
+- [#1337](https://github.com/Marvisak/VIctory/pull/1337) Shaders: preserve mip point filtering in anisotropic static samplers — @mgunes1311-lab
+- [#1328](https://github.com/Marvisak/VIctory/pull/1328) Shaders: bitwise wave prefixes as WaveMultiPrefixOp — @paulomatias97-create
+- [#1327](https://github.com/Marvisak/VIctory/pull/1327) Shaders: apply bitwise modifiers to v_cmp_class_f32 source operands — @fuzeofficlal
+- [#1314](https://github.com/Marvisak/VIctory/pull/1314) Shaders: lower v_{fmaak,fmamk}_f16, v_cvt_pk_{i16_i32,u16_u32}, and v_lerp_u8 — @ESAT586
+- [#1313](https://github.com/Marvisak/VIctory/pull/1313) Shaders: return zero for unused image query extents — @EatCodeSleep2
+- [#1303](https://github.com/Marvisak/VIctory/pull/1303) Shaders: bounds-check DXIL header offsets and recognize dword zero padding — @geiyiliyabumo
+- [#1301](https://github.com/Marvisak/VIctory/pull/1301) Shaders: align GFX10 opcode tables with RDNA2 ISA and add synthetic tests — @geiyiliyabumo
+- [#1300](https://github.com/Marvisak/VIctory/pull/1300) Shaders: lower v_{min3,max3,med3}_{i16,u16} and v_mad_{u32_u16,i32_i16} — @ESAT586
+- [#1322](https://github.com/Marvisak/VIctory/pull/1322) GPU: copy title writes under ranges a submission's shaders write — @KevinPratap
+- [#443](https://github.com/Marvisak/VIctory/pull/443) Audio: keep XMA frames split across rolling inputs — @Quat3rnion
+- [#1320](https://github.com/Marvisak/VIctory/pull/1320) GPU diagnostics: skip host pipeline creation by shader hash — @gurvancampion
+- [#925](https://github.com/Marvisak/VIctory/pull/925) contribute: depth bounds + waterfall queries + XNetworking (#849 #853 #851) — @xanderovias
+- [#1007](https://github.com/Marvisak/VIctory/pull/1007) Apple Silicon: unified experimental GPU and runtime integration — @pedrofort (draft)
+- [#542](https://github.com/Marvisak/VIctory/pull/542) Shaders: keep buffer offsets below 2 GiB (NVIDIA + vkd3d-proton world device loss) — @gingertonik
+- [#1077](https://github.com/Marvisak/VIctory/pull/1077) Shaders, GPU: root UAVs (stacked on #489) — @DuarttBR
+- [#1040](https://github.com/Marvisak/VIctory/pull/1040) GPU: drop unsupported UAV/RT flags on typed host textures and guard RTV creation — @gabrielcruzg3
+- [#1511](https://github.com/Marvisak/VIctory/pull/1511) [BUNDLE] DXIL emission and container robustness: 5 PRs, #1145 #343 #1042 #1303 #477, stacked on #1504 — @MamaLeVrai
+- [#1344](https://github.com/Marvisak/VIctory/pull/1344) GPU: read DRED constant-view words without VirtualQuery — @fuzeofficlal
+- [#1332](https://github.com/Marvisak/VIctory/pull/1332) GPU: handle empty and inverted ranges in watch::writes, writing, and title_memory_remapped — @mgunes1311-lab
+- [#1346](https://github.com/Marvisak/VIctory/pull/1346) GPU: validate allocate_upload alignments and handle oversized requests — @fuzeofficlal
+- [#1631](https://github.com/Marvisak/VIctory/pull/1631) Tests: support VICTORY_HLE_PROBE_DLL and GNU delayload in hle-probe — @fuzeofficlal
+- [#1260](https://github.com/Marvisak/VIctory/pull/1260) GPU: one aligned copy per unaligned SRV range per list (follow-up to #986) — @DaemonSimon
+- [#1611](https://github.com/Marvisak/VIctory/pull/1611) run: stop with a clear message when the title's own DLLs are missing — @AgneyaK
+- [#1629](https://github.com/Marvisak/VIctory/pull/1629) GPU: zero 256-byte CBV scratch padding and bind null CBVs for empty/invalid views — @ESAT586
+- [#1628](https://github.com/Marvisak/VIctory/pull/1628) GPU: log initial states and clear format when texture creation fails — @AwsAli05
+- [#1626](https://github.com/Marvisak/VIctory/pull/1626) GPU: throttle failed swap-chain creation and resize — @AwsAli05
+- [#1613](https://github.com/Marvisak/VIctory/pull/1613) GPU: no render-target view, barrier or clear for a texture without the render-target use — @AgneyaK
+- [#1576](https://github.com/Marvisak/VIctory/pull/1576) HLE: implement IUnknown queries for COM objects — @Calvix2k
+- [#1623](https://github.com/Marvisak/VIctory/pull/1623) gfx10: keep an instruction's words inline instead of in a heap vector (decode -18..-45%, translation -1..-5%) — @pes7
+- [#1619](https://github.com/Marvisak/VIctory/pull/1619) Shader tests: pin IR reachability and PHI invariants — @ArnabSaga
+- [#1257](https://github.com/Marvisak/VIctory/pull/1257) Shaders: verify restored compute lane masks on D3D12 (stacked on #298) — @Castyan (draft)
+- [#1138](https://github.com/Marvisak/VIctory/pull/1138) Shader tests: failures name the adapter that ran them — @ayanbarosan
+- [#431](https://github.com/Marvisak/VIctory/pull/431) GPU: free host textures only after running submissions, and make them on first use — @AntoninMichelq
+- [#994](https://github.com/Marvisak/VIctory/pull/994) Linux: run under Proton, and fix the world GPU faults — @Slaktarn700
+- [#1587](https://github.com/Marvisak/VIctory/pull/1587) Shaders: ballot divergent-loop masks at reconverged reads (#1498) — @Ctrl-Alt-Haze
+- [#1526](https://github.com/Marvisak/VIctory/pull/1526) GPU: make host textures on first use instead of at resource creation — @0xKaji
+- [#1090](https://github.com/Marvisak/VIctory/pull/1090) Shaders: lower constant 64-bit integer compares without INT64 — @tarcisioads
+- [#1098](https://github.com/Marvisak/VIctory/pull/1098) XAsync: canceling a call that already completed leaves it alone, as documented — @BastienRodz
+- [#1100](https://github.com/Marvisak/VIctory/pull/1100) GPU: saturate COM AddRef against a u32 wrap, with tests for object.rs — @adamdotpy
+- [#1606](https://github.com/Marvisak/VIctory/pull/1606) Shaders: lower remaining 32-bit integer and bitwise LDS atomics — @HumanlyDev
+- [#1607](https://github.com/Marvisak/VIctory/pull/1607) Formats: reject invalid GFX10 swizzle modes for 1D textures — @zhaibingye
+- [#169](https://github.com/Marvisak/VIctory/pull/169) Shaders: tbuffer_load_format_d16 loads pack two 16-bit channels per VGPR — @Dufftwt
+- [#1491](https://github.com/Marvisak/VIctory/pull/1491) Shaders: the lane-condition search keeps the condition sets no lane meets — @rayderCode
+- [#1284](https://github.com/Marvisak/VIctory/pull/1284) Add experimental PC FSR upscaling — @AwkGrep256
+- [#1275](https://github.com/Marvisak/VIctory/pull/1275) Shaders: apply v_mov_b32 and v_cndmask_b32 abs/neg modifiers bitwise — @Sakura-Byte
+- [#1472](https://github.com/Marvisak/VIctory/pull/1472) GPU: flush only overlapping shadow refreshes before Step::GpuWrite — @Sakura-Byte
+- [#1618](https://github.com/Marvisak/VIctory/pull/1618) victory menu: speak Portuguese where Windows does (stacked on #1609) — @EduBertozzi
+- [#1262](https://github.com/Marvisak/VIctory/pull/1262) Shaders: double-precision add, mul, fma, min, max, compares and conversions (stacked on #416) — @MamaLeVrai
+- [#1542](https://github.com/Marvisak/VIctory/pull/1542) [BUNDLE] GPU fixes 4: 10 PRs, #346 #431 #493 #967 #1082 #1143 #1165 #1173 #1265 #1298, stacked on #1418 #1426 #1439 — @MamaLeVrai
+- [#1617](https://github.com/Marvisak/VIctory/pull/1617) [BUNDLE] #1296 (texture mip drop) resolved onto the GPU bundles by antikohza, stacked on #1542 — @MamaLeVrai
+- [#1397](https://github.com/Marvisak/VIctory/pull/1397) Shader: propagate float values across selects/phis and cache bools across dominators — @wbkepler
+- [#1270](https://github.com/Marvisak/VIctory/pull/1270) Shaders: lower v_cndmask_b32 selects on uniform scalar masks — @fuzeofficlal
+- [#1412](https://github.com/Marvisak/VIctory/pull/1412) Shaders: keep scalar comparisons between lane masks uniform — @EatCodeSleep2
+- [#1127](https://github.com/Marvisak/VIctory/pull/1127) Shaders: 64-bit image atomics lowering to dx.op.atomicBinOp.i64 and a… — @ashrafsdrop
+- [#1409](https://github.com/Marvisak/VIctory/pull/1409) Shaders: read heap-loaded s_buffer_load raw; SampleLevel outside pixel shaders — @icdmkg2
+- [#1393](https://github.com/Marvisak/VIctory/pull/1393) Shaders: vectorize wide s_buffer_load and global_load rawBufferLoad calls — @wbkepler
+- [#995](https://github.com/Marvisak/VIctory/pull/995) Shaders: use declared structured SRVs for scalar loads and record counts — @jeremygold02
+- [#1041](https://github.com/Marvisak/VIctory/pull/1041) GPU: zero graphics/mesh PSO padding bytes and deduplicate pipeline library stores — @gabrielcruzg3
+- [#1281](https://github.com/Marvisak/VIctory/pull/1281) GPU/Shader: declare wave64 wave size and strip unsupported video-texture flags — @kss306
+- [#352](https://github.com/Marvisak/VIctory/pull/352) GPU: mesh pipelines load from the pipeline library (name their topology) — @rhuantac
+- [#1563](https://github.com/Marvisak/VIctory/pull/1563) Shaders: link mesh and pixel programs whose mesh outputs pass 32 KiB — @claude-GTA6
+- [#55](https://github.com/Marvisak/VIctory/pull/55) GPU: create host textures without the uses the host refuses — @a55uka
+- [#1557](https://github.com/Marvisak/VIctory/pull/1557) Validate BC7 control-word subset counts — @oddmaniv
+- [#1569](https://github.com/Marvisak/VIctory/pull/1569) Shaders: lower v_swaprel_b32 — @piyonchu
+- [#1603](https://github.com/Marvisak/VIctory/pull/1603) [BUNDLE] Four fixes carried from Peppacodes' fork: #762 #764 #765 #832 — @MamaLeVrai
+- [#1601](https://github.com/Marvisak/VIctory/pull/1601) Shader tests: special values of v_rcp/v_rsq/v_sqrt/v_log/v_exp_f32 — @vladbondarenko97
+- [#984](https://github.com/Marvisak/VIctory/pull/984) Shaders: split flat byte-offset accesses to structured buffers — @CitizenCinema
+- [#1598](https://github.com/Marvisak/VIctory/pull/1598) Shaders: lower v_mad_f16 and v_mac_f16 with unfused binary16 product rounding — @geiyiliyabumo
+- [#1467](https://github.com/Marvisak/VIctory/pull/1467) Shaders: 64-bit image atomics as DXIL's 64-bit typed atomics — @paulomatias97-create
+- [#1534](https://github.com/Marvisak/VIctory/pull/1534) Shaders: flush negative zero after output modifiers — @Calvix2k
+- [#688](https://github.com/Marvisak/VIctory/pull/688) GPU: take back the dynamic descriptor slots of lists that ran when a heap runs short — @iurysf
+- [#1593](https://github.com/Marvisak/VIctory/pull/1593) [BUNDLE] Shader translation speed: 6 PRs, #139 #288 #369 #947 #1033 #1180, stacked on #1511 — @MamaLeVrai
+- [#214](https://github.com/Marvisak/VIctory/pull/214) Loader: clzero loops in one exception; rdpru (#34 rebased, with a fix) — @Makto94
+- [#1545](https://github.com/Marvisak/VIctory/pull/1545) Shaders: honor modifiers in f16 conversions — @Calvix2k
+- [#1594](https://github.com/Marvisak/VIctory/pull/1594) CLI: preserve the title entry point exit status — @AwsAli05
+- [#1485](https://github.com/Marvisak/VIctory/pull/1485) Shaders: honor DPP16/DPP8 fi and source-lane EXEC activity — @ESAT586
+- [#1577](https://github.com/Marvisak/VIctory/pull/1577) Shaders: expand 64-bit inline constants as signed ints and binary64 floats — @mgunes1311-lab
+- [#1568](https://github.com/Marvisak/VIctory/pull/1568) Shaders: model 64-bit carry sums and f16 reductions in whole-wave sections — @MartinIndra02
+- [#1009](https://github.com/Marvisak/VIctory/pull/1009) xmem: keep the space below 4 GiB for the title's 32-bit memory — @NuraadGit
+- [#1519](https://github.com/Marvisak/VIctory/pull/1519) Shaders: unpack 16-bit vertex inputs into the low half — @Bloh09
+- [#1494](https://github.com/Marvisak/VIctory/pull/1494) formats: bound thick 3D mip tail by depth — @nino-exe
+- [#1592](https://github.com/Marvisak/VIctory/pull/1592) CLI: list shaders that complete emission — @AwsAli05
+- [#1516](https://github.com/Marvisak/VIctory/pull/1516) Shaders: zero missing typed-buffer components — @venglov
+- [#1524](https://github.com/Marvisak/VIctory/pull/1524) Shaders: every DXIL loop gets one latch, and every block one back edge — @brunofgmag
+- [#1536](https://github.com/Marvisak/VIctory/pull/1536) Shaders: assemble dword-straddling global_load_ushort and global_load_sshort — @oni-swr
+- [#1540](https://github.com/Marvisak/VIctory/pull/1540) Shaders: guard both back edges when a conditional branch targets two … — @Texbirds
+- [#1550](https://github.com/Marvisak/VIctory/pull/1550) Shaders: a deep block's reach no longer hides a waterfall's proof — @EduAzevedo
+- [#1521](https://github.com/Marvisak/VIctory/pull/1521) [BUNDLE] Bridge for #1368 and #1386: one storage test changes when both land, stacked on both — @MamaLeVrai
+- [#1556](https://github.com/Marvisak/VIctory/pull/1556) victory-gpu: look a submission's refreshes up by pointer, not by scanning (4-13x on the merge) — @pes7
+- [#374](https://github.com/Marvisak/VIctory/pull/374) XAsync: a wait on a failed call during its cleanup waits for the status — @marquezinii
+- [#1352](https://github.com/Marvisak/VIctory/pull/1352) GPU: implement resource-backed texture UAV clears (#771) — @wbkepler
+- [#1582](https://github.com/Marvisak/VIctory/pull/1582) Shaders: enforce inactive-lane EXEC rules for DPP16, DPP8 and ds_swizzle_b32 — @Capt-Speed
+- [#1572](https://github.com/Marvisak/VIctory/pull/1572) Shaders: MUBUF sub-dword loads (buffer_load_ubyte, sbyte, ushort, sshort and the d16 forms) — @iurysf
+- [#1570](https://github.com/Marvisak/VIctory/pull/1570) Shaders: govern pixel discard by last exp VM (Valid Mask) and guard pixel MRT exports — @ESAT586
+- [#1590](https://github.com/Marvisak/VIctory/pull/1590) XMA tests: count frames only in the selected stream — @zhaibingye
+- [#1562](https://github.com/Marvisak/VIctory/pull/1562) GPU: fences answer for ID3D12Fence1 as documented — @BastienRodz
+- [#1566](https://github.com/Marvisak/VIctory/pull/1566) GPU: SetStablePowerState is accepted and ignored — @LouisRiverstone
+- [#1571](https://github.com/Marvisak/VIctory/pull/1571) GPU: add diagnostics for shader dependency wait times — @srijann07
+- [#1574](https://github.com/Marvisak/VIctory/pull/1574) GPU descriptor: write null CBV when create_cbv description is null — @geiyiliyabumo
+- [#1272](https://github.com/Marvisak/VIctory/pull/1272) GPU: automatic texture mip-drop on E_OUTOFMEMORY and VICTORY_TEXTURE_MIP_DROP — @ESAT586
+- [#1588](https://github.com/Marvisak/VIctory/pull/1588) Shaders: single-round v_fma_mix*_f16 and unfused v_mad_f16/v_mac_f16 — @Ctrl-Alt-Haze
+- [#1293](https://github.com/Marvisak/VIctory/pull/1293) Shaders: follow plain v_mov_b32 copies when pairing interpolations — @mgunes1311-lab
+- [#1585](https://github.com/Marvisak/VIctory/pull/1585) GPU diagnostics: report slots only inside recorded heap ranges — @avt0m4t48
+- [#1541](https://github.com/Marvisak/VIctory/pull/1541) CLI: list-diff compares two translate listings program by program — @sinan-cmyk
+- [#1584](https://github.com/Marvisak/VIctory/pull/1584) GPU: add opt-in idle shader cache trimming — @srijann07
+- [#1583](https://github.com/Marvisak/VIctory/pull/1583) GPU: texture read-back into a title buffer (CopyTextureRegion to a placed footprint) — @Impre-visible
+- [#1156](https://github.com/Marvisak/VIctory/pull/1156) Loader: continue past a title's int3 asserts, for finding the next blocker — @adamdotpy
+- [#526](https://github.com/Marvisak/VIctory/pull/526) Linux: a native runtime, no Wine — @spidercraft
+- [#1578](https://github.com/Marvisak/VIctory/pull/1578) GPU: the "shader does not translate" warning names where its value was made — @ThomasSAMP
+- [#517](https://github.com/Marvisak/VIctory/pull/517) CLI: report incomplete shader directory scans — @Dathinel
+- [#1434](https://github.com/Marvisak/VIctory/pull/1434) Loader: match title DLL filenames ignoring ASCII case — @fuzeofficlal
+- [#1436](https://github.com/Marvisak/VIctory/pull/1436) Game: check record bounds and offset arithmetic in SGD5 parsing — @fuzeofficlal
+- [#1451](https://github.com/Marvisak/VIctory/pull/1451) Shaders: interpolate by hand rows read flat and interpolated; zero and copied barycentrics — @federalcontraband
+- [#1443](https://github.com/Marvisak/VIctory/pull/1443) Shaders: lower scalar quadmask instructions — @Luizbc2
+- [#1559](https://github.com/Marvisak/VIctory/pull/1559) Shaders: a float inline constant in a 64-bit operand is the f64 value — @default-cybe
+- [#1387](https://github.com/Marvisak/VIctory/pull/1387) Round v_fma_f16 once in DXIL lowering — @DoubleD17
+- [#581](https://github.com/Marvisak/VIctory/pull/581) GPU: typed null descriptors for empty table slots, depth-UAV scratch stand-in, and packed 16-bit fallback — @FibbS6
+- [#301](https://github.com/Marvisak/VIctory/pull/301) GPU: non-stream graphics PSOs, stream subobjects 25..=28, texture-to-buffer readbacks, and sRGB view preservation — @wbkepler
+- [#1504](https://github.com/Marvisak/VIctory/pull/1504) [BUNDLE] Computed barycentrics: #453 merged with #176 and #1293, stacked on #1492 — @MamaLeVrai
+- [#1539](https://github.com/Marvisak/VIctory/pull/1539) Loader: guard clwb_loop shortcut against u64 overflow and wraparound — @Texbirds
+- [#1560](https://github.com/Marvisak/VIctory/pull/1560) PE: refuse an import address table inside the headers — @default-cybe
+- [#523](https://github.com/Marvisak/VIctory/pull/523) Build: compile and test the workspace on Linux again — @spidercraft
+- [#1276](https://github.com/Marvisak/VIctory/pull/1276) Shaders: scalar loads from a code table at the first lane's address — @mercuryVM
+- [#638](https://github.com/Marvisak/VIctory/pull/638) GPU diagnostics: find what the world hang waits for, and look under a black frame — @claude-GTA6
+- [#1424](https://github.com/Marvisak/VIctory/pull/1424) GPU skips empty host submissions — @BaggyALPHA
+- [#1351](https://github.com/Marvisak/VIctory/pull/1351) GPU: deduplicate per-submission write-watch askings over nested buffers (#776) — @wbkepler
+- [#1466](https://github.com/Marvisak/VIctory/pull/1466) GPU: avoid faulting when zero-filling protected title memory — @fluffyflattershy-afk
+- [#1279](https://github.com/Marvisak/VIctory/pull/1279) GPU: an argument clamp Wine's compiler builds too — @Mumogg
+- [#1125](https://github.com/Marvisak/VIctory/pull/1125) Handle unsupported display deferrals in the HLE test — @EatCodeSleep2
+- [#1161](https://github.com/Marvisak/VIctory/pull/1161) docs(architecture): list BCPack as implemented in victory-formats — @geiyiliyabumo
+- [#1177](https://github.com/Marvisak/VIctory/pull/1177) Deduplicate image paths in victory census — @DoubleD17
+- [#1384](https://github.com/Marvisak/VIctory/pull/1384) Shaders: hardware test for the three-operand integer ops — @LouisRiverstone
+- [#1381](https://github.com/Marvisak/VIctory/pull/1381) Shaders: hardware test for v_not, v_bfrev and the vector bit-scan ops — @LouisRiverstone
+- [#1558](https://github.com/Marvisak/VIctory/pull/1558) HLE: export constrained app notifications — @Calvix2k
+- [#1378](https://github.com/Marvisak/VIctory/pull/1378) Shaders: hardware test for v_mul_lo_u32, v_mul_hi_u32 and v_mul_hi_i32 — @LouisRiverstone
+- [#1377](https://github.com/Marvisak/VIctory/pull/1377) Shaders: hardware test for the 24-bit v_mul and v_mad forms — @LouisRiverstone
+- [#546](https://github.com/Marvisak/VIctory/pull/546) GPU: prioritize pipeline work requested by draws — @melon0918 (draft)
+- [#1000](https://github.com/Marvisak/VIctory/pull/1000) GPU: pipelines of different names load from the library at the same time — @TG0000
+- [#1024](https://github.com/Marvisak/VIctory/pull/1024) GPU: copy-back writes only the GPU's bytes and marks only unchanged pages current — @Dufftwt
+- [#1555](https://github.com/Marvisak/VIctory/pull/1555) GPU: coalesce nearby shadow-buffer refreshes without spanning huge heap gaps — @Texbirds
+- [#539](https://github.com/Marvisak/VIctory/pull/539) Shaders: 64-bit image atomics — @SAitken91
+- [#1288](https://github.com/Marvisak/VIctory/pull/1288) Shaders: a typed fetch inside a dword reads the aligned pair — @pablogonz12
+- [#1285](https://github.com/Marvisak/VIctory/pull/1285) Shaders: fix 16-bit VALU SDWA placement/sext and inline float constants — @hamdog0203
+- [#1551](https://github.com/Marvisak/VIctory/pull/1551) GPU: prioritize repeat-demanded pipelines with non-mesh tie-breaking and anti-starvation — @Sakura-Byte
+- [#1546](https://github.com/Marvisak/VIctory/pull/1546) GPU: route indirect dispatch_mesh_x through State::execute_indirect — @n-romanovich
+- [#1543](https://github.com/Marvisak/VIctory/pull/1543) GPU: avoid shift and arithmetic overflow panics in subresource and copyable_footprints (victory-gpu) — @Texbirds
+- [#1110](https://github.com/Marvisak/VIctory/pull/1110) fix(hle): account for save replacements before clamping quota — @divyeshganta
+- [#1146](https://github.com/Marvisak/VIctory/pull/1146) GPU diagnostics: create missing capture output directories — @jamesn-xt
+- [#1538](https://github.com/Marvisak/VIctory/pull/1538) GPU: check subobject size against remaining stream bytes in create_st… — @Texbirds
+- [#1385](https://github.com/Marvisak/VIctory/pull/1385) Shaders: narrow mesh output bounds from GS_ALLOC_REQ M0 analysis (#201) — @Ctrl-Alt-Haze
+- [#1525](https://github.com/Marvisak/VIctory/pull/1525) Reuse fenced GPU upload scratch across command lists — @franticfrostin
+- [#1529](https://github.com/Marvisak/VIctory/pull/1529) Input: keyboard and mouse played like a PC game (rebindable [controls]) — @claude-GTA6
+- [#650](https://github.com/Marvisak/VIctory/pull/650) Shaders: bound root view accesses by the size the host binds — @wbkepler
+- [#1066](https://github.com/Marvisak/VIctory/pull/1066) gpu, shader: Intel Arc DG2/Battlemage optimizations and hardware execution fallbacks — @UnkwnDev
+- [#1123](https://github.com/Marvisak/VIctory/pull/1123) Validate XGameSave blob count before reading — @EatCodeSleep2
+- [#1015](https://github.com/Marvisak/VIctory/pull/1015) Shaders: scalar loads through a heap buffer that vector accesses use read a buffer view — @justrealyme
+- [#176](https://github.com/Marvisak/VIctory/pull/176) Shaders: pair packed fp16 pixel inputs with unlisted signature rows — @Yaekai
+- [#1084](https://github.com/Marvisak/VIctory/pull/1084) Shaders: a select or carry-in on an untracked mask tests this lane's bit — @undeadhuman37
+- [#1501](https://github.com/Marvisak/VIctory/pull/1501) Shaders: DS ops in a program without LDS read 0 and drop writes — @ruvenesh
+- [#1363](https://github.com/Marvisak/VIctory/pull/1363) [BUNDLE] XAsync, kernel, lifecycle and DirectStorage HLE: #114 #122 #247 #1098 #186 #373 #512 #451 #1080 #430 #577 #1238 — @MamaLeVrai
+- [#1095](https://github.com/Marvisak/VIctory/pull/1095) Shaders: compute signed overflow SCC for s_add_i32, s_addk_i32, and s_sub_i32 — @ESAT586
+- [#235](https://github.com/Marvisak/VIctory/pull/235) Build: gate Windows-only paths so the workspace builds and tests on Linux — @SkippySteve
+- [#174](https://github.com/Marvisak/VIctory/pull/174) GPU: a frame wait takes its tick before it sleeps — @AndyLatimer
+- [#491](https://github.com/Marvisak/VIctory/pull/491) GPU: remember pipelines whose creation crashed the process (VICTORY_PIPELINE_JOURNAL) — @desplmfao
+- [#1439](https://github.com/Marvisak/VIctory/pull/1439) [BUNDLE] GPU pipeline library, shader cache, draw state and frame wait: 16 PRs, #72 #347 #1000 #358 #352 #626 #1152 #1129 #1203 #24 #642 #427 #485 #550 #174 #1279 — @MamaLeVrai
+- [#1358](https://github.com/Marvisak/VIctory/pull/1358) [BUNDLE] XGameSave hardening: #228 #399 #570 #590 #1006 #1110 #1123 — @MamaLeVrai
+- [#1389](https://github.com/Marvisak/VIctory/pull/1389) [BUNDLE] HLE audio and input (XMA, APU, WASAPI capture, GameInput): #194 #528 #536 #478 #197 #361 #613 — @MamaLeVrai
+- [#1386](https://github.com/Marvisak/VIctory/pull/1386) [BUNDLE] HLE host side (files, paths, host DLLs, display, xmem, net, speech): #337 #359 #357 #531 #1125 #133 #290 #207 #480 #76 #538 #997 #1169 #1193 — @MamaLeVrai
+- [#1368](https://github.com/Marvisak/VIctory/pull/1368) [BUNDLE] HLE runtime APIs (XGameRuntime, XStore, XSystem, XPackage, XG, XUser): #335 #475 #446 #1199 #449 #939 #412 #674 #957 #648 #455 #370 #1167 — @MamaLeVrai
+- [#1298](https://github.com/Marvisak/VIctory/pull/1298) GPU: replace stale descriptors on null CBV writes — @EatCodeSleep2
+- [#1236](https://github.com/Marvisak/VIctory/pull/1236) GPU diagnostics: stop inferring descriptor slots from fault addresses — @EatCodeSleep2
+- [#588](https://github.com/Marvisak/VIctory/pull/588) GPU: transition shadow buffers between UAV and vertex/index/CBV states — @LAKSHYA-cmd-tech
+- [#532](https://github.com/Marvisak/VIctory/pull/532) Document the Arch MSVC build and Proton rendering on an RTX 4080 — @NiHuShu
+- [#160](https://github.com/Marvisak/VIctory/pull/160) Shaders: texel offsets, comparison and gather forms of image samples — @r4tedx
+- [#458](https://github.com/Marvisak/VIctory/pull/458) Fix GPU hangs, memory leak, and mesh shader exports; render intro cre… — @techselect
+- [#1476](https://github.com/Marvisak/VIctory/pull/1476) Shaders: precompute MD5 round constants and avoid per-block Vec in md… — @Texbirds
+- [#941](https://github.com/Marvisak/VIctory/pull/941) Loader: a clwb in the last bytes of a page is emulated instead of faulting — @BastienRodz
+- [#1515](https://github.com/Marvisak/VIctory/pull/1515) HLE: guard dialog commands before initialization — @Calvix2k
+- [#1053](https://github.com/Marvisak/VIctory/pull/1053) Shaders: hardware test for v_cmp_class_f32 — @LouisRiverstone
+- [#1487](https://github.com/Marvisak/VIctory/pull/1487) Shader tests: prefer high-performance hardware adapter in emit::host::Host::new — @AscilCH
+- [#534](https://github.com/Marvisak/VIctory/pull/534) CLI: report shader scan input failures — @Quat3rnion
+- [#1259](https://github.com/Marvisak/VIctory/pull/1259) Shaders: v_med3 orders -0 below +0, as RDNA2 does — @pablogonz12
+- [#1182](https://github.com/Marvisak/VIctory/pull/1182) Shaders: keep prior per-lane descriptor word across redundant masked moves (fixes #750) — @R0D4X
+- [#1180](https://github.com/Marvisak/VIctory/pull/1180) gfx10: resolve the opcode name once, at decode time (translation -4..-8%) — @pes7
+- [#1002](https://github.com/Marvisak/VIctory/pull/1002) victory-shader: hash the lowering tables with Fx instead of SipHash (lowering -16%) — @pes7
+- [#1506](https://github.com/Marvisak/VIctory/pull/1506) HLE: avoid following links during storage quota scans — @Calvix2k
+- [#1505](https://github.com/Marvisak/VIctory/pull/1505) GPU: pipeline workers at the title's priority, not below it — @KevinPratap
+- [#1227](https://github.com/Marvisak/VIctory/pull/1227) Improve shader mask handling and GPU diagnostics — @chiragmadhuprasad
+- [#1503](https://github.com/Marvisak/VIctory/pull/1503) GPU: fail fast when the host D3D12 runtime is unusable — @degradka
+- [#1500](https://github.com/Marvisak/VIctory/pull/1500) GPU: copy title textures to the host once per change, and check them on several threads — @A6thGraderFr
+- [#1228](https://github.com/Marvisak/VIctory/pull/1228) GPU: order shader writes on command list pipeline syncs (#732) — @Ctrl-Alt-Haze
+- [#1497](https://github.com/Marvisak/VIctory/pull/1497) HLE: fix DirectStorage file sharing and error capture — @Calvix2k
+- [#1490](https://github.com/Marvisak/VIctory/pull/1490) HLE: recycle freed XMem page numbers — @Calvix2k
+- [#240](https://github.com/Marvisak/VIctory/pull/240) DSP: convolve reverb streams on the host — @Quat3rnion
+- [#218](https://github.com/Marvisak/VIctory/pull/218) APU: decode-convert and PCM rate conversion — @Quat3rnion
+- [#1426](https://github.com/Marvisak/VIctory/pull/1426) [BUNDLE] GPU host copies, descriptors, sampler heaps and footprints: 15 PRs, #202 #208 #322 #435 #982 #1217 #1283 #123 #251 #1032 #55 #409 #933 #474 #1206 — @MamaLeVrai
+- [#1459](https://github.com/Marvisak/VIctory/pull/1459) [BUNDLE] CLI and census: 11 PRs, #115 #151 #238 #353 #378 #476 #482 #535 #649 #664 #1177 — @MamaLeVrai
+- [#1456](https://github.com/Marvisak/VIctory/pull/1456) [BUNDLE] Loader, PE reader and config: 20 PRs, #188 #213 #214 #219 #221 #311 #324 #363 #406 #454 #529 #560 #708 #937 #941 #963 #1111 #1159 #1304 #1306 — @MamaLeVrai
+- [#1292](https://github.com/Marvisak/VIctory/pull/1292) Shaders: lower v_dot2_{i32_i16,u32_u16}, v_dot4_{i32_i8,u32_u8}, v_dot4c_i32_i8, and v_dot8_u32_u4 — @ESAT586
+- [#515](https://github.com/Marvisak/VIctory/pull/515) GPU: ask for written pages allocation by allocation when a range spans several — @desplmfao
+- [#393](https://github.com/Marvisak/VIctory/pull/393) GPU: refresh a buffer copy's ranges by page; answer clean guarded views from the journal — @kxiserino
+- [#1126](https://github.com/Marvisak/VIctory/pull/1126) GPU: release descriptor tables after a rejected bind — @EatCodeSleep2
+- [#1230](https://github.com/Marvisak/VIctory/pull/1230) Shaders: path-sensitive reachability for missing values across phi joins (#736) — @Ctrl-Alt-Haze
+- [#1271](https://github.com/Marvisak/VIctory/pull/1271) Shaders: infer heap UAVs and mark glc UAV handles globally coherent — @fuzeofficlal
+- [#206](https://github.com/Marvisak/VIctory/pull/206) GPU: make a structured buffer view off its host copy's elements a raw view — @AnoHunted (draft)
+- [#1330](https://github.com/Marvisak/VIctory/pull/1330) Windows playability, shader translation, D3D12 stability, and HLE improvements — @sahajiscoding
+- [#959](https://github.com/Marvisak/VIctory/pull/959) victory: a menu when opened from Explorer, instead of help that closes at once — @EduBertozzi
+- [#1225](https://github.com/Marvisak/VIctory/pull/1225) Shaders: trace a code-table address read from the first lane of a uniform value — @LooperSalty
+- [#1261](https://github.com/Marvisak/VIctory/pull/1261) Shaders: an SGPR no instruction writes stays refused above the initialized ones — @Proudnoob4
+- [#1175](https://github.com/Marvisak/VIctory/pull/1175) Shaders: verify compute writes through a spilled root UAV — @Castyan
+- [#1206](https://github.com/Marvisak/VIctory/pull/1206) GPU: validate null args in create_deserializer to prevent d3d12 AV and add root.rs tests — @geiyiliyabumo
+- [#1218](https://github.com/Marvisak/VIctory/pull/1218) xtask: wine-test runs the Windows tests on a Linux host under Wine — @neonbyte1
+- [#362](https://github.com/Marvisak/VIctory/pull/362) Shader tests: use the Agility SDK runtime on Windows 10 (stacked on #175) — @GamingRipperDoc
+- [#1264](https://github.com/Marvisak/VIctory/pull/1264) HLE: map a page scatter in runs, not one page at a time — @pablogonz12
+- [#1452](https://github.com/Marvisak/VIctory/pull/1452) [BUNDLE] Formats (XMA, BCPack, texture detiling): 12 PRs, #96 #172 #183 #351 #364 #603 #629 #658 #992 #993 #1016 #1205 — @MamaLeVrai
+- [#1449](https://github.com/Marvisak/VIctory/pull/1449) GPU: report host resources held by descriptor heap slots in diagnostics — @fuzeofficlal
+- [#1447](https://github.com/Marvisak/VIctory/pull/1447) hle: confine virtual-drive paths and harden storage/package inputs — @kunalkhude99
+- [#113](https://github.com/Marvisak/VIctory/pull/113) GitHub: rebase issue forms and PR template on main — @Quat3rnion
+- [#1419](https://github.com/Marvisak/VIctory/pull/1419) HLE: pass non-code LoadLibraryEx mappings outside HostPolicy to the host — @fuzeofficlal
+- [#1246](https://github.com/Marvisak/VIctory/pull/1246) GPU: grow per-list upload scratch on demand — @LaunchDoesntCode
+- [#1104](https://github.com/Marvisak/VIctory/pull/1104) Input: trigger rumble via XInputSetStateEx ordinal 100 — @ashrafsdrop
+- [#1105](https://github.com/Marvisak/VIctory/pull/1105) GPU: saturate COM AddRef instead of wrapping its reference count — @NethminaYasas
+- [#1106](https://github.com/Marvisak/VIctory/pull/1106) test(shader): report forced WARP runs as software only — @divyeshganta
+- [#1108](https://github.com/Marvisak/VIctory/pull/1108) Shaders: split comparison and non-comparison immediate static samplers — @mgunes1311-lab
+- [#1109](https://github.com/Marvisak/VIctory/pull/1109) fix(pipeline): retry collisions when creating cache staging files — @divyeshganta
+- [#1248](https://github.com/Marvisak/VIctory/pull/1248) XNetworking: wire UDP port change callbacks and UTF-16 security queries — @ashrafsdrop
+- [#1111](https://github.com/Marvisak/VIctory/pull/1111) fix(loader): preserve protection regions when binding unaligned imports — @divyeshganta
+- [#1357](https://github.com/Marvisak/VIctory/pull/1357) HLE: native 4-motor Xbox impulse trigger haptics via Windows.Gaming.Input with XInput fallback — @wbkepler
+- [#1113](https://github.com/Marvisak/VIctory/pull/1113) Formats: lay out packed RGB textures as horizontal texel pairs — @Razdva122
+- [#1122](https://github.com/Marvisak/VIctory/pull/1122) GPU: a write through one view of physical pages opens the guards of all its views — @tightfall
+- [#1124](https://github.com/Marvisak/VIctory/pull/1124) Shadows: batch GPU copy-back writes safely — @divyeshganta
+- [#1129](https://github.com/Marvisak/VIctory/pull/1129) GPU: give pipeline workers room for NVIDIA's shader compiler — @divyeshganta
+- [#1133](https://github.com/Marvisak/VIctory/pull/1133) Nvidia/heap cap and barriers — @rivaldodev
+- [#1135](https://github.com/Marvisak/VIctory/pull/1135) GPU: detile only texture subresources affected by writes — @divyeshganta
+- [#1137](https://github.com/Marvisak/VIctory/pull/1137) HLE: expand synthetic unit tests for apu.rs (1 -> 19 tests) — @Vittorio17
+- [#1142](https://github.com/Marvisak/VIctory/pull/1142) Shaders: support saturating clamp on packed 16-bit integer ops (v_pk_{add,sub,mad}_{u16,i16}) — @ESAT586
+- [#1143](https://github.com/Marvisak/VIctory/pull/1143) GPU tests: verify a synthetic frame through PresentX — @Doffi4
+- [#1144](https://github.com/Marvisak/VIctory/pull/1144) Tests: show when shader differential checks are skipped — @EatCodeSleep2
+- [#1145](https://github.com/Marvisak/VIctory/pull/1145) Shaders: fix duplicate latch folding, unreachable phi edges, and replace_const caching in DXIL bitcode — @hamdog0203
+- [#1148](https://github.com/Marvisak/VIctory/pull/1148) Shaders: lower image_atomic_inc, _dec, _fcmpswap, _fmin and _fmax — @VermaakLabs
+- [#1149](https://github.com/Marvisak/VIctory/pull/1149) Shaders: lower v_div_fixup_f32 and v_div_fixup_f16 — @DenRakEiw
+- [#1152](https://github.com/Marvisak/VIctory/pull/1152) GPU: no blending on integer render targets in host pipelines (fixes #806) — @pablogonz12
+- [#1155](https://github.com/Marvisak/VIctory/pull/1155) hle(display): fall back to no-op deferral when PowerSetRequest returns ERROR_NOT_SUPPORTED — @geiyiliyabumo
+- [#1157](https://github.com/Marvisak/VIctory/pull/1157) Input: the mouse as the stand-in pad's camera (VICTORY_MOUSE) — @h0useadv
+- [#1158](https://github.com/Marvisak/VIctory/pull/1158) GPU: guard zero/overflowing stride in expand_rects and add primitive.rs unit tests — @Vittorio17
+- [#1160](https://github.com/Marvisak/VIctory/pull/1160) gpu(indirect): support constant-prefixed multi-argument ExecuteIndirect signatures — @geiyiliyabumo
+- [#1162](https://github.com/Marvisak/VIctory/pull/1162) GPU: implement ClearUnorderedAccessViewUint/Float for buffers and textures — @geiyiliyabumo
+- [#1165](https://github.com/Marvisak/VIctory/pull/1165) GPU: implement DiscardResource on command lists with region and state checks — @geiyiliyabumo
+- [#1166](https://github.com/Marvisak/VIctory/pull/1166) GPU: implement ID3D12GraphicsCommandList::ClearState (slot 0x58) — @geiyiliyabumo
+- [#1167](https://github.com/Marvisak/VIctory/pull/1167) HLE: implement remaining XNetworking UDP port-change and UTF-16 security slots — @geiyiliyabumo
+- [#1168](https://github.com/Marvisak/VIctory/pull/1168) GPU: implement SetPredication, SetMarker, BeginEvent, and EndEvent on command lists — @geiyiliyabumo
+- [#1169](https://github.com/Marvisak/VIctory/pull/1169) HLE: implement remaining XAccessibility closed-caption, high-contrast, and speech-to-text slots — @geiyiliyabumo
+- [#1171](https://github.com/Marvisak/VIctory/pull/1171) PE: add synthetic unit tests for implib.rs and layout.rs — @geiyiliyabumo
+- [#1173](https://github.com/Marvisak/VIctory/pull/1173) GPU: add synthetic unit tests for query.rs and signature.rs — @geiyiliyabumo
+- [#1174](https://github.com/Marvisak/VIctory/pull/1174) HLE: implement IUnknown::QueryInterface and unit tests for xgame objects — @geiyiliyabumo
+- [#1176](https://github.com/Marvisak/VIctory/pull/1176) Shaders: reads of uninitialized pixel SGPRs read as zero — @Giiy0
+- [#1178](https://github.com/Marvisak/VIctory/pull/1178) Diagnostics: trace a DirectStorage request from submission to decoder outcome — @Razdva122
+- [#1181](https://github.com/Marvisak/VIctory/pull/1181) HLE: keep DirectStorage file references alive for queued reads — @matheusfrta
+- [#1183](https://github.com/Marvisak/VIctory/pull/1183) Keep shader metadata variants in the offline translation census — @Jitheswar
+- [#1188](https://github.com/Marvisak/VIctory/pull/1188) GPU: guard non-positive frames and add unit tests for copystat.rs — @geiyiliyabumo
+- [#1189](https://github.com/Marvisak/VIctory/pull/1189) GPU: make fence signaling monotonic, clamp sampler enums, and add unit tests — @geiyiliyabumo
+- [#1190](https://github.com/Marvisak/VIctory/pull/1190) Shaders: lower v_frexp_mant_{f32,f16} and v_frexp_exp_i{32_f32,16_f16} — @ESAT586
+- [#1191](https://github.com/Marvisak/VIctory/pull/1191) GPU: fix texture footprint span and committed-range overflow with unit tests — @geiyiliyabumo
+- [#1193](https://github.com/Marvisak/VIctory/pull/1193) HLE: add synthetic unit tests for storage.rs and host.rs — @geiyiliyabumo
+- [#1194](https://github.com/Marvisak/VIctory/pull/1194) HLE: expand synthetic unit test coverage for xstore.rs (1 -> 13 tests) — @geiyiliyabumo
+- [#1195](https://github.com/Marvisak/VIctory/pull/1195) Shaders: expand synthetic unit tests for emit/sampler.rs — @geiyiliyabumo
+- [#1196](https://github.com/Marvisak/VIctory/pull/1196) HLE: fix self-closing XML element body parsing in runtime.rs and add unit tests — @geiyiliyabumo
+- [#1197](https://github.com/Marvisak/VIctory/pull/1197) Shaders: lower v_sad_u8, v_msad_u8, v_sad_u16, and v_sad_u32 — @DenRakEiw
+- [#1199](https://github.com/Marvisak/VIctory/pull/1199) HLE: reject null out in QueryApiImpl before lookup and add xgameruntime unit tests — @geiyiliyabumo
+- [#1200](https://github.com/Marvisak/VIctory/pull/1200) GPU: fix 3 encoding, fallback, and slice-panic bugs in shader_cache.rs with unit tests — @geiyiliyabumo
+- [#1202](https://github.com/Marvisak/VIctory/pull/1202) Shaders: fix 4 DXIL validator bugs and add synthetic container/validator tests — @geiyiliyabumo
+- [#1203](https://github.com/Marvisak/VIctory/pull/1203) GPU: expand synthetic unit tests for pipeline/make.rs (1 -> 9/12 tests) — @geiyiliyabumo
+- [#1205](https://github.com/Marvisak/VIctory/pull/1205) Formats: add 7 invariant unit tests for xma/tables.rs — @geiyiliyabumo
+- [#1208](https://github.com/Marvisak/VIctory/pull/1208) Shaders: PSV0 and signatures laid out as the validator expects — @powplusplus
+- [#682](https://github.com/Marvisak/VIctory/pull/682) Shaders: v_mul_legacy_f32 treats denormal operands as zero — @senchsus
+- [#1211](https://github.com/Marvisak/VIctory/pull/1211) Shaders: lower v_mad_{u16,i16} and saturating clamp on 16-bit integer ops — @ESAT586
+- [#1214](https://github.com/Marvisak/VIctory/pull/1214) HLE: write decoded Opus samples through unaligned output buffers — @divyeshganta
+- [#1217](https://github.com/Marvisak/VIctory/pull/1217) GPU: the copies timing no longer counts the flush before a title copy twice — @neonbyte1
+- [#1220](https://github.com/Marvisak/VIctory/pull/1220) GPU: a half exactly halfway between two rounds to the even one, not up — @BastienRodz
+- [#1223](https://github.com/Marvisak/VIctory/pull/1223) Shaders: lower v_ldexp_f16 (VOP2 0x3b and VOP3 0x13b) — @ESAT586
+- [#1231](https://github.com/Marvisak/VIctory/pull/1231) Shaders: uniform phis (loop counters) under v_readfirstlane addresses (stacked on #1225) — @LooperSalty
+- [#1233](https://github.com/Marvisak/VIctory/pull/1233) Report bound descriptor tables accurately in DRED breadcrumbs — @Jitheswar
+- [#1238](https://github.com/Marvisak/VIctory/pull/1238) Grow DirectStorage BCPack intermediates as zlib inflates — @Jitheswar
+- [#1241](https://github.com/Marvisak/VIctory/pull/1241) CI: build and test the host-independent crates on Linux — @MIchiel1234
+- [#1243](https://github.com/Marvisak/VIctory/pull/1243) HLE: the module tree gates for a host that is not Windows — @MIchiel1234
+- [#1244](https://github.com/Marvisak/VIctory/pull/1244) Validate VICTORY_PAIRS before translating shaders — @DoubleD17
+- [#1251](https://github.com/Marvisak/VIctory/pull/1251) Diagnostics: trace command-list waits and memory write progress — @LaunchDoesntCode
+- [#1252](https://github.com/Marvisak/VIctory/pull/1252) Update architecture.md — @sankecom352-cmd
+- [#1435](https://github.com/Marvisak/VIctory/pull/1435) HLE: implement XTaskQueueRegisterWaiter and XTaskQueueUnregisterWaiter — @fuzeofficlal
+- [#1429](https://github.com/Marvisak/VIctory/pull/1429) GPU: persist early-pipeline keys even without a host pipeline library — @fuzeofficlal
+- [#1428](https://github.com/Marvisak/VIctory/pull/1428) GPU: guard OMSetRenderTargets handle expansion on empty, null, or oversized calls — @fuzeofficlal
+- [#1427](https://github.com/Marvisak/VIctory/pull/1427) GPU: turn zero-element buffer SRVs and UAVs into null descriptors — @fuzeofficlal
+- [#1425](https://github.com/Marvisak/VIctory/pull/1425) Shaders: a refusal names the instruction that made its missing value — @ThomasSAMP
+- [#1403](https://github.com/Marvisak/VIctory/pull/1403) CLI: report shader worker initialization failures — @Luizbc2
+- [#1415](https://github.com/Marvisak/VIctory/pull/1415) CLI: reuse the D3D12 host across translation workers — @gurvancampion
+- [#1411](https://github.com/Marvisak/VIctory/pull/1411) HLE clears the result of blocked address lookups — @BaggyALPHA
+- [#200](https://github.com/Marvisak/VIctory/pull/200) Shaders: lower v_div_scale_f32, v_div_fmas_f32 and v_div_fixup_f32 — @n-romanovich
+- [#171](https://github.com/Marvisak/VIctory/pull/171) Shaders: lower v_mad_u64_u32 and v_mad_i64_i32 — @n-romanovich
+- [#166](https://github.com/Marvisak/VIctory/pull/166) Shaders: lower s_bitset{0,1}_b64, s_brev_b64 and s_bitreplicate_b64_b32 — @n-romanovich
+- [#165](https://github.com/Marvisak/VIctory/pull/165) Shaders: lower s_bcnt0_i32_b32/b64 and s_ff0_i32_b32/b64 — @n-romanovich
+- [#1283](https://github.com/Marvisak/VIctory/pull/1283) Clarify DRED reports when GPU progress is unknown — @DoubleD17
+- [#969](https://github.com/Marvisak/VIctory/pull/969) GPU: load the Agility SDK through ID3D12SDKConfiguration1 (#749) — @mgunes1311-lab
+- [#573](https://github.com/Marvisak/VIctory/pull/573) Shaders: lower ds_bpermute_b32 — @banbanzhige
+- [#628](https://github.com/Marvisak/VIctory/pull/628) Shaders: lower ds_min_f32 / ds_max_f32 (and _rtn) with RDNA2's NaN rules — @mercuryVM
+- [#606](https://github.com/Marvisak/VIctory/pull/606) Shaders: ds_swizzle_b32 offsets from 0xC000 are the rotate and FFT modes — @upipibi
+- [#142](https://github.com/Marvisak/VIctory/pull/142) shader: lower s_bitcmp{0,1}_b{32,64} and s_sext_i32_i{8,16} — @n-romanovich
+- [#1309](https://github.com/Marvisak/VIctory/pull/1309) HLE audio capture: fix WAV/QPC overflows, chunk silence writes, close target handle — @geiyiliyabumo
+- [#561](https://github.com/Marvisak/VIctory/pull/561) xmem: commit physical pages in pieces, and report the real count — @JoshRob297
+- [#212](https://github.com/Marvisak/VIctory/pull/212) GPU, HLE: report host display HDR luminance and configure swap chain color space — @n-romanovich
+- [#345](https://github.com/Marvisak/VIctory/pull/345) docs: add Brazilian Portuguese translation — @leonardo-silva-pinheiro
+- [#177](https://github.com/Marvisak/VIctory/pull/177) Shaders: key heap handles by element type (atomic on a float-read UAV) — @Ortomanic
+- [#178](https://github.com/Marvisak/VIctory/pull/178) GPU: compile the indirect-argument clamp with DXC when D3DCompile refuses it (Wine/Proton) — @Ortomanic
+- [#454](https://github.com/Marvisak/VIctory/pull/454) Loader: opt-in VICTORY_NO_WATCHDOG hook for the title's watchdog (build 1.0.2.1) — @ruvenesh
+- [#1394](https://github.com/Marvisak/VIctory/pull/1394) HLE: make XUserCompare antisymmetric — @mgunes1311-lab
+- [#1310](https://github.com/Marvisak/VIctory/pull/1310) feat: add native Linux support (loader, HLE, POSIX bridge) — @MSDOS-N
+- [#1324](https://github.com/Marvisak/VIctory/pull/1324) Pipeline: accept existing entry when concurrent cache publication races on Windows — @mgunes1311-lab
+- [#437](https://github.com/Marvisak/VIctory/pull/437) Shaders: preserve raw scalar buffer loads on NVIDIA — @bodnjenie14
+- [#1019](https://github.com/Marvisak/VIctory/pull/1019) GPU: buffer views off their host copy's elements use a copy of just their bytes — @SantannaCarlos
+- [#457](https://github.com/Marvisak/VIctory/pull/457) fix(shader): accept overwritten VGPR inputs in counted indexed writes — @jeremygold02
+- [#1400](https://github.com/Marvisak/VIctory/pull/1400) GPU: split duplicate HostList entries into separate ExecuteCommandLists batches — @piyonchu
+- [#1282](https://github.com/Marvisak/VIctory/pull/1282) Shaders: fold conditional branches to their fallthrough — @EatCodeSleep2
+- [#98](https://github.com/Marvisak/VIctory/pull/98) Shaders: model v_permlane16_b32 in whole-wave sections — @tedin7
+- [#524](https://github.com/Marvisak/VIctory/pull/524) Runtime: declare title-facing functions extern "win64" — @spidercraft
+- [#1372](https://github.com/Marvisak/VIctory/pull/1372) Loader: lazily NOP-patch clwb/monitorx on #UD, emulate rdpid, batch IAT protection, and content-hash cached DLLs — @wbkepler
+- [#1355](https://github.com/Marvisak/VIctory/pull/1355) HLE & Formats: replace miniz_oxide with SIMD-accelerated zlib-rs — @wbkepler
+- [#1092](https://github.com/Marvisak/VIctory/pull/1092) Improve texture format handling and GPU resource-state management — @Abh-shar
+- [#494](https://github.com/Marvisak/VIctory/pull/494) docs: add Indonesian translation (languages/README.id.md) — @bimantaraz
+- [#955](https://github.com/Marvisak/VIctory/pull/955) Shaders, GPU: clamp descriptor heap indices to bound host heap guard slot — @MartinIndra02
+- [#487](https://github.com/Marvisak/VIctory/pull/487) HLE: read manifest fields past inline XML comments — @Quat3rnion
+- [#460](https://github.com/Marvisak/VIctory/pull/460) Metal: add native Apple Silicon GPU conformance harness — @pedrofort
+- [#512](https://github.com/Marvisak/VIctory/pull/512) HLE: resolve ordinals on pseudo-module handles — @Quat3rnion
+- [#480](https://github.com/Marvisak/VIctory/pull/480) HLE: require two hex digits in percent escapes — @enzoduarte1
+- [#1356](https://github.com/Marvisak/VIctory/pull/1356) GPU: use RwLock for read-mostly tables and add per-HostList VA/view caches — @wbkepler
+- [#1245](https://github.com/Marvisak/VIctory/pull/1245) Shaders: a biased sample of 16-bit coordinates reads its bias from its own VGPR — @nicogunvis-boop
+- [#478](https://github.com/Marvisak/VIctory/pull/478) Audio capture: guard WASAPI timestamp errors/underflow, null 0-frame slice UB, unbounded silence allocation, and WAV header u32 overflow — @nathanbzrr
+- [#1290](https://github.com/Marvisak/VIctory/pull/1290) Shader tests: a skipped device says why it was skipped — @sklsp
+- [#1345](https://github.com/Marvisak/VIctory/pull/1345) docs: record RTX 4060 story-mode validation in English and Portuguese — @Mascoteey
+- [#1335](https://github.com/Marvisak/VIctory/pull/1335) test(shader): translate random GFX10 programs on every test run — @Levichu51
+- [#302](https://github.com/Marvisak/VIctory/pull/302) Shaders: read root arguments the console spills to memory — @dadou000
+- [#309](https://github.com/Marvisak/VIctory/pull/309) Shaders: forward SGPRs reloaded from VGPR lanes as the spilled value — @AntoninMichelq
+- [#953](https://github.com/Marvisak/VIctory/pull/953) Shaders: handle s_buffer_load SMEM uses in descriptor_data (#798) — @MartinIndra02
+- [#193](https://github.com/Marvisak/VIctory/pull/193) Shaders, GPU: add runtime stride table for structured buffers — @n-romanovich
+- [#986](https://github.com/Marvisak/VIctory/pull/986) GPU: copy unaligned buffer SRVs into element-aligned scratch memory — @CitizenCinema
+- [#1295](https://github.com/Marvisak/VIctory/pull/1295) Shaders: decode 16-bit integer inline float constants as f32 bits — @WALID1618Y
+- [#503](https://github.com/Marvisak/VIctory/pull/503) HLE: pin a call's task queue at XAsyncBegin — @Quat3rnion
+- [#1329](https://github.com/Marvisak/VIctory/pull/1329) HLE GameInput supports IUnknown queries — @BaggyALPHA
+- [#101](https://github.com/Marvisak/VIctory/pull/101) Shaders: lower sub-dword LDS reads and writes — @Yaekai
+- [#1170](https://github.com/Marvisak/VIctory/pull/1170) Fix root-indexed descriptors in rebuilt resource tables — @draggygaggy-maker
+- [#592](https://github.com/Marvisak/VIctory/pull/592) Shaders: second rows of packed 16-bit pixel inputs — @SAitken91
+- [#1308](https://github.com/Marvisak/VIctory/pull/1308) HLE xpackage: fix bool vtable slots, symlink dir walk, and estimate_download guard — @geiyiliyabumo
+- [#1306](https://github.com/Marvisak/VIctory/pull/1306) Loader: fix thunk block overflow, capacity enforcement, flush errors, and leaks — @geiyiliyabumo
+- [#1273](https://github.com/Marvisak/VIctory/pull/1273) GPU: mirror placed unordered texture views — @fuzeofficlal
+- [#627](https://github.com/Marvisak/VIctory/pull/627) feat(victory-shader): implement v_swaprel_b32, v_movrelsd_2_b32, and s_movrelsd_2_b32 lowering — @Amit89-beep
+- [#949](https://github.com/Marvisak/VIctory/pull/949) victory-gpu: segregate single-slot and table dynamic descriptors (#747) — @Sakura-Byte
+- [#933](https://github.com/Marvisak/VIctory/pull/933) GPU: report allocated mips from GetDesc — @enzoduarte1
+- [#705](https://github.com/Marvisak/VIctory/pull/705) Fix/typed image atomic int64 — @Abhishek-Sood
+- [#608](https://github.com/Marvisak/VIctory/pull/608) feat(victory-shader): implement s_movrels_b32 and s_movreld_b32 lowering — @Amit89-beep
+- [#563](https://github.com/Marvisak/VIctory/pull/563) Shaders: cube samples with gradients, and image_sample_d_cl — @SAitken91
+- [#1055](https://github.com/Marvisak/VIctory/pull/1055) Shaders: scalar buffer loads from a UAV read it raw — @adamdotpy
+- [#420](https://github.com/Marvisak/VIctory/pull/420) GPU: include root-selected entries in rebuilt descriptor tables — @FIocker
+- [#391](https://github.com/Marvisak/VIctory/pull/391) Shaders: refuse LDS past the host's group limit by name — @Kaairim (draft)
+- [#241](https://github.com/Marvisak/VIctory/pull/241) Core host UX: XDG data dir, config-relative paths, and clearer VICTORY_LOG handling — @SkippySteve
+- [#148](https://github.com/Marvisak/VIctory/pull/148) Shaders: lower s_bcnt0_i32_b32/_b64, s_ff0_i32_b32/_b64 and s_flbit_i32_b64/_i64 — @Rareuncommon
+- [#120](https://github.com/Marvisak/VIctory/pull/120) Shaders: lower s_absdiff_i32, s_sext_i32_i8/i16 and s_pack_ll/lh/hh_b32_b16 — @tedin7
+- [#265](https://github.com/Marvisak/VIctory/pull/265) Shaders: private (scratch) memory as a per-lane array — @r4tedx
+- [#320](https://github.com/Marvisak/VIctory/pull/320) Shaders: lane reads and writes where lanes branch differently run in the console flow — @r4tedx
+- [#159](https://github.com/Marvisak/VIctory/pull/159) GPU: occlusion, statistics and timestamp queries run on the host — @r4tedx
+- [#158](https://github.com/Marvisak/VIctory/pull/158) GPU: the depth bounds test reaches the host — @r4tedx
+- [#683](https://github.com/Marvisak/VIctory/pull/683) Shaders: zero unavailable mixed-precision FMA halves — @Halfect
+- [#1304](https://github.com/Marvisak/VIctory/pull/1304) Loader: fix thread shutdown targeting, registry lifetime, and CRT detach ordering — @geiyiliyabumo
+- [#1268](https://github.com/Marvisak/VIctory/pull/1268) GPU: skip empty command list submissions — @EatCodeSleep2
+- [#217](https://github.com/Marvisak/VIctory/pull/217) Wine: fall back where ws2_32 lacks exports; hook and cfg fixes — @Naitrate
+- [#1065](https://github.com/Marvisak/VIctory/pull/1065) Shaders: use validator 1.8 for compute derivatives — @Halfect
+- [#1253](https://github.com/Marvisak/VIctory/pull/1253) Shaders: follow scalar index arithmetic in waterfall table offsets — @mgunes1311-lab
+- [#693](https://github.com/Marvisak/VIctory/pull/693) gpu: move shadow buffers to DEFAULT VRAM with pooled staging transfers — @wbkepler
+- [#1020](https://github.com/Marvisak/VIctory/pull/1020) GPU: rectangle lists placed by vertex number get a geometry stage — @Gargalindis
+- [#1012](https://github.com/Marvisak/VIctory/pull/1012) Shaders: descriptors joined by nested control flow — @ThiagoAlexsander
+- [#1269](https://github.com/Marvisak/VIctory/pull/1269) Shaders: handle dead mask dwords at data joins and wave-uniform s_bcnt1 SCC — @Sakura-Byte
+- [#1083](https://github.com/Marvisak/VIctory/pull/1083) Shaders: name what a scalar memory read is, and which descriptor dword it reads — @adamdotpy
+- [#1094](https://github.com/Marvisak/VIctory/pull/1094) GPU: cache the error of a container that does not translate — @adamdotpy
+- [#1289](https://github.com/Marvisak/VIctory/pull/1289) Shader tests: v_pk_mul_lo_u16 keeps each half to 16 bits — @bvtterbroot
+- [#1263](https://github.com/Marvisak/VIctory/pull/1263) Shader: the loop limit switch works in every build — @pablogonz12
+- [#1278](https://github.com/Marvisak/VIctory/pull/1278) Docs: add testing.md — @DrummingBird1
+- [#1255](https://github.com/Marvisak/VIctory/pull/1255) Shaders: support clamped image sample variants and include cubemap kinds in spatial count — @AdamRchd
+- [#402](https://github.com/Marvisak/VIctory/pull/402) GPU: find a buffer holding an address past many smaller ones; reuse loose windows that hold a range — @kxiserino
+- [#1017](https://github.com/Marvisak/VIctory/pull/1017) Fix the Linux build and clippy gates — @Jitheswar
+- [#1256](https://github.com/Marvisak/VIctory/pull/1256) Shaders: decode cube-array slice and face in image lowering — @fuzeofficlal
+- [#1258](https://github.com/Marvisak/VIctory/pull/1258) Gather XMA frames in byte-sized chunks — @Jitheswar
+- [#470](https://github.com/Marvisak/VIctory/pull/470) shader: lower wave prefixes of min and max — @Loggerten
+- [#1265](https://github.com/Marvisak/VIctory/pull/1265) GPU: VICTORY_WIDE_SCISSOR widens a scissor to its viewport (a diagnostic) — @pablogonz12
+- [#970](https://github.com/Marvisak/VIctory/pull/970) GPU: aspect-aware concrete format resolution for typeless views (fixes #882, #876) — @pushkarreddyy
+- [#208](https://github.com/Marvisak/VIctory/pull/208)  GPU: select high-performance D3D12 adapter and probe host caps — @wbkepler
+- [#1097](https://github.com/Marvisak/VIctory/pull/1097) specialize fixed-width runs in texture tiling and detiling — @matheusfrta
+- [#621](https://github.com/Marvisak/VIctory/pull/621) Shaders: read explicit packed input padding as zero — @Halfect
+- [#1059](https://github.com/Marvisak/VIctory/pull/1059) Loader: VICTORY_PATCH writes bytes into a loaded module after relocation — @Halfect
+- [#1254](https://github.com/Marvisak/VIctory/pull/1254) GPU diagnostics: a black frame's trace keeps the draws that end the frame — @EduAzevedo
+- [#571](https://github.com/Marvisak/VIctory/pull/571) Shaders: LDS byte and half accesses — @SAitken91
+- [#1022](https://github.com/Marvisak/VIctory/pull/1022) Shaders: signature rows of one register in the validator's order — @ThiagoAlexsander
+- [#498](https://github.com/Marvisak/VIctory/pull/498) shader: lower v_movrelsd_2_b32 and v_swaprel_b32 — @NolanCotter
+- [#489](https://github.com/Marvisak/VIctory/pull/489) Shaders: spill-table loads read the arguments as they were on entry (stacked on #302) — @louketa
+- [#559](https://github.com/Marvisak/VIctory/pull/559) GPU: track mip states for 2D color targets — @fuzeofficlal
+- [#652](https://github.com/Marvisak/VIctory/pull/652) GPU: use selected mip extents for MSAA resolves — @fuzeofficlal
+- [#450](https://github.com/Marvisak/VIctory/pull/450) GPU: preserve typed null render target slots — @fuzeofficlal
+- [#461](https://github.com/Marvisak/VIctory/pull/461) GPU: keep the initial pipeline of new command lists — @fuzeofficlal
+- [#379](https://github.com/Marvisak/VIctory/pull/379) Shaders: lower v_div_fixup_f16 — @LouisRiverstone
+- [#317](https://github.com/Marvisak/VIctory/pull/317) Shaders: support cube and MSAA dimensions in descriptor_data — @tarcisioads
+- [#259](https://github.com/Marvisak/VIctory/pull/259) Shaders: query a descriptor's level count only when word 3 is read — @desplmfao
+- [#1074](https://github.com/Marvisak/VIctory/pull/1074) Shaders: a lane mask spilled to a VGPR lane is still that mask — @undeadhuman37 (draft)
+- [#472](https://github.com/Marvisak/VIctory/pull/472) GPU: grow the write snapshot in place, and cap idle pool memory — @SaymonMaster14
+- [#1025](https://github.com/Marvisak/VIctory/pull/1025) GPU, HLE: an announced kernel read stays open until it lands — @Dufftwt
+- [#1179](https://github.com/Marvisak/VIctory/pull/1179) Input: choose the loose controls diagram by active gamepad (stacked on #312) — @Razdva122 (draft)
+- [#1136](https://github.com/Marvisak/VIctory/pull/1136) Shaders: lower v_pk_fmac_f16 (VOP2 0x3c and VOP3 0x13c) — @ESAT586
+- [#943](https://github.com/Marvisak/VIctory/pull/943) GPU: use VirtualQuery region fallback in copy_mapped and write_mapped — @MartinIndra02
+- [#280](https://github.com/Marvisak/VIctory/pull/280) README: a hard drive keeps the first screen black for ~90 s — @curnpoo
+- [#124](https://github.com/Marvisak/VIctory/pull/124) GPU: reuse unchanged page checks across shadow copy-back ranges — @TG0000
+- [#960](https://github.com/Marvisak/VIctory/pull/960) Game picker — @killar4eto
+- [#1032](https://github.com/Marvisak/VIctory/pull/1032) GPU: cap oversized sampler heaps — @divyeshganta
+- [#1033](https://github.com/Marvisak/VIctory/pull/1033) victory-shader: build the per-instruction read/write lists once (ir::build -13%) — @pes7
+- [#1042](https://github.com/Marvisak/VIctory/pull/1042) Shaders: emit canonical system-value semantic names in ISG1/OSG1 signature parts — @gabrielcruzg3
+- [#1043](https://github.com/Marvisak/VIctory/pull/1043) Shaders: 16-bit compares ignore VOP3 op_sel — @Altorru
+- [#1045](https://github.com/Marvisak/VIctory/pull/1045) Shaders: cover integer three-way ops, f16 zero order, s_bfe_u32 and f32 class — @Altorru
+- [#1064](https://github.com/Marvisak/VIctory/pull/1064) Docs: the GPU path, diagnosing GPU problems, and testing — @Dufftwt
+- [#1081](https://github.com/Marvisak/VIctory/pull/1081) Shaders: leave loop-count breadcrumbs in a host buffer and name the runaway loops when the device is removed — @iurysf
+- [#1082](https://github.com/Marvisak/VIctory/pull/1082) GPU: log the TDR settings, and warn when a GPU hang would freeze the PC — @bvtterbroot
+- [#1088](https://github.com/Marvisak/VIctory/pull/1088) Fix compute shader signed overflow and paired LDS writes — @THE-PRO-GAME
+- [#383](https://github.com/Marvisak/VIctory/pull/383) Shader: LDS bytes and halves, constant sample offsets, descriptor-data reasons — @xmvo
+- [#1091](https://github.com/Marvisak/VIctory/pull/1091) README: how to install Rust on Windows (#1087) — @EduBertozzi
+- [#1093](https://github.com/Marvisak/VIctory/pull/1093) GPU: return the output pointer from GetDesc methods — @BlueCatsz
+- [#388](https://github.com/Marvisak/VIctory/pull/388) GPU: refresh unwatched textures without a region query; detile into cached memory — @ItsYusei99
+- [#514](https://github.com/Marvisak/VIctory/pull/514) fix(gpu): recheck uncommitted blocks before skipping writes — @jeremygold02
+- [#485](https://github.com/Marvisak/VIctory/pull/485) GPU: preserve compatible read states for read-only depth targets — @fuzeofficlal
+- [#1021](https://github.com/Marvisak/VIctory/pull/1021) Shaders: s_atc_probe's immediate is not a register — @CaravelaLabs
+- [#1014](https://github.com/Marvisak/VIctory/pull/1014) victory-shader: lower v_permlane16_b32 and v_permlanex16_b32 — @bartikele
+- [#1192](https://github.com/Marvisak/VIctory/pull/1192) Loader: fix 4 bounds/overflow bugs in tls.rs and stacks.rs with unit tests — @geiyiliyabumo
+- [#137](https://github.com/Marvisak/VIctory/pull/137) fix(gpu): preserve source and destination pixels in texture readbacks — @jeremygold02 (draft)
+- [#1213](https://github.com/Marvisak/VIctory/pull/1213) HLE: reject null handle in WinHttpSetOption proxy path and expand net.rs tests (1 -> 17) — @geiyiliyabumo
+- [#947](https://github.com/Marvisak/VIctory/pull/947) victory-shader: add forced-var propagation and UNSAT memoization to Bools::meet — @Sakura-Byte
+- [#983](https://github.com/Marvisak/VIctory/pull/983) GPU: the early pipeline list keeps the most recently used keys — @LICObr
+- [#1207](https://github.com/Marvisak/VIctory/pull/1207) GPU: validate input layouts and aligned vertex offsets in pipeline/host.rs with unit tests — @geiyiliyabumo
+- [#586](https://github.com/Marvisak/VIctory/pull/586) Shaders: honor the mesh allocation request counts — @Kam471
+- [#1201](https://github.com/Marvisak/VIctory/pull/1201) Loader: fix 4 bounds and cleanup bugs in windows.rs with unit tests — @geiyiliyabumo
+- [#1187](https://github.com/Marvisak/VIctory/pull/1187) Keep unstaged DirectStorage reads moving under staging pressure — @Jitheswar
+- [#645](https://github.com/Marvisak/VIctory/pull/645) Shaders: trace multi-term, scaled, masked, and phi-joined addresses in resource tracking — @nathanbzrr
+- [#162](https://github.com/Marvisak/VIctory/pull/162) Shaders: lower v_sad_u8, v_sad_hi_u8, v_sad_u16, v_sad_u32 and v_msad_u8 — @Rareuncommon
+- [#156](https://github.com/Marvisak/VIctory/pull/156) Shaders: lower v_mul_hi_u32_u24 and v_mul_hi_i32_i24 — @Rareuncommon
+- [#254](https://github.com/Marvisak/VIctory/pull/254) Pipeline & CLI: stable shader cache key, in-flight dedup, and AOT warm-up — @wbkepler
+- [#973](https://github.com/Marvisak/VIctory/pull/973) Core: fix policy resolve trailing and verbatim dotdot folding (fixes #793) — @pushkarreddyy
+- [#687](https://github.com/Marvisak/VIctory/pull/687) hle: track title working-set memory, bound xasync threads, and map XUser devices — @wbkepler
+- [#697](https://github.com/Marvisak/VIctory/pull/697) Shader: backward dead-code elimination in DXIL bitcode emission — @wbkepler
+- [#12](https://github.com/Marvisak/VIctory/pull/12) Check the required package archive before title startup — @Raxstreams
+- [#690](https://github.com/Marvisak/VIctory/pull/690) gpu: expand console primitive topologies into host list index buffers — @wbkepler
+- [#616](https://github.com/Marvisak/VIctory/pull/616) GPU: rectangle draws check their bounds without 32-bit overflow — @itzzArshad
+- [#1114](https://github.com/Marvisak/VIctory/pull/1114) CLI: replay selected runtime shader hashes in offline translation — @Razdva122
+- [#483](https://github.com/Marvisak/VIctory/pull/483) Shaders, GPU: a heap index computed from data stays inside the heap — @Vaximous
+- [#703](https://github.com/Marvisak/VIctory/pull/703) Formats: eliminate BCPack per-call allocations and optimize streaming decode — @wbkepler
+- [#702](https://github.com/Marvisak/VIctory/pull/702) gpu: add native DXR 1.1 acceleration structure backend and OPTIONS5 query — @wbkepler
+- [#975](https://github.com/Marvisak/VIctory/pull/975) HLE: add XGSuggestSwizzleMode TEXTURE_1D branch validation (fixes #868) — @pushkarreddyy
+- [#618](https://github.com/Marvisak/VIctory/pull/618) GPU: align appended input-element offsets like D3D12 — @JFIREonFIRE
+- [#993](https://github.com/Marvisak/VIctory/pull/993) Formats: share immutable texture swizzle tables — @TG0000
+- [#624](https://github.com/Marvisak/VIctory/pull/624) DirectStorage: report queue read failures — @broccolize
+- [#997](https://github.com/Marvisak/VIctory/pull/997) HLE: prevent automatic WinHTTP redirects — @Hiiva
+- [#948](https://github.com/Marvisak/VIctory/pull/948) victory-gpu: implement ClearUnorderedAccessViewUint/Float and DiscardResource — @Sakura-Byte
+- [#946](https://github.com/Marvisak/VIctory/pull/946) victory-shader: preserve helper-lane values on pixel waveReadLaneFirst — @Sakura-Byte
+- [#332](https://github.com/Marvisak/VIctory/pull/332) Shaders: lower partial-channel image_store — @tarcisioads
+- [#1031](https://github.com/Marvisak/VIctory/pull/1031) cli: forward and display title_args in victory run — @Pradhyumna51
+- [#999](https://github.com/Marvisak/VIctory/pull/999) Shaders: search lane conditions once and redo a lowering once — @TG0000
+- [#958](https://github.com/Marvisak/VIctory/pull/958) GPU: unit tests for the OPTIONS, ARCHITECTURE and MULTISAMPLE feature queries — @LouisRiverstone
+- [#1030](https://github.com/Marvisak/VIctory/pull/1030) VIctory emulator patches for GTA VI (Xbox Series X Scarlett build 1.0… — @Viktornachay
+- [#922](https://github.com/Marvisak/VIctory/pull/922) Pipeline: delimit converter id in cache keys — @enzoduarte1
+- [#927](https://github.com/Marvisak/VIctory/pull/927) GameInput: held keys are reported in the order they were pressed, as documented — @BastienRodz
+- [#929](https://github.com/Marvisak/VIctory/pull/929) Audio: a silent playback endpoint when the host has no render device — @vladbondarenko97
+- [#934](https://github.com/Marvisak/VIctory/pull/934) GPU tests: isolate write-watch fixture from reused addresses — @muhammed-aksoy
+- [#937](https://github.com/Marvisak/VIctory/pull/937) policy: resolve a .. in the not-yet-existing part of a path — @nino-exe
+- [#952](https://github.com/Marvisak/VIctory/pull/952) GPU: log the host's video-memory use and its budget — @Ege-Mert
+- [#956](https://github.com/Marvisak/VIctory/pull/956) GPU: support multi-argument ExecuteIndirect signatures with root constants — @MartinIndra02
+- [#957](https://github.com/Marvisak/VIctory/pull/957) HLE: test that XGSuggestSwizzleMode picks linear for a 1D texture — @LouisRiverstone
+- [#1013](https://github.com/Marvisak/VIctory/pull/1013) speed up shader structurisation and prioritize live pipeline compiles — @matheusfrta
+- [#1016](https://github.com/Marvisak/VIctory/pull/1016) XMA: gather frame payloads one byte at a time — @heromike405-arch
+- [#416](https://github.com/Marvisak/VIctory/pull/416) shader: implement v_cvt_f32_f64 instruction lowering — @bitzin-dev
+- [#1073](https://github.com/Marvisak/VIctory/pull/1073) Shaders: a scalar joining a lane mask and a number lowers in pixel and vertex programs — @undeadhuman37 (draft)
+- [#968](https://github.com/Marvisak/VIctory/pull/968) GPU: load the DirectX 12 Agility SDK, and map the console's packed 16… — @bailu12300
+- [#333](https://github.com/Marvisak/VIctory/pull/333) Shaders: keep native root parameters inside the SGPRs, clamp the thread-id count, and name each blob refusal — @SkippySteve
+- [#976](https://github.com/Marvisak/VIctory/pull/976) GPU: add check_feature_support unit tests for features 0, 1, 3, 4 (fixes #869) — @pushkarreddyy
+- [#974](https://github.com/Marvisak/VIctory/pull/974) GPU: extend HostHeap wraparound search range to cursor bounds (fixes #871) — @pushkarreddyy
+- [#972](https://github.com/Marvisak/VIctory/pull/972) HLE: enforce XSystemXboxLiveSandboxId minimum buffer size (fixes #862) — @pushkarreddyy
+- [#190](https://github.com/Marvisak/VIctory/pull/190) GPU: build the indirect-argument clamp with our own writer (no shader compiler at run time) — @LaunchDoesntCode
+- [#224](https://github.com/Marvisak/VIctory/pull/224) HLE: report the host's commit headroom before the title starts — @WallasSCRIPTS
+- [#939](https://github.com/Marvisak/VIctory/pull/939) HLE: XSystemGetXboxLiveSandboxId refuses a buffer under 16 bytes — @LouisRiverstone
+- [#465](https://github.com/Marvisak/VIctory/pull/465) Shaders: lower v_dot2_f32_f16 and v_dot2c_f32_f16 — @Baconzido
+- [#626](https://github.com/Marvisak/VIctory/pull/626) GPU: fall back to standard root signature flags when host runtime rejects 0xC01/0xC00 — @LAKSHYA-cmd-tech
+- [#991](https://github.com/Marvisak/VIctory/pull/991) merge overlapping gpu write-back ranges and coalesce watch opens — @matheusfrta
+- [#967](https://github.com/Marvisak/VIctory/pull/967) GPU: choose an adapter that can run the title, and name the ones that cannot — @zzm1234560621-prog
+- [#978](https://github.com/Marvisak/VIctory/pull/978) victory-shader: lower v_cvt_f32_f64 and image_sample_d_cl — @bartikele
+- [#963](https://github.com/Marvisak/VIctory/pull/963) PE: read long-format import descriptors — @enzoduarte1
+- [#1005](https://github.com/Marvisak/VIctory/pull/1005) Fix 12 verified regressions in shader translation, runtime, caching and texture handling — @THE-PRO-GAME
+- [#1008](https://github.com/Marvisak/VIctory/pull/1008) Shaders: immediate samplers chosen by control flow — @ThiagoAlexsander
+- [#613](https://github.com/Marvisak/VIctory/pull/613) HLE: serialize device callbacks across delivery threads — @Quat3rnion
+- [#1004](https://github.com/Marvisak/VIctory/pull/1004) Shaders: lower image_get_lod on cube textures — @tarcisioads
+- [#1011](https://github.com/Marvisak/VIctory/pull/1011) Add Linux GE-Proton workflow — @MiguVT
+- [#551](https://github.com/Marvisak/VIctory/pull/551) Shaders: lower compute group info, wave id in workgroup, and sample coverage — @kilvynsilveira-tech
+- [#238](https://github.com/Marvisak/VIctory/pull/238) CLI: check for AVX2 before running a title (VICTORY_SKIP_CPU_CHECK=1 to bypass) — @dpalacios69
+- [#69](https://github.com/Marvisak/VIctory/pull/69) Translate compute selects with numeric lane masks — @flapwarp78
+- [#988](https://github.com/Marvisak/VIctory/pull/988) GPU: say when a fault lies past the end of its title memory copy — @h0useadv
+- [#605](https://github.com/Marvisak/VIctory/pull/605) Shaders: v_cvt_rpi_i32_f32 rounds the exact sum; v_cvt_flr/rpi_i32_f32 saturate a NaN by its sign — @upipibi
+- [#990](https://github.com/Marvisak/VIctory/pull/990) Shaders: hardware test for v_cvt_f16_u16 and v_cvt_f16_i16 — @LouisRiverstone
+- [#655](https://github.com/Marvisak/VIctory/pull/655) Shaders: guard conditional exports — @Halfect
+- [#347](https://github.com/Marvisak/VIctory/pull/347) GPU: ask for an empty pipeline library with a null blob — @AugustoZFJ
+- [#73](https://github.com/Marvisak/VIctory/pull/73) Shaders: support image_sample_b with a16 and _cl LOD-clamp variants — @Yaekai
+- [#288](https://github.com/Marvisak/VIctory/pull/288) Shaders: cap BDD memo table and bail out early on overflow — @Yaekai
+- [#183](https://github.com/Marvisak/VIctory/pull/183) XMA: noise tests, and end a frame at its data instead of looping forever — @AnoHunted
+- [#188](https://github.com/Marvisak/VIctory/pull/188) Loader: find TLS-array load candidates sixteen offsets at a time (8-9x faster scan) — @TG0000
+- [#321](https://github.com/Marvisak/VIctory/pull/321) GPU: honour scheduled frame-event offsets — @Quat3rnion
+- [#982](https://github.com/Marvisak/VIctory/pull/982) GPU: pool upload buffers across command list resets — @chemokita13
+- [#395](https://github.com/Marvisak/VIctory/pull/395) shader: unpack compressed f16 pixel exports — @Loggerten
+- [#231](https://github.com/Marvisak/VIctory/pull/231) Draft integration test of 138 PRs on Windows — @muhammed-aksoy (draft)
+- [#710](https://github.com/Marvisak/VIctory/pull/710) Shaders, GPU: read through addresses passed in two root constants (stacked on #489) — @itsRevela
+- [#112](https://github.com/Marvisak/VIctory/pull/112) Build: Linux workspace, contributor setup and CI — @Quat3rnion
+- [#513](https://github.com/Marvisak/VIctory/pull/513) App: forward title command-line arguments to run command — @pushkarreddyy
+- [#519](https://github.com/Marvisak/VIctory/pull/519) HLE: validate pointers in XGameUi text entry result and size getters — @pushkarreddyy
+- [#522](https://github.com/Marvisak/VIctory/pull/522) HLE: validate null package identifier in XPackage methods — @pushkarreddyy
+- [#528](https://github.com/Marvisak/VIctory/pull/528) HLE: validate null pointer in ApuIsVirtualAddressValid and overflow in ApuAlloc — @pushkarreddyy
+- [#529](https://github.com/Marvisak/VIctory/pull/529) PE: preallocate symbol_key in CodeViewInfo — @pushkarreddyy
+- [#531](https://github.com/Marvisak/VIctory/pull/531) HLE: check null and invalid handle in display deferral — @pushkarreddyy
+- [#535](https://github.com/Marvisak/VIctory/pull/535) App: enforce asset policy check in default_paths — @pushkarreddyy
+- [#540](https://github.com/Marvisak/VIctory/pull/540) CI: add asset-policy and formatting verification workflow — @pushkarreddyy
+- [#543](https://github.com/Marvisak/VIctory/pull/543) QA: add pull request template with asset policy and safety checklist — @pushkarreddyy
+- [#545](https://github.com/Marvisak/VIctory/pull/545) xtask: add qa command to run policy, rustfmt, and clippy checks — @pushkarreddyy
+- [#547](https://github.com/Marvisak/VIctory/pull/547) QA: add rustfmt.toml to standardize workspace formatting — @pushkarreddyy
+- [#453](https://github.com/Marvisak/VIctory/pull/453) Shaders: pixel barycentrics through SV_Barycentrics (values and computed interpolation) — @AntoninMichelq
+- [#549](https://github.com/Marvisak/VIctory/pull/549) CI: add Dependabot configuration for GitHub Actions and Cargo — @pushkarreddyy
+- [#660](https://github.com/Marvisak/VIctory/pull/660) Shaders: drop a wave64 mask whose low dword is seen with two high dwords — @coderanonymus
+- [#544](https://github.com/Marvisak/VIctory/pull/544) HLE: report queue termination after running callbacks — @Quat3rnion
+- [#488](https://github.com/Marvisak/VIctory/pull/488) GPU: skip zero-sized frame captures — @enzoduarte1
+- [#421](https://github.com/Marvisak/VIctory/pull/421) HLE: clean dot parts in extended virtual-drive paths — @enzoduarte1
+- [#363](https://github.com/Marvisak/VIctory/pull/363) Config: ignore an empty VICTORY_CONFIG — @enzoduarte1
+- [#143](https://github.com/Marvisak/VIctory/pull/143) GPU: hash and detile unwatched textures from a kernel-read copy — @AndyLatimer
+- [#368](https://github.com/Marvisak/VIctory/pull/368) Shaders: lower buffer cache invalidations as no-ops — @Quat3rnion
+- [#455](https://github.com/Marvisak/VIctory/pull/455) HLE: honor the requested executable on relaunch — @Quat3rnion
+- [#318](https://github.com/Marvisak/VIctory/pull/318) Shader: pack a16 image addresses as the hardware does; image_sample_d_cl — @xmvo
+- [#263](https://github.com/Marvisak/VIctory/pull/263) Formats: reserve texture metadata memory in XG layouts — @Quat3rnion
+- [#570](https://github.com/Marvisak/VIctory/pull/570) HLE: reject saves whose committed container lacks a manifest — @Quat3rnion
+- [#590](https://github.com/Marvisak/VIctory/pull/590) HLE: reject duplicate blob changes in one save update — @Quat3rnion
+- [#290](https://github.com/Marvisak/VIctory/pull/290) HLE tests: cover Windows path rules on every host — @Quat3rnion
+- [#560](https://github.com/Marvisak/VIctory/pull/560) Loader: stage prepared images in per-writer files — @Quat3rnion
+- [#574](https://github.com/Marvisak/VIctory/pull/574) HLE: write at-rest gamepad state for non-pad readings — @Quat3rnion
+- [#278](https://github.com/Marvisak/VIctory/pull/278) GPU: answer format-info and virtual-address feature queries — @Quat3rnion
+- [#555](https://github.com/Marvisak/VIctory/pull/555) PE: keep every name for a shared export ordinal — @Quat3rnion
+- [#299](https://github.com/Marvisak/VIctory/pull/299) Docs: correct rumble status and the HDR note — @Quat3rnion
+- [#481](https://github.com/Marvisak/VIctory/pull/481) CI: Add GitHub Actions workflow — @LazyHatGuy
+- [#629](https://github.com/Marvisak/VIctory/pull/629) Reject multisampled linear texture layouts — @AlanQiang0418
+- [#636](https://github.com/Marvisak/VIctory/pull/636) HLE: implement the RPC runtime's GUID calls — @Nixitov
+- [#646](https://github.com/Marvisak/VIctory/pull/646) Shaders: fix whole-wave EXEC inline constant sign-extension and prefix lane validation — @nathanbzrr
+- [#648](https://github.com/Marvisak/VIctory/pull/648) HLE: implement XUser maximum-users slot 0x30 (#348, #622) — @LAKSHYA-cmd-tech
+- [#651](https://github.com/Marvisak/VIctory/pull/651) GPU: select the readable format and plane for depth/stencil shader views — @Raxstreams
+- [#656](https://github.com/Marvisak/VIctory/pull/656) Input: report the character each held key types — @lameloball2813-ui
+- [#658](https://github.com/Marvisak/VIctory/pull/658) BCPack: read BC7 dictionary indices from the right offset — @coderanonymus
+- [#662](https://github.com/Marvisak/VIctory/pull/662) DSP: refuse XDspDisconnect with active streams; XDSP_E_NO_DEVICE_RESOURCES past the stream limit — @coderanonymus
+- [#664](https://github.com/Marvisak/VIctory/pull/664) translate: refuse a VICTORY_EMIT_DUMP directory inside the repo — @coderanonymus
+- [#486](https://github.com/Marvisak/VIctory/pull/486) shader: opt the test binaries into an app-local Agility SDK runtime — @naixue2233
+- [#665](https://github.com/Marvisak/VIctory/pull/665) xtask: count \x escapes and 0x hex arrays as encoded runs in the policy check — @coderanonymus
+- [#673](https://github.com/Marvisak/VIctory/pull/673) Make translate failure examples stable across workers — @timorjay
+- [#674](https://github.com/Marvisak/VIctory/pull/674) HLE (xg): validate null tiling output, slice bounds, and checked copy spans — @DenRakEiw
+- [#679](https://github.com/Marvisak/VIctory/pull/679) run: refuse capture and dump paths inside the repo — @binarycleric
+- [#708](https://github.com/Marvisak/VIctory/pull/708) fix(config): keep the data directory out of the cache root — @Loggerten
+- [#583](https://github.com/Marvisak/VIctory/pull/583) fix(gpu): respect indirect count buffer, guard budget overflow, and bind null root views — @matheusfrta
+- [#642](https://github.com/Marvisak/VIctory/pull/642) GPU: translate enhanced texture barriers in ID3D12GraphicsCommandList7::Barrier — @nathanbzrr
+- [#641](https://github.com/Marvisak/VIctory/pull/641) GPU: upload partially-resident streamed textures — @nathanbzrr
+- [#596](https://github.com/Marvisak/VIctory/pull/596) Shaders: lower v_cvt_pknorm_{i16,u16}_{f32,f16} with exact rounding — @mercuryVM
+- [#631](https://github.com/Marvisak/VIctory/pull/631) Add unit tests for console.rs — @shayanCSknu
+- [#82](https://github.com/Marvisak/VIctory/pull/82) HLE: speak the title's narration with the host's speech synthesizer — @permadiego
+- [#632](https://github.com/Marvisak/VIctory/pull/632) Shaders: LDS reads and writes of a byte or half — @itsRevela
+- [#569](https://github.com/Marvisak/VIctory/pull/569) Shaders: biased samples with 16-bit coordinates — @SAitken91
+- [#633](https://github.com/Marvisak/VIctory/pull/633) HLE: GetModuleFileNameA answers in the ANSI code page — @JFIREonFIRE
+- [#582](https://github.com/Marvisak/VIctory/pull/582) feat(gpu): wire up depth bounds testing on command lists and pipeline streams — @matheusfrta
+- [#164](https://github.com/Marvisak/VIctory/pull/164) Shaders: integer memory atomics and sub-dword buffer accesses — @r4tedx
+- [#269](https://github.com/Marvisak/VIctory/pull/269) Shaders: scalars leave divergent loops and branches as the wave's last path left them — @TheHoracio
+- [#709](https://github.com/Marvisak/VIctory/pull/709) Shaders: structured access through a root SRV or UAV uses its raw view (stacked on #294) — @itsRevela
+- [#244](https://github.com/Marvisak/VIctory/pull/244) Shaders: share and serialize WARP host operations across threads — @AndyLatimer
+- [#425](https://github.com/Marvisak/VIctory/pull/425) Game: validate DXBC containers in SGD5 records — @enzoduarte1
+- [#447](https://github.com/Marvisak/VIctory/pull/447) Shaders: a signed 64-bit operand sign-extends its 32-bit literal — @Dufftwt
+- [#404](https://github.com/Marvisak/VIctory/pull/404) shader: lower v_permlanex16_b32 — @NolanCotter
+- [#434](https://github.com/Marvisak/VIctory/pull/434) Shaders: a wave32 program's mask read picks its half of a 64-lane ballot — @NolanCotter
+- [#281](https://github.com/Marvisak/VIctory/pull/281) feat(shader): add opt-in perspective-center barycentric inputs — @jeremygold02 (draft)
+- [#311](https://github.com/Marvisak/VIctory/pull/311) test(pe): cover header layout offsets — @CesarLopesO
+- [#530](https://github.com/Marvisak/VIctory/pull/530) GPU diagnostics: show one of the title's render targets in the window — @AKA0GHOST
+- [#236](https://github.com/Marvisak/VIctory/pull/236) XAsync: a canceled pending call's work touches neither freed state nor the next call — @Dufftwt
+- [#168](https://github.com/Marvisak/VIctory/pull/168) Shaders: SCC of s_min, s_max and s_lshl1-4_add_u32 as the ISA sets it — @Dufftwt
+- [#323](https://github.com/Marvisak/VIctory/pull/323) docs: debugging notes from a GTA V port — @JeuelSosaLarocca
+- [#91](https://github.com/Marvisak/VIctory/pull/91) Shaders: lower s_cmov_b32, s_cmov_b64 and s_cmovk_i32 — @tedin7
+- [#502](https://github.com/Marvisak/VIctory/pull/502) fmt: Format all files — @LazyHatGuy
+- [#329](https://github.com/Marvisak/VIctory/pull/329) Shaders: recover record counts for descriptor-only structured buffers — @Raxstreams
+- [#369](https://github.com/Marvisak/VIctory/pull/369) Shaders: eliminate heap allocations during CFG traversal — @pedrofort
+- [#337](https://github.com/Marvisak/VIctory/pull/337) fix(hle): saturate storage quota conversion — @CesarLopesO
+- [#357](https://github.com/Marvisak/VIctory/pull/357) HLE: load a host DLL outside the module cache's lock (loader-lock deadlock) — @Dufftwt
+- [#364](https://github.com/Marvisak/VIctory/pull/364) XMA: accelerate VLC decoding with an eight-bit prefix lookup — @pedrofort
+- [#572](https://github.com/Marvisak/VIctory/pull/572) Docs: add a PowerShell quickstart for running VIctory — @lucaseddd
+- [#24](https://github.com/Marvisak/VIctory/pull/24) GPU: run indirect mesh dispatches (DispatchMeshX) through indirect execution — @artor410
+- [#390](https://github.com/Marvisak/VIctory/pull/390) Crash log: a panic carries our Rust stack — @Kaairim (draft)
+- [#576](https://github.com/Marvisak/VIctory/pull/576) shader: lower v_permlane16_b32 — @NolanCotter
+- [#538](https://github.com/Marvisak/VIctory/pull/538) xmem: report allocations the host refuses — @coderanonymus
+- [#663](https://github.com/Marvisak/VIctory/pull/663) media: apply the local-file rule to the source reader, sink writer and MFCreateFile — @coderanonymus
+- [#463](https://github.com/Marvisak/VIctory/pull/463) GPU: load an app-local D3D12 Agility SDK runtime when present — @Shaun-Fong
+- [#499](https://github.com/Marvisak/VIctory/pull/499) shader: lower v_sat_pk_u8_i16 — @NolanCotter
+- [#521](https://github.com/Marvisak/VIctory/pull/521) Shaders: model the compute thread-group info SGPR's wave count — @AnoHunted
+- [#456](https://github.com/Marvisak/VIctory/pull/456) shader: raise v_interp_p1lv_f16 — @Loggerten
+- [#580](https://github.com/Marvisak/VIctory/pull/580) Docs: add a contributor onboarding guide — @lucaseddd
+- [#500](https://github.com/Marvisak/VIctory/pull/500) GPU diagnostics: pick capture frames by draw count — @itsRevela
+- [#668](https://github.com/Marvisak/VIctory/pull/668) Shaders: support f16 omod and saturate/apply source modifiers in v_cvt_{u16,i16}_f16 — @DenRakEiw
+- [#577](https://github.com/Marvisak/VIctory/pull/577) dstorage: retain queued file references and validate null out pointers — @DenRakEiw
+- [#553](https://github.com/Marvisak/VIctory/pull/553) GPU: clear DXGI outputs on out-of-range enumeration — @broccolize
+- [#584](https://github.com/Marvisak/VIctory/pull/584) Shaders: clamp ResourceDescriptorHeap and SamplerDescriptorHeap indices to host limits — @FibbS6
+- [#389](https://github.com/Marvisak/VIctory/pull/389) Shader cache: a cache that cannot write still translates — @Kaairim (draft)
+- [#536](https://github.com/Marvisak/VIctory/pull/536) Audio: an XMA write block past the ring's end wraps before the first write — @AnoHunted
+- [#541](https://github.com/Marvisak/VIctory/pull/541) GPU: retain D3D12 object names in private data — @broccolize
+- [#640](https://github.com/Marvisak/VIctory/pull/640) Retry failed pipeline cache saves — @Fluxxer763664
+- [#232](https://github.com/Marvisak/VIctory/pull/232) Linux/Wine testing: interim Linux CI subset; skip load_probe cargo build under Wine — @SkippySteve
+- [#589](https://github.com/Marvisak/VIctory/pull/589) fix(shader): skip unused image atomic descriptor reconstruction — @jeremygold02
+- [#326](https://github.com/Marvisak/VIctory/pull/326) Shaders: DXBC/DXIL parser and sampler/SP3 robustness fixes — @SkippySteve
+- [#617](https://github.com/Marvisak/VIctory/pull/617) Shaders: reuse lane guards for unchanged EXEC within a block — @yyc160
+- [#623](https://github.com/Marvisak/VIctory/pull/623) Fix Windows 10 Game-Init crash and root-signature fallback — @bittertea0323
+- [#282](https://github.com/Marvisak/VIctory/pull/282) GPU: run indirect rectangle-list draws (#255) — @artor410
+- [#615](https://github.com/Marvisak/VIctory/pull/615) GPU: VICTORY_* switches set to 0 are off (#610) — @KoLolX3
+- [#620](https://github.com/Marvisak/VIctory/pull/620) HLE input: pass trigger motor levels to the host source — @mar10reyes
+- [#686](https://github.com/Marvisak/VIctory/pull/686) docs: check archive integrity after an early boot breakpoint — @TomEageer
+- [#684](https://github.com/Marvisak/VIctory/pull/684) Shaders: find the PC test compiler independently of the validator — @Dathinel
+- [#677](https://github.com/Marvisak/VIctory/pull/677) Build: thin LTO for release and diag builds — @wbkepler
+- [#670](https://github.com/Marvisak/VIctory/pull/670) loader: use checked offsets and sizes in image preparation — @AdvaitPalve11
+- [#649](https://github.com/Marvisak/VIctory/pull/649) Show on-disk file size in victory inspect — @askharoun
+- [#328](https://github.com/Marvisak/VIctory/pull/328) Shaders: lower MSAA image_load and image_get_resinfo — @tarcisioads
+- [#246](https://github.com/Marvisak/VIctory/pull/246) Policy and hooks: staged type changes, pinned exception, executable pre-commit — @SkippySteve
+- [#342](https://github.com/Marvisak/VIctory/pull/342) Shaders: lower partial-channel typed buffer stores — @tarcisioads
+- [#469](https://github.com/Marvisak/VIctory/pull/469) GPU: give depth targets their unordered access through a twin texture — @AnoHunted
+- [#599](https://github.com/Marvisak/VIctory/pull/599) Shaders: lane-indexed ops on a wide host wave use the own console wave — @NolanCotter
+- [#661](https://github.com/Marvisak/VIctory/pull/661) Shaders: fix missing and phantom operands in SP3 text — @coderanonymus
+- [#603](https://github.com/Marvisak/VIctory/pull/603) Formats: inline repeated micro-tile copies when detiling textures — @AwsAli05
+- [#138](https://github.com/Marvisak/VIctory/pull/138) Shaders: gradient samples on cube images — @LaunchDoesntCode
+- [#707](https://github.com/Marvisak/VIctory/pull/707) Shaders: lower tbuffer_store_format_* that need no conversion — @mercuryVM
+- [#411](https://github.com/Marvisak/VIctory/pull/411) GPU: require only the descriptor heaps used by the pipeline — @FIocker
+- [#261](https://github.com/Marvisak/VIctory/pull/261) GPU: copy-back puts back only what shaders wrote, in two more cases — @Maraco91
+- [#659](https://github.com/Marvisak/VIctory/pull/659) Shaders: refuse per-lane reads of mesh v5 in v5 writes and after joins — @coderanonymus
+- [#594](https://github.com/Marvisak/VIctory/pull/594) GPU: track texture subresource states — @broccolize
+- [#669](https://github.com/Marvisak/VIctory/pull/669) GPU: find a list in the DRED breadcrumbs by its name, not only its pointer — @iurysf
+- [#153](https://github.com/Marvisak/VIctory/pull/153) GPU: seek directly to private data on final release — @TG0000
+- [#537](https://github.com/Marvisak/VIctory/pull/537) GPU: name the switch when a removal has no device-removed data — @coderanonymus
+- [#427](https://github.com/Marvisak/VIctory/pull/427) GPU: say in device-removed reports which user data is a table — @GamingRipperDoc
+- [#273](https://github.com/Marvisak/VIctory/pull/273) SGD5: a marker inside a record's packed bytes is not another record — @SkippySteve
+- [#695](https://github.com/Marvisak/VIctory/pull/695) gpu: VICTORY_D3D12_WARP=0 opts out of the software adapter — @arthercz
+- [#505](https://github.com/Marvisak/VIctory/pull/505) Tests: add synthetic Xbox runtime conformance under Wine — @pedrofort
+- [#315](https://github.com/Marvisak/VIctory/pull/315) Formats: console formats 189/190 have texture layouts; rustdoc builds without warnings — @SkippySteve
+- [#139](https://github.com/Marvisak/VIctory/pull/139) Shaders: reuse SSA sums when tracing memory addresses — @TG0000
+- [#579](https://github.com/Marvisak/VIctory/pull/579) GPU: VICTORY_SKIP_WAVE64 diagnostics switch for wave64 programs — @wbkepler
+- [#52](https://github.com/Marvisak/VIctory/pull/52) GPU: hold SHADER_HEAPS across descriptor mirror and check query offsets — @AndyLatimer
+- [#310](https://github.com/Marvisak/VIctory/pull/310) Policy: resolve cache paths inside Windows AppContainer — @melon0918
+- [#219](https://github.com/Marvisak/VIctory/pull/219) fix(pe): validate section raw data bounds — @DiegoFR20
+- [#351](https://github.com/Marvisak/VIctory/pull/351) Formats: reject overlapping texture depth slices — @pedrofort
+- [#119](https://github.com/Marvisak/VIctory/pull/119) GPU: query the allocation type when guarding mapped memory — @ifBars
+- [#213](https://github.com/Marvisak/VIctory/pull/213) Crash reports: name the host's CPU and Windows build — @Dufftwt
+- [#247](https://github.com/Marvisak/VIctory/pull/247) XAsync: a new block where a result was left behind begins a call — @Maraco91
+- [#202](https://github.com/Marvisak/VIctory/pull/202) GPU: skip unmapped regions after a failed bulk read into host memory — @ifBars
+- [#194](https://github.com/Marvisak/VIctory/pull/194) Audio: an XMA loop's skip is of its first frame, not of its last — @Maraco91
+- [#105](https://github.com/Marvisak/VIctory/pull/105) Shaders: a loop that branches back to the entry instruction translates — @tedin7
+- [#409](https://github.com/Marvisak/VIctory/pull/409) GPU: match D3D12 copyable texture footprints — @ToxicmaggotRP
+- [#123](https://github.com/Marvisak/VIctory/pull/123) GPU: refuse raw buffer views that do not start on 16 bytes — @9hvn9yt2vk-netizen
+- [#284](https://github.com/Marvisak/VIctory/pull/284) Shaders: RDNA2's legacy multiply-adds are the fused ones — @Dufftwt
+- [#256](https://github.com/Marvisak/VIctory/pull/256) fix(hle): skip unavailable host exports in net test — @CesarLopesO
+- [#699](https://github.com/Marvisak/VIctory/pull/699) shader: a phi read only through another phi keeps its missing incoming value — @arthercz
+- [#484](https://github.com/Marvisak/VIctory/pull/484) Diagnostics/process memory snapshot — @ToxicmaggotRP
+- [#126](https://github.com/Marvisak/VIctory/pull/126) Shaders: walk a lane-mask diagram once in vars and given — @TG0000
+- [#221](https://github.com/Marvisak/VIctory/pull/221) Loader: suspend a thread before reading its TEB; skip bad dump times — @AndyLatimer
+- [#115](https://github.com/Marvisak/VIctory/pull/115) Census: report directory traversal failures — @ZekkJJ
+- [#343](https://github.com/Marvisak/VIctory/pull/343) Shaders: reject overlapping DXBC container parts — @pedrofort
+- [#286](https://github.com/Marvisak/VIctory/pull/286) Shaders: accept known D3D_MIN_PRECISION signature elements — @tarcisioads
+- [#186](https://github.com/Marvisak/VIctory/pull/186) Kernel: a title image's file name that fits clears the last error — @Maraco91
+- [#114](https://github.com/Marvisak/VIctory/pull/114) XAsync: run a failed call's cleanup without the completion lock — @AndyLatimer
+- [#96](https://github.com/Marvisak/VIctory/pull/96) xma: start the frame after a continuation at the next packet that has frames — @tedin7
+- [#228](https://github.com/Marvisak/VIctory/pull/228) XGameSave: a failed create leaves a null handle, as documented — @Dufftwt
+- [#279](https://github.com/Marvisak/VIctory/pull/279) GPU: name the commands at a DRED stop, and dump translated shaders — @ALFREDOHDEZ
+- [#270](https://github.com/Marvisak/VIctory/pull/270) GPU: every object answers for IUnknown — @Maraco91
+- [#373](https://github.com/Marvisak/VIctory/pull/373) Kernel: GetModuleFileName of a title image into a null buffer — @marquezinii
+- [#83](https://github.com/Marvisak/VIctory/pull/83) GPU: bound the null sampler staging heap — @FIocker
+- [#359](https://github.com/Marvisak/VIctory/pull/359) HLE: a '>' in a quoted manifest attribute does not end its tag — @Dufftwt
+- [#222](https://github.com/Marvisak/VIctory/pull/222) apu: warn when the host has no audio output device — @a55uka
+- [#482](https://github.com/Marvisak/VIctory/pull/482) App: reject wrapping RVAs in VICTORY_WATCH — @enzoduarte1
+- [#504](https://github.com/Marvisak/VIctory/pull/504) GPU: handle depth/stencil copy footprints — @broccolize
+- [#378](https://github.com/Marvisak/VIctory/pull/378) CLI: include runtime shader hashes in the translation listing — @Mesrine67
+- [#145](https://github.com/Marvisak/VIctory/pull/145) Shaders: read both ballot halves for wave32 host-wave mask ops — @7ROBE
+- [#133](https://github.com/Marvisak/VIctory/pull/133) Files: a title run by its file name alone gets its own folder as G: — @Dufftwt
+- [#335](https://github.com/Marvisak/VIctory/pull/335) XStore: a store id without an installed package is an invalid argument — @marquezinii
+- [#474](https://github.com/Marvisak/VIctory/pull/474) GPU: sanitize CreateSamplerX LOD range, bias clamp, and invalid enum values — @nathanbzrr
+- [#691](https://github.com/Marvisak/VIctory/pull/691) hle: speak accessibility narration through the host's WinRT synthesizer — @arthercz
+- [#692](https://github.com/Marvisak/VIctory/pull/692) style: cargo fmt across the workspace; fix clippy field-reassign-with-default — @arthercz
+- [#151](https://github.com/Marvisak/VIctory/pull/151) Link victory.exe with a 16 MiB default thread stack — @ItsYusei99
+- [#353](https://github.com/Marvisak/VIctory/pull/353) Shader info: show stage I/O even when instruction decoding fails — @FIocker
+- [#667](https://github.com/Marvisak/VIctory/pull/667) Shaders: an address in two root constants is a root view (#614) — @AlanQiang0418
+- [#92](https://github.com/Marvisak/VIctory/pull/92) Shaders: lower v_add_nc_i32, v_sub_nc_i32, v_mul_lo_i32 and the signed 16-bit add and sub — @tedin7
+- [#401](https://github.com/Marvisak/VIctory/pull/401) GPU: reduce work in texture refresh and readback — @cat4blep
+- [#412](https://github.com/Marvisak/VIctory/pull/412) HLE: validate XPackage chunk selectors — @enzoduarte1
+- [#476](https://github.com/Marvisak/VIctory/pull/476) Census: deduplicate PE imports without hint — @nathanbzrr
+- [#441](https://github.com/Marvisak/VIctory/pull/441) run: let victory.toml pick the console — @arminkhaleghirod
+- [#78](https://github.com/Marvisak/VIctory/pull/78) Shaders: inline float constants as f16 in v_fma_mix and v_pack_b32_f16 — @tedin7
+- [#475](https://github.com/Marvisak/VIctory/pull/475) XStore: wire offline *Result slots and fix OOB XStoreShowProductPageUIResult slot — @nathanbzrr
+- [#436](https://github.com/Marvisak/VIctory/pull/436) GPU: copy a shadow's edge pages whole so they are not copied again — @desplmfao
+- [#192](https://github.com/Marvisak/VIctory/pull/192) Shaders: replace single-wave Wave64 LDS lockstep with barriers and lower 32-lane swizzle/DPP at WaveSize(32) — @kxiserino
+- [#435](https://github.com/Marvisak/VIctory/pull/435) GPU: coalesce identical write declarations within a submission — @melon0918
+- [#415](https://github.com/Marvisak/VIctory/pull/415) GPU: use native root type codes in the shader cache — @enzoduarte1
+- [#226](https://github.com/Marvisak/VIctory/pull/226) Shaders: test that an image read as float and used by an atomic is annotated twice — @gingertonik
+- [#446](https://github.com/Marvisak/VIctory/pull/446) HLE: report required size on string getter buffer errors — @enzoduarte1
+- [#430](https://github.com/Marvisak/VIctory/pull/430) DirectStorage: Close completes what was submitted — @marquezinii
+- [#428](https://github.com/Marvisak/VIctory/pull/428) GameInput: next and previous readings of a disconnected device fail — @marquezinii
+- [#451](https://github.com/Marvisak/VIctory/pull/451) HLE: keep fitted window dimensions positive — @enzoduarte1
+- [#449](https://github.com/Marvisak/VIctory/pull/449) HLE: refuse a null AnalyticsInfo output pointer — @enzoduarte1
+- [#237](https://github.com/Marvisak/VIctory/pull/237) HLE: offload async saves, reuse audio buffers, pin APU heap, and decouple input rumble/dialogs — @wbkepler
+- [#207](https://github.com/Marvisak/VIctory/pull/207) Media: a share is refused however it is spelled — @Maraco91
+- [#132](https://github.com/Marvisak/VIctory/pull/132) XTaskQueue: terminating a queue cancels its delayed callbacks too — @Dufftwt
+- [#130](https://github.com/Marvisak/VIctory/pull/130) Profile: opt-in VICTORY_PROFILE (frame times, memory, caches, loads; frames.csv, a Perfetto trace and an on-screen overlay) — @Sunkiller-qc
+- [#361](https://github.com/Marvisak/VIctory/pull/361) Input: with no device, previous and next readings walk every device in time order — @booomxd
+- [#358](https://github.com/Marvisak/VIctory/pull/358) GPU: a shader cache that cannot keep an entry still gives its translation — @Dufftwt
+- [#331](https://github.com/Marvisak/VIctory/pull/331) GPU: sRGB and linear views of one texture read with their own curve — @AnoHunted
+- [#506](https://github.com/Marvisak/VIctory/pull/506) CLI: reject zero shader translation workers — @yualk
+- [#370](https://github.com/Marvisak/VIctory/pull/370) XGameUi: a text entry's limit is the console's — @marquezinii
+- [#157](https://github.com/Marvisak/VIctory/pull/157) Shaders: lower 24-bit mul_hi, saturating 16-bit packs, integer dot pr… — @9hvn9yt2vk-netizen
+- [#109](https://github.com/Marvisak/VIctory/pull/109) Shaders: rebuild a cube image descriptor for code that reads its dwords — @tedin7
+- [#275](https://github.com/Marvisak/VIctory/pull/275) GPU: atomic adaptive PSO wait budget and non-blocking pipeline library saves — @wbkepler
+- [#76](https://github.com/Marvisak/VIctory/pull/76) xmem: map a run of physical pages over several placeholders — @SuryaK5125
+- [#172](https://github.com/Marvisak/VIctory/pull/172) XMA: cache IMDCT rotation tables per subframe size — @TG0000
+- [#122](https://github.com/Marvisak/VIctory/pull/122) XAsync: end the call that finished, not whatever call the block holds now — @Dufftwt
+- [#86](https://github.com/Marvisak/VIctory/pull/86) GPU: cap a sampler heap past the host's limit, with dynamic slots for tables past it — @faultzonsol
+- [#100](https://github.com/Marvisak/VIctory/pull/100) GPU: cap a shader-visible sampler heap at 2,048 instead of losing it — @Luislariosss
+
+### Recently merged (last 30)
+
+- [#612](https://github.com/Marvisak/VIctory/pull/612) Shaders: a phi that only another read phi consumes is live too (#604) — merged 2026-11-24
+- [#45](https://github.com/Marvisak/VIctory/pull/45) loader: emulate clwb on Intel CPUs before Ice Lake, a write-back loop in one exception — merged 2026-11-24
