@@ -14,6 +14,6 @@
 | # | Задача | Ветка / PR | Проверено в апстримах | Статус |
 |---|--------|------------|-----------------------|--------|
 | 1 | Настройка синхронизации с апстримами | `chore/upstream-sync` | — | в работе |
-| 2 | Сборка и запуск на ПК (Windows, игра на B:) | — | — | план |
+| 2 | Build and run on the owner's PC (Windows, game on B:) | `docs/baseline` | fxceless#7, Marvisak#821, #1586 (reports only) | в работе: build and tests done, game run pending |
 | 3 | FPS в мире (сейчас 2–4) | — | — | план |
 | 4 | Тени / RT-освещение (сейчас чёрные) | — | — | план |
