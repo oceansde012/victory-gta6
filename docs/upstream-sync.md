@@ -1,78 +1,82 @@
-# Синхронизация с апстримами
+# Keeping up with upstream
 
-## Откуда что берётся
+## Where the history comes from
 
 ```
-Marvisak/VIctory  main ──●──●──●──(ffe310e)──●──●…        апстрим, GPL-3.0-or-later
+Marvisak/VIctory  main ──●──●──●──(ffe310e)──●──●…        upstream, GPL-3.0-or-later
                                      \
-fxceless/victory-gta6 main            ●──●──●──●──●──●──●  7 линейных коммитов поверх ffe310e
+fxceless/victory-gta6 main            ●──●──●──●──●──●──●  7 linear commits on top of ffe310e
                                                          \
-oceansde012/victory-gta6 main                             (наша работа)
+oceansde012/victory-gta6 main                             (our work)
 ```
 
-- `fxceless/victory-gta6` — не сквош поверх произвольной истории, а обычная
-  линейная ветка: первый коммит `578d459` ("this fork's changes on top of
-  VIctory main (ffe310e)") — сквош всех ранних правок fxceless, дальше 6 обычных
-  коммитов (включая PR #1 от ZazaJr24). История Marvisak под ними сохранена
-  целиком, поэтому **оба апстрима сливаются в наш main обычным `git merge`**,
-  без rebase и cherry-pick.
-- Наш `main` на момент создания = `fxceless/main` (`1684989`), то есть уже
-  содержит и Marvisak до `ffe310e`.
-- Порядок слияния: сначала fxceless (он сам стоит на Marvisak), потом Marvisak
-  (то, что ушло в апстрим после точки, на которой сидит fxceless).
-- Нашу историю **не переписываем** (никаких rebase main на апстрим): только
-  merge, иначе каждое обновление апстрима будет ломать открытые ветки.
+- `fxceless/victory-gta6` is an ordinary linear branch, not a squash over a
+  rewritten history: its first commit `578d459` ("this fork's changes on top of
+  VIctory main (ffe310e)") squashes fxceless's early changes, followed by six
+  regular commits (including PR #1 by ZazaJr24). Marvisak's history below them
+  is intact, so **both upstreams merge into our `main` with a plain
+  `git merge`**: no rebase, no cherry-pick.
+- When this fork was created, our `main` was `fxceless/main` (`1684989`), so it
+  already contained Marvisak up to `ffe310e`.
+- Merge order: fxceless first (it sits on Marvisak), then Marvisak (whatever
+  landed upstream after the commit fxceless is based on).
+- **Never rewrite our history** (no rebasing `main` onto upstream): merges
+  only, otherwise every upstream update breaks open branches.
 
-## Автоматика (каждые 10 минут)
+## Automation (every 10 minutes)
 
-`.github/workflows/upstream-sync.yml` → `.github/scripts/upstream-sync.sh`:
+`.github/workflows/upstream-sync.yml` runs `.github/scripts/upstream-sync.sh`:
 
-1. Тянет `main` обоих апстримов.
-2. Если там есть коммиты, которых нет в нашем `main`, сливает их в ветку
-   `sync/upstream` и держит **один** PR "Sync upstream (Marvisak, fxceless)"
-   в `main` (обновляет его, а не плодит новые). В описании PR — список
-   пришедших коммитов.
-3. Конфликт: слияние останавливается на конфликтующем апстриме, PR получает
-   лейбл `sync-conflict`, а вверху ветки `upstream-watch` появляется ⚠️.
-   Разрешать руками (или попросить Claude):
+1. Fetches `main` of both upstreams.
+2. If either has commits our `main` lacks, merges them into the branch
+   `sync/upstream` and keeps **one** pull request "Sync upstream (Marvisak,
+   fxceless)" open against `main` (updated in place, never duplicated). Its
+   description lists the incoming commits.
+3. On a conflict the merge stops at the conflicting upstream, the PR gets the
+   `sync-conflict` label, and a ⚠️ note appears at the top of the
+   `upstream-watch` branch. Resolve by hand (or ask Claude):
    ```
    git fetch origin && git fetch marvisak && git fetch fxceless
    git checkout -B sync/upstream origin/main
-   git merge fxceless/main   # затем git merge marvisak/main
-   # разрешить, git commit, git push -f origin sync/upstream
+   git merge fxceless/main   # then: git merge marvisak/main
+   # resolve, git commit, git push -f origin sync/upstream
    ```
-4. Обновляет ветку **`upstream-watch`** (файл `README.md`): открытые и последние
-   30 влитых PR обоих апстримов, и сколько коммитов каждого ещё не в нашем main.
-   Коммит туда делается только когда список реально изменился.
+4. Refreshes the **`upstream-watch`** branch (file `README.md`): open and the
+   last 30 merged pull requests of both upstreams, and how many commits of each
+   are not yet in our `main`. It commits only when the list actually changed.
 
-Если апстримы не двигались, запуск ничего не пушит.
+If neither upstream moved, a run pushes nothing.
 
-Ограничения GitHub: cron `*/10` — минимум 5 минут, на практике запуски
-опаздывают на 5–20 минут под нагрузкой; у форков расписание по умолчанию
-выключено (включается во вкладке Actions); после 60 дней без коммитов в репо
-GitHub сам отключает расписание. PR, созданный токеном `GITHUB_TOKEN`, не
-запускает `CI` — нужно один раз нажать "Re-run" или закрыть/открыть PR вручную.
-Публичный репозиторий — минуты Actions бесплатны.
+Required repository settings: Settings → Actions → General → Workflow
+permissions: "Read and write permissions" and "Allow GitHub Actions to create
+and approve pull requests".
 
-Ручной запуск: Actions → Upstream sync → Run workflow.
+GitHub limits: `*/10` cron is best effort and runs are often 5–20 minutes late
+under load; scheduled workflows are disabled on forks until Actions are enabled
+in the Actions tab; GitHub disables the schedule after 60 days without commits.
+A PR opened with `GITHUB_TOKEN` does not trigger `CI`: re-run it by hand. The
+repository is public, so Actions minutes are free.
 
-## Как не делать работу дважды
+Manual run: Actions → Upstream sync → Run workflow.
 
-Перед любой задачей (код, фикс, оптимизация):
+## Not doing the same work twice
 
-1. Открыть ветку `upstream-watch` и поискать по области задачи (шейдеры, RT,
-   тени, barrier, pipeline, fps и т.д.).
-2. Поискать в issues/PR обоих апстримов (включая закрытые):
-   `https://github.com/Marvisak/VIctory/pulls?q=<слова>` и
-   `https://github.com/fxceless/victory-gta6/pulls?q=<слова>`.
-3. Если нашлось:
-   - влито в апстрим → дождаться sync PR (или влить его сразу);
-   - открытый PR → либо ждать, либо забрать коммиты к себе
-     (`git fetch marvisak pull/<N>/head:up-<N> && git cherry-pick …`) и записать
-     в `docs/fork-tracker.md`, чтобы потом не было дубля при слиянии апстрима;
-   - кто-то обсуждает в issue → учесть выводы.
-4. Только если ничего нет — делать своё и записать задачу в
+Before any task (code, fix, optimisation):
+
+1. Open the `upstream-watch` branch and search it for the task's area
+   (shaders, ray tracing, shadows, barriers, pipelines, frame rate, ...).
+2. Search the issues and pull requests of both upstreams, closed ones included:
+   `https://github.com/Marvisak/VIctory/pulls?q=<terms>` and
+   `https://github.com/fxceless/victory-gta6/pulls?q=<terms>`.
+3. If something turns up:
+   - merged upstream → wait for the sync PR (or merge it right away);
+   - open pull request → wait, or take its commits early
+     (`git fetch marvisak pull/<N>/head:up-<N> && git cherry-pick ...`) and record
+     that in `docs/fork-tracker.md` so the later upstream merge is not a surprise;
+   - discussed in an issue → take its conclusions into account.
+4. Only if nothing exists, do the work ourselves and record the task in
    `docs/fork-tracker.md`.
 
-Код из Marvisak и fxceless брать можно (оба GPL-3.0-or-later, как и мы).
-**XCL (ivall/xcl, GPL-2.0-only) — только как источник идей, код не копировать.**
+Code from Marvisak and fxceless may be taken (both GPL-3.0-or-later, like this
+fork). **XCL (ivall/xcl, GPL-2.0-only) is a source of ideas only: never copy
+its code.**
