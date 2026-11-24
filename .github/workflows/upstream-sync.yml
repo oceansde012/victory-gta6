@@ -1,0 +1,30 @@
+name: Upstream sync
+
+# Every 10 minutes: merge new commits from Marvisak/VIctory and
+# fxceless/victory-gta6 into one "Sync upstream" PR, and refresh the
+# upstream-watch branch. See docs/upstream-sync.md.
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: upstream-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Sync
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: .github/scripts/upstream-sync.sh
