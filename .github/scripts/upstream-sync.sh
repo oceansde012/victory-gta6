@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Keeps this fork in step with its two upstreams. Run by .github/workflows/upstream-sync.yml.
 #
-# 1. Fetches Marvisak/VIctory main and fxceless/victory-gta6 main.
+# 1. Fetches Marvisak/VIctory main and fxceless/victory-fork main.
 # 2. If either has commits that our main lacks, merges them (fxceless first,
 #    it already sits on top of Marvisak) into the branch `sync/upstream` and
 #    keeps ONE pull request "Sync upstream" open against main.
@@ -18,7 +18,7 @@ REPO="${GITHUB_REPOSITORY:-oceansde012/victory-gta6}"
 SYNC_BRANCH=sync/upstream
 WATCH_BRANCH=upstream-watch
 # name|owner/repo ; order = merge order
-UPSTREAMS=("fxceless|fxceless/victory-gta6" "marvisak|Marvisak/VIctory")
+UPSTREAMS=("fxceless|fxceless/victory-fork" "marvisak|Marvisak/VIctory")
 DRY_RUN="${DRY_RUN:-0}"
 
 git config user.name  "upstream-sync[bot]"
@@ -28,8 +28,8 @@ for u in "${UPSTREAMS[@]}"; do
   name=${u%%|*}; slug=${u#*|}
   git remote get-url "$name" >/dev/null 2>&1 || git remote add "$name" "https://github.com/$slug"
 done
-git fetch --no-tags --quiet origin main
-git fetch --no-tags --quiet origin "$SYNC_BRANCH" 2>/dev/null || true
+git fetch --no-tags --quiet origin "+refs/heads/main:refs/remotes/origin/main"
+git fetch --no-tags --quiet origin "+refs/heads/$SYNC_BRANCH:refs/remotes/origin/$SYNC_BRANCH" 2>/dev/null || true
 for u in "${UPSTREAMS[@]}"; do git fetch --no-tags --quiet "${u%%|*}" main; done
 
 # ---------------------------------------------------------------- 1. sync PR
@@ -76,7 +76,16 @@ else
       fi
     done
 
-    if [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" ]; then
+    same_as_before=0
+    if git rev-parse --verify -q "origin/$SYNC_BRANCH" >/dev/null \
+       && git merge-base --is-ancestor origin/main "origin/$SYNC_BRANCH" \
+       && [ "$(git rev-parse 'HEAD^{tree}')" = "$(git rev-parse "origin/$SYNC_BRANCH^{tree}")" ]; then
+      same_as_before=1   # e.g. one upstream still conflicts: don't re-push the same merge every run
+    fi
+
+    if [ $same_as_before -eq 1 ]; then
+      echo "sync branch already holds this merge (conflict: ${conflict:-none})"
+    elif [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" ]; then
       echo "Nothing merged cleanly (conflict: $conflict)."
       [ -n "$conflict" ] && echo "::warning::upstream $conflict conflicts with main; nothing could be merged automatically"
     elif [ "$DRY_RUN" = 1 ]; then

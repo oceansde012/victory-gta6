@@ -1,7 +1,7 @@
 name: Upstream sync
 
 # Every 10 minutes: merge new commits from Marvisak/VIctory and
-# fxceless/victory-gta6 into one "Sync upstream" PR, and refresh the
+# fxceless/victory-fork into one "Sync upstream" PR, and refresh the
 # upstream-watch branch. See docs/upstream-sync.md.
 on:
   schedule:

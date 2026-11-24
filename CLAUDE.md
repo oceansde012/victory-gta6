@@ -1,16 +1,18 @@
-# Правила для Claude в этом репозитории
+# Rules for Claude in this repository
 
-- Это форк `fxceless/victory-gta6`, который сам стоит на `Marvisak/VIctory`.
-  Схема и автосинхронизация: `docs/upstream-sync.md`.
-- Перед любой задачей проверить, не сделано ли это уже в апстримах: ветка
-  `upstream-watch` + поиск по PR/issues обоих апстримов (шаги в
-  `docs/upstream-sync.md`, раздел "Как не делать работу дважды"). Результат
-  проверки и задачу записать в `docs/fork-tracker.md`.
-- В `main` апстримы попадают только через merge (PR "Sync upstream"),
-  историю `main` не переписывать.
-- XCL (ivall/xcl, GPL-2.0-only): только идеи, код не копировать.
-- Сборка и запуск игры — только на Windows-ПК владельца (игра на диске B:),
-  в облачном Linux-контейнере игру не запустить; `cargo test` частично.
-- Remotes для локальной работы:
+- Everything written to the repository (commits, pull requests, docs, the fork
+  tracker, this file) is in English.
+- This is a fork of `fxceless/victory-fork` (formerly `fxceless/victory-gta6`), which itself sits on
+  `Marvisak/VIctory`. History layout and automatic sync: `docs/upstream-sync.md`.
+- Before any task, check that it has not already been done upstream: the
+  `upstream-watch` branch plus a search of both upstreams' pull requests and
+  issues (steps in `docs/upstream-sync.md`, "Not doing the same work twice").
+  Record the task and what the check found in `docs/fork-tracker.md`.
+- Upstream reaches `main` only by merge (the "Sync upstream" PR); never rewrite
+  `main`'s history.
+- XCL (ivall/xcl, GPL-2.0-only): ideas only, never copy its code.
+- The game is built and run only on the owner's Windows PC (game on drive B:);
+  it cannot run in a cloud Linux container, where `cargo test` works only in part.
+- Remotes for local work:
   `git remote add marvisak https://github.com/Marvisak/VIctory`,
-  `git remote add fxceless https://github.com/fxceless/victory-gta6`.
+  `git remote add fxceless https://github.com/fxceless/victory-fork`.
