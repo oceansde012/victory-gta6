@@ -5,12 +5,15 @@
 ```
 Marvisak/VIctory  main ──●──●──●──(ffe310e)──●──●…        upstream, GPL-3.0-or-later
                                      \
-fxceless/victory-gta6 main            ●──●──●──●──●──●──●  7 linear commits on top of ffe310e
+fxceless/victory-fork main            ●──●──●──●──●──●──●  7 linear commits on top of ffe310e
                                                          \
 oceansde012/victory-gta6 main                             (our work)
 ```
 
-- `fxceless/victory-gta6` is an ordinary linear branch, not a squash over a
+- fxceless's fork was renamed from `fxceless/victory-gta6` to
+  `fxceless/victory-fork` on 2026-11-24 (GitHub redirects the old URL; the
+  scripts use the new one). It is the code behind its author's Rumble streams.
+- `fxceless/victory-fork` is an ordinary linear branch, not a squash over a
   rewritten history: its first commit `578d459` ("this fork's changes on top of
   VIctory main (ffe310e)") squashes fxceless's early changes, followed by six
   regular commits (including PR #1 by ZazaJr24). Marvisak's history below them
@@ -67,7 +70,7 @@ Before any task (code, fix, optimisation):
    (shaders, ray tracing, shadows, barriers, pipelines, frame rate, ...).
 2. Search the issues and pull requests of both upstreams, closed ones included:
    `https://github.com/Marvisak/VIctory/pulls?q=<terms>` and
-   `https://github.com/fxceless/victory-gta6/pulls?q=<terms>`.
+   `https://github.com/fxceless/victory-fork/pulls?q=<terms>`.
 3. If something turns up:
    - merged upstream → wait for the sync PR (or merge it right away);
    - open pull request → wait, or take its commits early

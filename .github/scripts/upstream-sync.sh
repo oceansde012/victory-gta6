@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Keeps this fork in step with its two upstreams. Run by .github/workflows/upstream-sync.yml.
 #
-# 1. Fetches Marvisak/VIctory main and fxceless/victory-gta6 main.
+# 1. Fetches Marvisak/VIctory main and fxceless/victory-fork main.
 # 2. If either has commits that our main lacks, merges them (fxceless first,
 #    it already sits on top of Marvisak) into the branch `sync/upstream` and
 #    keeps ONE pull request "Sync upstream" open against main.
@@ -18,7 +18,7 @@ REPO="${GITHUB_REPOSITORY:-oceansde012/victory-gta6}"
 SYNC_BRANCH=sync/upstream
 WATCH_BRANCH=upstream-watch
 # name|owner/repo ; order = merge order
-UPSTREAMS=("fxceless|fxceless/victory-gta6" "marvisak|Marvisak/VIctory")
+UPSTREAMS=("fxceless|fxceless/victory-fork" "marvisak|Marvisak/VIctory")
 DRY_RUN="${DRY_RUN:-0}"
 
 git config user.name  "upstream-sync[bot]"
