@@ -1,7 +1,7 @@
 //! Survey shader containers: bitcode, console additions and native code.
 
 use std::borrow::Cow;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::path::PathBuf;
 
 use anyhow::Result;
@@ -40,7 +40,7 @@ impl Source<'_> {
 pub(crate) fn sources(data: &[u8]) -> Vec<Source<'_>> {
     let mut out: Vec<Source<'_>> = Vec::new();
     if sgd5::is_sgd5(data) {
-        out.extend(sgd5::records(data).map(Source::Packed));
+        out.extend(sgd5::records(data).into_iter().map(Source::Packed));
     }
     let raw = memchr::memmem::find_iter(data, b"DXBC")
         .filter(|&offset| Container::parse(&data[offset..]).is_ok())
@@ -71,7 +71,7 @@ struct Totals {
     files_with_shaders: usize,
 }
 
-pub fn run(paths: Vec<PathBuf>, verbose: bool, disasm: bool) -> Result<()> {
+pub fn run(paths: Vec<PathBuf>, verbose: bool, disasm: bool, effects: bool) -> Result<()> {
     let paths = crate::default_paths(paths)?;
     let mut t = Totals::default();
     for root in &paths {
@@ -90,6 +90,10 @@ pub fn run(paths: Vec<PathBuf>, verbose: bool, disasm: bool) -> Result<()> {
             let Ok(data) = std::fs::read(path) else {
                 continue;
             };
+            if effects {
+                list_effects(path, &data);
+                continue;
+            }
             let mut found_here = 0;
             for source in sources(&data) {
                 let Some(bytes) = source.bytes() else {
@@ -215,6 +219,60 @@ pub fn run(paths: Vec<PathBuf>, verbose: bool, disasm: bool) -> Result<()> {
         println!("(none found: shaders may sit in compressed or encrypted archives)");
     }
     Ok(())
+}
+
+/// Effect -> technique -> pass -> shaders (name, container hash, the
+/// engine's hash) and the state each pass sets, for every database in `data`.
+fn list_effects(path: &std::path::Path, data: &[u8]) {
+    for db in sgd5::databases(data) {
+        let passes: usize = (db.effects.iter())
+            .flat_map(|e| &e.techniques)
+            .map(|t| t.passes.len())
+            .sum();
+        println!(
+            "{}@{:#x}: {} effects, {passes} passes",
+            path.display(),
+            db.start,
+            db.effects.len()
+        );
+        let mut containers = HashMap::new();
+        for e in &db.effects {
+            println!("effect {}", e.name);
+            for t in &e.techniques {
+                println!("  technique {}", t.name);
+                for (i, p) in t.passes.iter().enumerate() {
+                    let mut parts = Vec::new();
+                    for (slot, index) in p.shaders.iter().enumerate() {
+                        let Some(index) = *index else { continue };
+                        let s = &db.shaders[slot][index];
+                        let container = containers.entry((slot, index)).or_insert_with(|| {
+                            s.record.unpack().map_or("corrupt".to_owned(), |c| {
+                                blake3::hash(&c).to_hex()[..16].to_owned()
+                            })
+                        });
+                        let name = s.record.name.unwrap_or("?");
+                        let stage = sgd5::STAGES[slot];
+                        parts.push(format!("{stage} {name} {container} {:016x}", s.hash));
+                    }
+                    let states = [
+                        ("rasterizer", p.rasterizer),
+                        ("depth-stencil", p.depth_stencil),
+                        ("blend", p.blend),
+                    ];
+                    for (what, bytes) in states {
+                        if let Some(b) = bytes {
+                            let hex: String = b.iter().map(|x| format!("{x:02x}")).collect();
+                            parts.push(format!("{what} {hex}"));
+                        }
+                    }
+                    if let Some(r) = p.stencil_ref {
+                        parts.push(format!("stencil ref {r:#x}"));
+                    }
+                    println!("    pass {i}: {}", parts.join(", "));
+                }
+            }
+        }
+    }
 }
 
 fn format_instruction(i: &Instruction, wave64: bool) -> String {

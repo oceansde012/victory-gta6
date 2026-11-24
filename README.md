@@ -171,7 +171,7 @@ title's window has focus:
 victory inspect <exe|dll> [--imports] [--exports]
 victory census [paths...] [--missing] [--strict]
 victory lib-exports <import.lib> [--list]
-victory shader-info [paths...] [--verbose] [--disasm]
+victory shader-info [paths...] [--verbose] [--disasm] [--effects]
 victory translate [paths...] [--validate] [--pipelines] [--list] [--jobs N]
 victory run <exe> [--execute] [--unimplemented trap|zero] [--strict]
             [--console series-x|series-s] [-- <title arguments>]
