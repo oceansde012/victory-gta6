@@ -1087,14 +1087,16 @@ mod tests {
         let (root, root_blob) = root_signature(&host.device, &[], &[], false).unwrap();
 
         let mut g = GraphicsState::default();
-        // Subobject 21 (`DEPTH_STENCIL1`) with `DepthBoundsTestEnable = true`,
-        // depth test itself off so only depth bounds gates the draw.
+        // Subobject 21 (`DEPTH_STENCIL1`) with `DepthBoundsTestEnable = true`.
+        // The depth test is on but always passes and writes nothing, so only
+        // depth bounds gates the draw. With the depth test off, the CI's
+        // software adapter (WARP) let a draw outside the bounds through.
         #[repr(C, align(8))]
         struct Sub21(u32, D3D12_DEPTH_STENCIL_DESC1);
         let sub = Sub21(
             21,
             D3D12_DEPTH_STENCIL_DESC1 {
-                DepthEnable: false.into(),
+                DepthEnable: true.into(),
                 DepthWriteMask: D3D12_DEPTH_WRITE_MASK_ZERO,
                 DepthFunc: D3D12_COMPARISON_FUNC_ALWAYS,
                 DepthBoundsTestEnable: true.into(),
