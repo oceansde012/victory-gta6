@@ -1,6 +1,6 @@
 # Performance picks, round 1 (2026-11-25)
 
-Branch `claude/project-thread-4f4qka`, rebased onto PR #6 at `fbde9d1`
+Branch `claude/project-thread-4f4qka`, rebased onto PR #6 at `322b2b6`
 (fxceless main `a26859f` with the 8dd30ab GPU work restored, plus
 fxceless #785, #786, #783). Open upstream PRs for frame time, GPU memory
 and GPU stability, one commit each (upstream author kept), so any of them
