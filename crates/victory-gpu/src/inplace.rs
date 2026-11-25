@@ -143,10 +143,11 @@ fn pool() -> bool {
     *ON.get_or_init(|| std::env::var("VICTORY_INPLACE_POOL").is_ok_and(|v| v.trim() == "1"))
 }
 
-/// The heaps opened on whole sections, by section handle; kept for the
-/// run (a section the title frees stays alive through its heap, as it
-/// does through views it still has).
-static SECTION_HEAPS: Mutex<Vec<(usize, ID3D12Heap)>> = Mutex::new(Vec::new());
+/// The heaps opened on whole sections, by section handle, or `None` where
+/// the host refused (not asked again); kept for the run (a section the
+/// title frees stays alive through its heap, as it does through views it
+/// still has).
+static SECTION_HEAPS: Mutex<Vec<(usize, Option<ID3D12Heap>)>> = Mutex::new(Vec::new());
 
 /// A buffer over `len` bytes of `section` from `offset` on, in the heap
 /// opened on the whole section (opened on first use). `Err(None)` if the
@@ -167,15 +168,22 @@ fn place_in_section(device: &ID3D12Device, section: usize, offset: u64, len: u64
     let heap = {
         let mut heaps = SECTION_HEAPS.lock().unwrap_or_else(|e| e.into_inner());
         match heaps.iter().find(|h| h.0 == section) {
-            Some((_, heap)) => heap.clone(),
-            None => {
-                let heap = open(device, From::Section(section)).map_err(Some)?;
-                // SAFETY: a live heap.
-                let got = unsafe { heap.GetDesc() }.SizeInBytes;
-                tracing::info!(section = format_args!("{section:#x}"), mb = got >> 20, "title page pool opened as a host heap");
-                heaps.push((section, heap.clone()));
-                heap
-            }
+            Some((_, Some(heap))) => heap.clone(),
+            Some((_, None)) => return Err(None),
+            None => match open(device, From::Section(section)) {
+                Ok(heap) => {
+                    // SAFETY: a live heap.
+                    let got = unsafe { heap.GetDesc() }.SizeInBytes;
+                    tracing::info!(section = format_args!("{section:#x}"), mb = got >> 20, "title page pool opened as a host heap");
+                    heaps.push((section, Some(heap.clone())));
+                    heap
+                }
+                Err(e) => {
+                    tracing::warn!(section = format_args!("{section:#x}"), mb = size >> 20, error = %e, "title page pool not opened as a host heap: its windows are copied");
+                    heaps.push((section, None));
+                    return Err(None);
+                }
+            },
         }
     };
     let buffer = place(device, &heap, at, bytes).map_err(Some)?;
