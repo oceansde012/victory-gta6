@@ -85,6 +85,8 @@ mod container;
 #[cfg(all(test, windows))]
 mod diff_tests;
 #[cfg(all(test, windows))]
+mod flow_tests;
+#[cfg(all(test, windows))]
 mod intersect_tests;
 #[cfg(all(windows, any(test, feature = "host")))]
 pub mod host;
@@ -92,6 +94,8 @@ mod lower;
 mod own_bits;
 mod rect;
 mod sampler;
+#[cfg(all(test, windows))]
+mod semantics_tests;
 mod shader;
 mod threading;
 #[cfg(windows)]
@@ -115,7 +119,7 @@ pub use rect::rect_list_gs;
 pub use shader::{
     MEMORY_FAULTS, MEMORY_PAGES, ROOT_CBV_SPACE, SAMPLER_SPACE, SLOT_FAULTS, SLOT_MEMORY, SLOT_STRIDES,
     SLOT_STRIDES_COUNT, USER_DATA_SPACE, USER_MEMORY_BASE, USER_VIEW_ADDRESS, USER_VIEW_BIAS,
-    set_view_heap_limit,
+    set_view_heap_limit, view_heap_limit,
 };
 
 /// The loop limit without an override: 2^20.
@@ -186,6 +190,33 @@ pub fn group_sync() -> u8 {
 pub fn shader_opt() -> u32 {
     static PASSES: std::sync::OnceLock<u32> = std::sync::OnceLock::new();
     *PASSES.get_or_init(|| parse_shader_opt(std::env::var("VICTORY_SHADER_OPT").ok().as_deref()))
+}
+
+/// Everything a translation depends on besides the container: the
+/// translator's own source (hashed at build time), the value of every
+/// `VICTORY_*` switch it reads, the host facts the device hands it (widest
+/// wave, view heap limit) and the settings above. The shader cache keys on
+/// this instead of on the whole executable, so a rebuild that leaves the
+/// translator alone keeps its translations. Call it after the device is made.
+pub fn translation_fingerprint() -> Vec<u8> {
+    let mut out = Vec::new();
+    out.extend_from_slice(env!("VICTORY_SHADER_SOURCE_HASH").as_bytes());
+    out.push(u8::from(cfg!(feature = "diagnostics")));
+    out.push(u8::from(cfg!(debug_assertions)));
+    for name in env!("VICTORY_SHADER_SWITCHES").split(',').filter(|n| !n.is_empty()) {
+        out.extend_from_slice(name.as_bytes());
+        out.push(b'=');
+        if let Some(value) = std::env::var_os(name) {
+            out.extend_from_slice(value.as_encoded_bytes());
+        }
+        out.push(0);
+    }
+    out.extend_from_slice(&lower::host_max_wave().to_le_bytes());
+    out.extend_from_slice(&shader::view_heap_limit().to_le_bytes());
+    out.extend_from_slice(&loop_limit().to_le_bytes());
+    out.push(group_sync());
+    out.extend_from_slice(&shader_opt().to_le_bytes());
+    out
 }
 
 /// `VICTORY_SHADER_OPT`'s value; every pass when it is unset or
@@ -270,7 +301,23 @@ pub struct UserData {
 
 /// Translates the vertex, pixel, compute or mesh program of a console
 /// shader container.
+///
+/// A program refused because the first half of an interpolation is read as
+/// data is translated once more with first halves evaluated as the pair
+/// they start (`lower::with_first_half_pairs`), and only such a program:
+/// with that on for every program, 8,551 pixel programs of the title that
+/// already translated came out changed (an extra evaluation in each), for
+/// the sake of 9 that did not translate.
 pub fn translate(container: &[u8]) -> Result<HostShader, ShaderError> {
+    match translate_plain(container) {
+        Err(ShaderError::Unsupported { what, .. }) if what == lower::FIRST_HALF => {
+            lower::with_first_half_pairs(|| translate_plain(container))
+        }
+        other => other,
+    }
+}
+
+fn translate_plain(container: &[u8]) -> Result<HostShader, ShaderError> {
     let c = Container::parse(container)?;
     let dxil = c
         .part(FourCC::DXIL)
@@ -846,6 +893,98 @@ mod tests {
         let sfi0 = host.part(FourCC::SFI0).unwrap().data;
         let features = u64::from_le_bytes(sfi0.try_into().unwrap());
         assert_ne!(features & 0x200, 0, "SFI0 {features:#x}: no StencilRef");
+    }
+
+    #[test]
+    fn immediate_sampler_slots_distinguish_comparison_uses() {
+        let words = [
+            0xBE81_0380u32, // s_mov_b32 s1, 0
+            0xF40C_0000,
+            0xFA00_0000, // s_load_dwordx8 s[0:7], s[0:1], null
+            0xBE88_0380, // s_mov_b32 s8, 0
+            0xBE89_0380, // s_mov_b32 s9, 0
+            0xBE8A_0380, // s_mov_b32 s10, 0
+            0xBE8B_0380, // s_mov_b32 s11, 0
+            0x7E00_02F0, // v_mov_b32 v0, 0.5 (comparison reference)
+            0x7E02_02F0, // v_mov_b32 v1, 0.5 (u)
+            0x7E04_02F0, // v_mov_b32 v2, 0.5 (v)
+            0xBF8C_0070, // s_waitcnt vmcnt(0) lgkmcnt(0)
+            0xF080_0108,
+            0x0040_0301, // image_sample v3, v[1:2], s[0:7], s[8:11]
+            0xF0A0_0108,
+            0x0040_0400, // image_sample_c v4, v[0:2], s[0:7], s[8:11]
+            0xF0BC_0108,
+            0x0040_0500, // image_sample_c_lz v5, v[0:2], s[0:7], s[8:11]
+            0xF080_0108,
+            0x0040_0601, // image_sample v6, v[1:2], s[0:7], s[8:11]
+            0xBF8C_3F70, // s_waitcnt vmcnt(0)
+            0xF800_180F,
+            0x0605_0403, // exp mrt0, v3, v4, v5, v6 done vm
+            0xBF81_0000,
+        ];
+        let native = NativeProgram {
+            stage: HwStage::Ps,
+            wave64: false,
+            vgprs: 7,
+            layout: vec![crate::native::RootParam {
+                root: RootType::Table,
+                table_offset_dwords: 0,
+                sgprs: 1,
+                base_register: 0,
+                user_data: 0,
+                slot: 0,
+            }],
+            used: vec![crate::native::UsedResource {
+                kind: crate::native::ResourceType::Srv,
+                root: RootType::Table,
+                table_offset_dwords: 0,
+                lower_bound: 0,
+                stride: 0,
+                dwords: 8,
+                user_data: 0,
+                slot: 0,
+            }],
+            io: StageIo::Ps {
+                inputs: vec![],
+                input_addr: 0,
+                db_shader_control: 0,
+                patches: vec![],
+            },
+            code: words.iter().flat_map(|w| w.to_le_bytes()).collect(),
+        };
+        let output = SigElement {
+            name: "SV_Target".into(),
+            index: 0,
+            kind: 16,
+            comp: 9,
+            interp: 0,
+            row: Some(0),
+            col: 0,
+            cols: 4,
+            usage: 15,
+            half: false,
+        };
+        let osg1 = container::signature(&[output], false);
+        let bytes = crate::dxbc::build(&[(FourCC::OSG1, &osg1)]);
+        let c = Container::parse(&bytes).unwrap();
+        let p = ir::build(&native.patched_code(), native.wave64, native.vgprs).unwrap();
+        let st = structure::structure(&p).unwrap();
+        let res = resource::track(&p, &native.layout, native.stage, Some(&st)).unwrap();
+        let io = io::raise(&p, &native).unwrap();
+        let out = emit(&c, &native, &p, &st, &io, &res).unwrap();
+
+        let sampler = StaticSampler::from_words([0; 4]);
+        let comparison = StaticSampler {
+            filter: sampler.filter | 0x80,
+            ..sampler
+        };
+        assert_eq!(out.samplers, [[0; 4]; 2]);
+        assert_eq!(out.static_samplers, [sampler, comparison]);
+        #[cfg(windows)]
+        if let Some(path) = super::validator::Validator::default_path() {
+            let mut v = super::validator::Validator::load(Some(&path)).unwrap();
+            v.validate(&mut out.dxil.clone()).unwrap();
+        }
     }
 
     /// A wave64 compute program that writes only EXEC's high dword
@@ -1790,5 +1929,28 @@ mod barycentric_tests {
         let [e0, e1] = exp_mrt0(4);
         let words = [0xC812_0000, e0, e1, S_ENDPGM];
         assert!(pixel(&words, PERSP_CENTER).is_err());
+    }
+
+    /// A dead interpolated channel removed by `bitcode::opt` must not remain
+    /// marked read in `ISG1` (the DXIL validator checks the input signature
+    /// against the surviving `loadInput` / `attributeAtVertex` calls).
+    #[test]
+    fn dead_input_read_is_cleared_from_isg1_after_opt() {
+        let [e0, e1] = exp_mrt0(2);
+        let words = [
+            0xC808_0000, // v_interp_p1_f32 v2, v0, attr0.x
+            0xC809_0001, // v_interp_p2_f32 v2, v1, attr0.x
+            0xC810_0100, // v_interp_p1_f32 v4, v0, attr0.y (dead)
+            0xC811_0101, // v_interp_p2_f32 v4, v1, attr0.y (dead)
+            e0,
+            e1,
+            S_ENDPGM,
+        ];
+        let shader = pixel(&words, PERSP_CENTER).unwrap();
+        let host = Container::parse(&shader.dxil).unwrap();
+        let isg1 = host.part(FourCC::ISG1).unwrap().data;
+        // Row 0's ReadWriteMask byte is at offset 8 (header) + 25.
+        assert_eq!(isg1[8 + 25], 0x1, "dead .y channel left in ISG1 rw mask");
+        validate(&shader);
     }
 }

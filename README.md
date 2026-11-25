@@ -20,6 +20,12 @@ developer or publisher.
 - **[XCL](https://github.com/ivall/xcl)** by ivall and its contributors
   (GPL-2.0-only) was used as a reference for how the same title behaves under
   another layer. Fixes inspired by it were written anew in VIctory's code.
+- The guard over every view of a memory page is code by **myokex**
+  ([victory-amd](https://github.com/myokex/victory-amd), commit `c6dc4d8`), which
+  adapts pull request #115 here by Spexivus, its correction by joroyt and a part of
+  VIctory #1122 by tightfall. The read-beside fix for kernel reads into title
+  memory is by **Joshua Odom** (commit `10ea38e` of the same fork family). Both
+  are carried here unchanged apart from one merge conflict.
 - This fork's changes were developed with [Claude Code](https://claude.com/claude-code).
 
 ## Status of this fork (2026-11-25)
@@ -37,6 +43,89 @@ Tested on one machine: Windows 11, Intel i7-14700KF, NVIDIA RTX 4070 12 GB,
 | Light in shadow | missing: the game's ray-traced bounce light and ray-traced lamp and sun shadows do not run yet, so anything the sun does not hit directly is black |
 | Frame rate in the world | 2-4 fps: 420-450 ms per frame by default, 240-350 ms with the newer switches (`VICTORY_RELAY=2`, or `VICTORY_LATE_WAIT=3 VICTORY_WIDE_BACK=1 VICTORY_CARD_BUFFERS_MIN_MB=1 VICTORY_CARD_BUFFERS_MB=1024`); it started at 3-6 seconds per frame |
 | Stability | no driver hang or device loss in normal runs (a hang introduced by the wave64 update was found and fixed: its barrier form for 64-lane programs is now off unless `VICTORY_WAVE_WIDE=1`) |
+
+### Newest (2026-11-25, later the same day)
+
+**Update, the same night: the first room now renders right on the test
+machine** (walls, textures, people, lamps), at 190 to 450 ms a frame (2 to 5
+frames a second): the picture work has caught up, the frame rate has not.
+What did it, on top of the list below:
+- Descriptor records the title copies into its heap as plain bytes are
+  mirrored before every submission (pull request #305 by Flyander, after
+  upstream VIctory 86a5ed6). Measured here: about 40,000 records a frame
+  that no call had announced; their host slots were empty or stale.
+- A buffer view that does not start on an element of its buffer's host
+  copy gets a copy of its own bytes instead of being refused (after
+  upstream 86a5ed6): 3 to 6 such views a frame.
+- Room on the card is kept for the render targets and buffer copies a
+  world makes in its first frame: 98 buffer copies are made (945 MB) where
+  the runs before made 1, and the processor no longer compares 550 to
+  710 MB a frame looking for shader writes (25 MB now).
+- Levels on demand ran on the card for the first time
+  (`VICTORY_LEVELS_ON_DEMAND=1`, still off by default; with the fixes of
+  pull request #747 by AscilCH): 3.1 GB of the card not allocated for
+  texture levels the title does not hold, no device loss.
+- Guarded blocks under storage writes are opened by default; 14 more
+  shader programs translate; a program is translated with first-half
+  interpolation pairs only if it was refused for one (with that on for
+  every program, 8,551 working pixel programs came out changed).
+- Frame rate, first cuts on the processor side: the descriptor sync uses a
+  cheap fingerprint and leaves draw-table slots to their draws (the pass
+  over the heap went from 70-220 ms a frame to about 3), and memory the
+  guards already hold is not asked of the write watch (pull request #670
+  by Jonirulah). Card copies' pieces can come down inside their own
+  flights (pull request #648 by Jonirulah, `VICTORY_CARD_FETCH_INFLIGHT=1`,
+  off by default: the copy-back thread's wait went from 181 ms a frame to
+  0 here, but the card got busier, so no gain is claimed yet). The frame is
+  still 250 to 380 ms: the card is the limit now, most of it the
+  per-record clamp before each of some 6,700 indirect draws a frame.
+- Tried and NOT in this tree: pull request #220 (cheaper indirect draws)
+  with `VICTORY_INDIRECT_WINDOW=1` cut the card's time from about 100-150
+  to 35-80 ms a frame here, and lost the device twice (once with a page
+  fault on the card after 160 s). Do not turn windows on with it yet.
+- Known and counted, not fixed yet: an indirect compute pass asks for
+  about 77,500 thread groups in x where one dispatch runs 65,535 (the
+  rest is cut off).
+
+Memory sync between the title's memory and the copies on the card:
+- **A write through one view of a physical page is seen by the copies taken
+  through its other views** (`VICTORY_VIEW_GUARD=0` turns it off). The title
+  shows one page at several addresses and a copy was guarded at one of them
+  only. Measured on the test machine: 0.8 to 1.0 million such writes in a
+  five-minute run, every one of which used to leave a copy stale. Since it
+  went in, the first room had its walls in the later frames of 4 runs out of
+  4 (2 of 5 before); the room's very first shot still comes up without walls
+  in some runs.
+- Kernel reads into title memory are read beside and copied in, so a block
+  guarded again in between no longer fails the read.
+- Writes of the storage layer into physical pages are counted where the title
+  has those pages mapped (10,000 to 50,000 guarded blocks of copies lay under
+  them in every run) and can open the guards there:
+  `VICTORY_PAGE_WRITES=guards` (off by default; `1`, `slots`, `all` do more).
+- Failed page-destination reads are retried (`VICTORY_DSTORAGE_RETRIES=0` = as before).
+
+Card memory (the test card is full from the first frame of the world: 85 to
+99 % of its budget for a whole run, about 26,000 texture copies let go and
+3,400 made again in five minutes, 2.8 GB of render targets that are all in
+use):
+- Levels on demand, **off by default** (`VICTORY_LEVELS_ON_DEMAND=1`): a
+  texture the title fills takes card memory only for the levels the title
+  holds (2.2 to 3.0 GB of the copies were levels it does not hold). Its test
+  runs on the software adapter; it has not run on a card yet.
+- Refused texture slots are held back for a few seconds so that a pass
+  reaches the slots behind them (`VICTORY_FULL_CARD_PASS=0` = as before);
+  room can be kept for the card copies of title buffers
+  (`VICTORY_CARD_ROOM_FOR_BUFFERS=1`, off).
+
+Tools and diagnostics:
+- `victory translate <shader file> --warm all --jobs N` translates every
+  shader ahead of a run, on the processor only (about 4.5 to 6.5 minutes
+  here); the shader cache is keyed on the translator's source, so a new
+  build that does not touch the translator starts warm.
+- Counters, all off or diagnostics-only: `VICTORY_MERGE_RACE=1` (title bytes
+  a copy-back is about to put back to older values: none found in 138,000
+  copy-backs), `VICTORY_WALLS_TRACE`, `VICTORY_CARD_ACCOUNTING`, and a census
+  of the copies the texture sweep never lets go.
 
 ### What this fork changed (summary)
 
@@ -130,6 +219,12 @@ Requirements: Windows 10/11 x64, a CPU with AVX2, a Direct3D 12 GPU with
 shader model 6.6 (and mesh shaders for the world), Rust (pinned in
 `rust-toolchain.toml`).
 
+To install Rust, use rustup (`winget install --id Rustlang.Rustup -e`, or
+the installer from https://rustup.rs). The first `cargo` command in this
+repository then fetches the pinned toolchain. Building needs the MSVC C++
+build tools: Visual Studio or its Build Tools with the "Desktop development
+with C++" workload.
+
 The title also needs several GiB of available Windows commit at startup.
 Check **Committed** under **Task Manager → Performance → Memory**. If
 `crashes.log` reports Windows error 1455, close other applications or increase
@@ -153,6 +248,13 @@ The window caption shows the framerate. Saves, settings and `crashes.log`
 are kept under the data folder (default `%LOCALAPPDATA%\victory\data`), derived
 data under the cache folder.
 
+Set `VICTORY_WINDOW_MAX=1920x1080` before launching to limit the title's
+top-level window to that bounding box. Smaller windows keep their size,
+larger windows keep their proportions, and the monitor's work area still
+limits them. This scales the displayed image; it does not change the
+console render resolution or the swap-chain buffers. With the variable
+unset, window sizing is unchanged.
+
 Input: XInput pads. With none connected the keyboard is a pad while the
 title's window has focus:
 
@@ -171,7 +273,7 @@ title's window has focus:
 victory inspect <exe|dll> [--imports] [--exports]
 victory census [paths...] [--missing] [--strict]
 victory lib-exports <import.lib> [--list]
-victory shader-info [paths...] [--verbose] [--disasm]
+victory shader-info [paths...] [--verbose] [--disasm] [--effects]
 victory translate [paths...] [--validate] [--pipelines] [--list] [--jobs N]
 victory run <exe> [--execute] [--unimplemented trap|zero] [--strict]
             [--console series-x|series-s] [-- <title arguments>]
@@ -181,6 +283,24 @@ victory config
 Logging: `VICTORY_LOG=victory_loader=trace,info` (a release build logs
 info and above).
 
+### Windows shader-test validator
+
+The shader tests use `dxil.dll` to validate Shader Model 6.6 containers.
+An older Windows SDK validator can load successfully but reject them with
+`Unknown shader model 'ps_6_6'`. If this happens, use a current x64 validator
+from [Microsoft's DirectX Shader Compiler releases](https://github.com/microsoft/DirectXShaderCompiler/releases)
+or a current Windows SDK. Set its path for the test session:
+
+```powershell
+$env:VICTORY_DXIL = 'C:\tools\dxc\bin\x64\dxil.dll'
+cargo test -p victory-shader --lib --locked -- --test-threads=1
+```
+
+Without this override, the validator loader selects the newest installed
+Windows SDK's `bin/<version>/x64/dxil.dll`, then falls back to the DLL search
+path when no SDK copy is found. This is a test/offline-validation dependency;
+the translated shaders do not require it at runtime.
+
 ## Debugging
 
 A release build has no debugging aids. Build them in with
@@ -189,12 +309,16 @@ A release build has no debugging aids. Build them in with
 cargo build --profile diag -p victory --features diagnostics   # target\diag\victory.exe
 ```
 
+The on/off switches below (`...=1`) are off when unset or set to `0`.
+
 | Variable | Effect |
 |----------|--------|
 | `VICTORY_LOG=<target>=debug,...` | debug and trace output |
 | `VICTORY_STACKS=20,60` | every thread's stack at those seconds |
 | `VICTORY_WATCH=<rva>,...` | logs a title u32 when it changes |
+| `VICTORY_POKE=<rva>:<byte>,...` | writes a title byte twice a second (a hang watchdog's tick, say) |
 | `VICTORY_KEYS=30:Enter,35:X` | presses keys at those seconds, focus or not |
+| `VICTORY_CRASH_BREAKPOINTS=1` | appends first-chance breakpoints to `crashes.log`, including ones a handler may recover from |
 | `VICTORY_CRASH_SAVE=<rva>:<len>,...` | saves title memory to the cache folder on a crash |
 | `VICTORY_CAPTURE=<dir>` | saves presented frames (powers of two, or `VICTORY_CAPTURE_FRAMES=<list>`) |
 | `VICTORY_DUMP_TARGETS=1` | with the two above, saves every render target of those frames |
@@ -205,12 +329,52 @@ cargo build --profile diag -p victory --features diagnostics   # target\diag\vic
 | `VICTORY_SKIP_PIPELINES=<hash>,...` | omit draws and dispatches, including indirect ones, whose pipeline contains a listed 16-digit shader hash |
 | `VICTORY_GPU_TIMING=1` | with the above, each list of a submission run and timed on its own; slow lists logged with their slowest commands |
 | `VICTORY_D3D12_WARP=1` | host device on the software adapter (slow; cannot reset the driver) |
-| `VICTORY_SHADER_LOOP_LIMIT=<n>` | translated shader loops stop after `n` iterations per lane instead of 2^20 (own shader cache entries); if a lower `n` makes world frames much faster, loops hitting the limit are what makes them slow |
+| `VICTORY_SHADER_LOOP_LIMIT=<n>` | with diagnostics, override the default loop caps (128 pixel, 256 vertex/mesh/compute) with `n` iterations per lane; a lower cap can avoid GPU timeouts but also cuts off genuine long loops; own shader cache entries |
 | `VICTORY_AUDIO_CAPTURE=<file.wav>` | records what the title plays (our process only) |
 | `VICTORY_XMA_DUMP=<dir>` | saves the first 32 XMA voices' context and input |
 
-Every build appends crashes and host GPU failures to `crashes.log` in the
-title's data folder.
+Every build appends unhandled exceptions, panics, and host GPU failures to
+`crashes.log` in the title's data folder.
+
+For a startup breakpoint (`0x80000003`), run the diagnostics build with
+`VICTORY_CRASH_BREAKPOINTS=1`. Keep the console output along with the new
+`crashes.log` entries. A host DLL refusal includes the caller stack in the
+console output. The refusal is expected for DLLs outside the host policy,
+including `rpcrt4.dll`.
+
+On Series 1.0.2.1, a missing `appdata0.rpf` reproduced the breakpoint at
+`+0x2237178` before the first window. Restore the archive from the same
+package beside the title executable. `run --execute` checks that it can
+read the RPF9 header before starting this build.
+
+To compare hardware and software rendering, repeat with
+`VICTORY_D3D12_WARP=1` and check the console for
+`host device on the software adapter (WARP)` to confirm the WARP device was
+created. Compare the exception's module and offset, stack frames, and
+preceding messages across the two runs.
+
+
+## Fork notes: measured progress on one RTX 3060 12 GB (2026-11-24)
+
+Work on this fork, measured with `VICTORY_GPU_TIMING=1` and a frame grabber,
+same scene each time (the title's opening world, a city street):
+
+| change | before | after |
+| --- | --- | --- |
+| texture refresh without waiting on the remap lock (`VICTORY_TEXTURE_NO_WAIT=1`) | 312–545 ms a frame in texture work | 12–23 ms |
+| card-buffer copies kept on the card (`VICTORY_CARD_BUFFERS_MIN_MB=8`, `VICTORY_CARD_BUFFERS_MB=1536`) | heap pass 262 ms, 1 906 draws | heap pass 15–24 ms, 4 833 draws |
+| both together | 1.3–1.8 frames a second | 2.5–4 frames a second |
+
+The menu runs at a locked 30. Saves persist across restarts. Cutscenes render
+with light and subtitles.
+
+Wave64 → wave32: a console wave64 program runs on a 32-lane host as two host
+waves when its cross-lane code stays inside each half and its shared memory
+is ordered. This fork adds an analysis that also halves programs whose every
+shared-memory access names only the lane's own words (the address derives
+from the thread id), which needs no ordering at all: of 1 163 dumped compute
+programs, 37 more now run in waves of 32 than did before. The probe lives in
+`crates/victory-shader/examples` (`wave_why`, `lds_dump`, `validate_dump`).
 
 ## License
 

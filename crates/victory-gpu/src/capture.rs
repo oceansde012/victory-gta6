@@ -184,14 +184,13 @@ fn save_as(name: &str, width: u32, height: u32, pitch: usize, bgra: bool, rows: 
     header.extend(h.to_be_bytes());
     header.extend([8, 2, 0, 0, 0]); // 8-bit RGB
     chunk(&mut png, b"IHDR", &header);
-    chunk(
-        &mut png,
-        b"IDAT",
-        &miniz_oxide::deflate::compress_to_vec_zlib(&raw, 3),
-    );
+    let mut compressed = vec![0u8; zlib_rs::compress_bound(raw.len())];
+    let (idat, rc) = zlib_rs::compress_slice(&mut compressed, &raw, zlib_rs::DeflateConfig::new(3));
+    debug_assert_eq!(rc, zlib_rs::ReturnCode::Ok);
+    chunk(&mut png, b"IDAT", idat);
     chunk(&mut png, b"IEND", &[]);
     let path = folder.join(format!("{name}.png"));
-    match std::fs::write(&path, png) {
+    match std::fs::create_dir_all(folder).and_then(|()| std::fs::write(&path, png)) {
         Ok(()) => tracing::info!(path = %path.display(), "frame saved"),
         Err(e) => tracing::warn!(error = %e, path = %path.display(), "frame not saved"),
     }
@@ -342,7 +341,7 @@ static TARGETS: std::sync::Mutex<Vec<(usize, std::sync::Arc<crate::resource::Hos
 
 fn dump_on() -> bool {
     static ON: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
-    *ON.get_or_init(|| folder().is_some() && std::env::var_os("VICTORY_DUMP_TARGETS").is_some())
+    *ON.get_or_init(|| folder().is_some() && crate::switch::on("VICTORY_DUMP_TARGETS"))
 }
 
 /// Notes a title texture the frame being built renders to or writes.

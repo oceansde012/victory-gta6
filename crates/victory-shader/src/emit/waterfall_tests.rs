@@ -101,8 +101,8 @@ fn build_with(words: &[u32], buffers: bool, nonuniform: u32) -> HostShader {
 }
 
 /// Runs `shader` with `views` at heap indices 0.. (the UAV last) on the
-/// hardware GPU and on WARP (each skipped without a device) and returns,
-/// per one that ran, the UAV's 32 dwords.
+/// hardware GPU and on WARP, returning the UAV's 32 dwords for each device
+/// that ran. At least one device must produce a readback.
 fn run(shader: &HostShader, views: &[View]) -> Vec<(&'static str, Vec<u32>)> {
     let samplers = [D3D12_SAMPLER_DESC {
         Filter: D3D12_FILTER_MIN_MAG_MIP_POINT,
@@ -149,6 +149,10 @@ fn run(shader: &HostShader, views: &[View]) -> Vec<(&'static str, Vec<u32>)> {
             .unwrap_or_else(|e| panic!("{label}: dispatch failed: {e}"));
         out.push((label, words[0].clone()));
     }
+    assert!(
+        !out.is_empty(),
+        "neither hardware nor WARP SM 6.6 device available"
+    );
     out
 }
 
@@ -203,14 +207,18 @@ fn lanes_load_from_the_buffer_their_nested_arms_chose() {
     let shader = build(WATERFALL_JOINED_BUFFER_WAVE32, true);
     let first: Vec<u32> = (0..32).map(|i| 100 + i).collect();
     let second: Vec<u32> = (0..32).map(|i| 200 + i).collect();
+    // `lower` annotates untyped buffer loads as raw (`ByteAddressBuffer`),
+    // matching `victory-gpu`'s `raw_window` host views; a structured SRV
+    // mismatches the DXIL handle and truncates byte offsets at `NumElements`
+    // on GCN 5 hardware.
     let views = [
         View::Buffer {
             data: &first,
-            stride: Stride::Structured(4),
+            stride: Stride::Raw,
         },
         View::Buffer {
             data: &second,
-            stride: Stride::Structured(4),
+            stride: Stride::Raw,
         },
         View::RawUav(32),
     ];
@@ -232,9 +240,7 @@ fn lanes_load_from_the_buffer_their_nested_arms_chose() {
 fn lanes_sample_the_entry_their_offset_names_in_the_console_waterfall() {
     use crate::resource::tests::WATERFALL_INDEXED_WAVE32;
     let shader = build(WATERFALL_INDEXED_WAVE32, false);
-    let results = sampled(&shader);
-    assert!(!results.is_empty());
-    for (label, red) in results {
+    for (label, red) in sampled(&shader) {
         // Even lanes hold entry 0's offset, odd lanes entry 1's.
         let want: Vec<f32> = (0..32).map(|l| [1.0, 2.0][l & 1]).collect();
         assert_eq!(red, want, "{label}");
@@ -248,9 +254,7 @@ fn lanes_sample_their_own_texture_in_a_waterfall_narrowed_by_v_cmpx() {
     let want: Vec<f32> = (0..32).map(|l| if l < 16 { 1.0 } else { 2.0 }).collect();
     for folded in [false, true] {
         let shader = build(&cmpx_waterfall(false, folded), false);
-        let results = sampled(&shader);
-        assert!(!results.is_empty());
-        for (label, red) in results {
+        for (label, red) in sampled(&shader) {
             assert_eq!(red, want, "{label}, folded {folded}");
         }
     }

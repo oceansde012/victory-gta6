@@ -69,7 +69,7 @@ struct Tally {
     ms_emitted: usize,
     ms_validated: usize,
     ms_pipelines: usize,
-    /// Reason → programs stopped by it, and the first one.
+    /// Reason â†’ programs stopped by it, and the first one.
     failed: BTreeMap<String, (usize, String)>,
     /// With `--list`: one line per program and outcome.
     list: bool,
@@ -152,6 +152,87 @@ struct Checks {
     host: Option<(Host, emit::HostShader)>,
 }
 
+/// `translate --warm <file>`: the containers whose hash the file names are
+/// translated into the run's shader cache, on `jobs` threads; nothing is
+/// made on the GPU. A run of the title then finds them there instead of
+/// translating each at its first use.
+pub fn warm(paths: Vec<PathBuf>, file: &Path, jobs: Option<usize>) -> Result<()> {
+    // `--warm all`: every container found, whatever its hash.
+    let all = file.as_os_str() == "all";
+    let mut wanted: HashSet<String> = HashSet::new();
+    if !all {
+        let text = std::fs::read_to_string(file)?;
+        for line in text.lines() {
+            for word in line.split(|c: char| !c.is_ascii_hexdigit()) {
+                if word.len() == 16 {
+                    wanted.insert(word.to_ascii_lowercase());
+                }
+            }
+        }
+        anyhow::ensure!(!wanted.is_empty(), "no 16-digit shader hash in {}", file.display());
+    }
+    // `VICTORY_WARM_SECONDS=<n>`: stop taking new shaders after n seconds
+    // (what is done stays in the cache; the next warm-up goes on from there).
+    let limit = std::env::var("VICTORY_WARM_SECONDS").ok().and_then(|v| v.trim().parse::<u64>().ok());
+    let cfg = victory_core::Config::load()?;
+    victory_hle::modules::d3d12x::use_shader_cache(cfg.cache_subdir("shaders")?);
+    let paths = crate::default_paths(paths)?;
+    let threads = jobs.unwrap_or(4).max(1);
+    let began = std::time::Instant::now();
+    let done = Mutex::new(HashSet::new());
+    let counts = [const { AtomicUsize::new(0) }; 5];
+    for root in &paths {
+        for entry in walkdir::WalkDir::new(root).into_iter().filter_map(Result::ok) {
+            if !entry.file_type().is_file() || entry.metadata().map_or(0, |m| m.len()) > MAX_FILE {
+                continue;
+            }
+            let Ok(data) = std::fs::read(entry.path()) else {
+                continue;
+            };
+            let jobs = sources(&data);
+            let next = AtomicUsize::new(0);
+            std::thread::scope(|s| {
+                for _ in 0..threads.min(jobs.len()) {
+                    s.spawn(|| {
+                        while let Some(job) = jobs.get(next.fetch_add(1, Ordering::Relaxed)) {
+                            let Some(bytes) = job.bytes() else {
+                                continue;
+                            };
+                            let hash = blake3::hash(&bytes).to_hex()[..16].to_owned();
+                            if limit.is_some_and(|n| began.elapsed().as_secs() >= n) {
+                                counts[3].fetch_add(1, Ordering::Relaxed);
+                                break;
+                            }
+                            if (!all && !wanted.contains(&hash)) || !lock(&done).insert(hash) {
+                                continue;
+                            }
+                            let n = counts[4].fetch_add(1, Ordering::Relaxed) + 1;
+                            if n.is_multiple_of(1000) {
+                                println!("warm-up      {n} shaders so far, {:.0} s", began.elapsed().as_secs_f64());
+                            }
+                            let which = match victory_hle::modules::d3d12x::warm_shader(&bytes) {
+                                Ok(true) => 0,
+                                Ok(false) => 1,
+                                Err(_) => 2,
+                            };
+                            counts[which].fetch_add(1, Ordering::Relaxed);
+                        }
+                    });
+                }
+            });
+        }
+    }
+    let [translated, there, failed] = [0, 1, 2].map(|i| counts[i].load(Ordering::Relaxed));
+    let asked = if all { "all".to_owned() } else { wanted.len().to_string() };
+    let stopped = if counts[3].load(Ordering::Relaxed) > 0 { " (stopped at the time limit)" } else { "" };
+    println!(
+        "warm-up      {asked} hashes asked, {} found: {translated} translated now, {there} in the cache already, {failed} do not translate; {:.1} s on {threads} threads{stopped}",
+        translated + there + failed,
+        began.elapsed().as_secs_f64()
+    );
+    Ok(())
+}
+
 pub fn run(
     paths: Vec<PathBuf>,
     validate: bool,
@@ -159,12 +240,11 @@ pub fn run(
     list: bool,
     jobs: Option<usize>,
 ) -> Result<()> {
-    let paths = crate::default_paths(paths)?;
-    // `VICTORY_HOST_MAX_WAVE=32`: translate as for a host whose waves have
-    // at most 32 lanes (as the runtime does on such a card).
-    if let Some(n) = std::env::var("VICTORY_HOST_MAX_WAVE").ok().and_then(|v| v.parse().ok()) {
-        victory_shader::emit::set_host_max_wave(n);
+    // Dumped shaders and validator reports are game-derived (rule #1).
+    if let Some(dir) = std::env::var_os("VICTORY_EMIT_DUMP") {
+        victory_core::ensure_outside_repo(Path::new(&dir))?;
     }
+    let paths = crate::default_paths(paths)?;
     let dll = validate.then(Validator::default_path).flatten();
     if validate {
         Validator::load(dll.as_deref()).map_err(anyhow::Error::msg)?;
@@ -174,8 +254,20 @@ pub fn run(
                 .map_or("dxil.dll".into(), |p| p.display().to_string())
         );
     }
-    if pipelines {
-        Host::new(false).map_err(anyhow::Error::msg)?;
+    // Explicit target widths also work without a device. Keep MAX_WAVE's
+    // precedence when both spellings are set.
+    let requested_wave = ["VICTORY_HOST_MAX_WAVE", "VICTORY_HOST_WAVE"]
+        .iter()
+        .find_map(|name| std::env::var(name).ok()?.parse::<u32>().ok());
+    let wave = if pipelines {
+        let host = Host::new(false).map_err(anyhow::Error::msg)?;
+        requested_wave.or_else(|| host.max_wave_lanes())
+    } else {
+        requested_wave
+    };
+    if let Some(n) = wave {
+        emit::set_host_max_wave(n);
+        println!("wave max     {n}");
     }
     let pairs: Vec<(String, String)> = std::env::var("VICTORY_PAIRS")
         .unwrap_or_default()
@@ -568,6 +660,9 @@ fn check(
         }
     }
     let Some(v) = checks.validator.as_mut() else {
+        if t.list && checks.host.is_none() {
+            t.lines.push(format!("{}  emitted", label()));
+        }
         return;
     };
     match v.validate(&mut shader.dxil) {
@@ -782,4 +877,25 @@ fn tally_structured(program: &ir::Program, s: &structure::Structured, t: &mut Ta
 
 fn lock<T>(m: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
     m.lock().unwrap_or_else(|e| e.into_inner())
+}
+
+#[cfg(test)]
+mod tests {
+    /// Shader dumps are game-derived, so a dump directory in the repo is refused.
+    #[test]
+    fn emit_dump_inside_repo_is_refused() {
+        // SAFETY: no other test in this binary touches the environment.
+        unsafe { std::env::set_var("VICTORY_EMIT_DUMP", env!("CARGO_MANIFEST_DIR")) };
+        let missing = std::env::temp_dir().join("victory-translate-no-such-dir");
+        let err = super::run(vec![missing], false, false, false, Some(1)).unwrap_err();
+        // SAFETY: as above; unset so a later test's `run` is not refused.
+        unsafe { std::env::remove_var("VICTORY_EMIT_DUMP") };
+        assert!(
+            matches!(
+                err.downcast_ref(),
+                Some(victory_core::PolicyError::InsideRepo { .. })
+            ),
+            "{err}"
+        );
+    }
 }

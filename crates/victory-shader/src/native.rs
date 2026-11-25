@@ -446,12 +446,61 @@ fn unpack(blob: &[u8]) -> Result<Vec<u8>, ShaderError> {
     }
     let stream =
         bytes(blob, XBCH_HEADER as u64, packed).ok_or(Malformed("XBCH stream out of bounds"))?;
-    let out = miniz_oxide::inflate::decompress_to_vec_zlib_with_limit(stream, unpacked as usize)
-        .map_err(|_| Malformed("XBCH stream does not inflate to its stated size"))?;
-    if out.len() as u64 != unpacked {
-        return Err(Malformed("XBCH stream does not inflate to its stated size"));
-    }
+    let out = inflate_zlib_exact(stream, unpacked as usize)
+        .ok_or(Malformed("XBCH stream does not inflate to its stated size"))?;
     Ok(out)
+}
+
+/// Inflates a zlib stream incrementally up to `expected` bytes, rejecting
+/// truncated, corrupt, under-filled, or oversized streams without eagerly
+/// allocating the full declared size up front.
+fn inflate_zlib_exact(source: &[u8], expected: usize) -> Option<Vec<u8>> {
+    let mut state = zlib_rs::Inflate::new(true, 15);
+    let mut out = Vec::new();
+    let (mut in_pos, mut out_pos) = (0usize, 0usize);
+    loop {
+        if out_pos == expected {
+            let mut extra = [0u8; 1];
+            let status = state
+                .decompress(
+                    &source[in_pos..],
+                    &mut extra,
+                    zlib_rs::InflateFlush::NoFlush,
+                )
+                .ok()?;
+            return (status == zlib_rs::Status::StreamEnd
+                && state.total_out() as usize == expected)
+                .then_some(out);
+        }
+        if out_pos == out.len() {
+            let next_len = if out.is_empty() {
+                expected.min(source.len().saturating_mul(4).max(4096))
+            } else {
+                out.len().saturating_mul(2).min(expected)
+            };
+            out.resize(next_len, 0);
+        }
+        let status = state
+            .decompress(
+                &source[in_pos..],
+                &mut out[out_pos..],
+                zlib_rs::InflateFlush::NoFlush,
+            )
+            .ok()?;
+        let next_in = state.total_in() as usize;
+        let next_out = state.total_out() as usize;
+        match status {
+            zlib_rs::Status::StreamEnd => {
+                out.truncate(next_out);
+                return (next_out == expected).then_some(out);
+            }
+            zlib_rs::Status::Ok if next_in != in_pos || next_out != out_pos => {
+                in_pos = next_in;
+                out_pos = next_out;
+            }
+            zlib_rs::Status::Ok | zlib_rs::Status::BufError => return None,
+        }
+    }
 }
 
 fn programs(fssm: &[u8]) -> Result<Vec<NativeProgram>, ShaderError> {
@@ -611,6 +660,21 @@ fn ps_io(data: &[u8], code_len: usize) -> Result<StageIo, ShaderError> {
     })
 }
 
+fn vs_outputs(data: &[u8]) -> Result<Vec<VsOutput>, ShaderError> {
+    Ok(semantics(data, VS_OUTPUTS, 6, VS_OUTPUT_COUNT)?
+        .as_chunks::<6>()
+        .0
+        .iter()
+        .map(|e| VsOutput {
+            usage: Usage::from_raw(e[0]),
+            row: e[1],
+            param: e[2],
+            fp16: e[5] & 1 != 0,
+            pack2: e[5] & 2 != 0,
+        })
+        .collect())
+}
+
 fn vs_io(data: &[u8]) -> Result<StageIo, ShaderError> {
     let inputs = semantics(data, VS_INPUTS, 5, VS_INPUT_COUNT)?
         .as_chunks::<5>()
@@ -623,25 +687,12 @@ fn vs_io(data: &[u8]) -> Result<StageIo, ShaderError> {
             vgpr: e[3],
         })
         .collect();
-    let outputs = semantics(data, VS_OUTPUTS, 6, VS_OUTPUT_COUNT)?
-        .as_chunks::<6>()
-        .0
-        .iter()
-        .map(|e| VsOutput {
-            usage: Usage::from_raw(e[0]),
-            row: e[1],
-            param: e[2],
-            fp16: e[5] & 1 != 0,
-            pack2: e[5] & 2 != 0,
-        })
-        .collect();
+    let outputs = vs_outputs(data)?;
     Ok(StageIo::Vs { inputs, outputs })
 }
 
 fn ms_io(data: &[u8], lds_bytes: u32) -> Result<StageIo, ShaderError> {
-    let StageIo::Vs { outputs, .. } = vs_io(data)? else {
-        unreachable!()
-    };
+    let outputs = vs_outputs(data)?;
     let info = data
         .get(MS_INFO..MS_INFO + 8)
         .ok_or(Malformed("stage data out of bounds"))?;
@@ -729,12 +780,15 @@ mod tests {
     }
 
     fn xbch(unpacked: &[u8]) -> Vec<u8> {
-        let stream = miniz_oxide::deflate::compress_to_vec_zlib(unpacked, 6);
+        let mut buf = vec![0u8; zlib_rs::compress_bound(unpacked.len())];
+        let (stream, rc) =
+            zlib_rs::compress_slice(&mut buf, unpacked, zlib_rs::DeflateConfig::new(6));
+        assert_eq!(rc, zlib_rs::ReturnCode::Ok);
         let mut out = b"XBCH".to_vec();
         out.extend_from_slice(&XBCH_VERSION.to_le_bytes());
         out.extend_from_slice(&(stream.len() as u64).to_le_bytes());
         out.extend_from_slice(&(unpacked.len() as u64).to_le_bytes());
-        out.extend_from_slice(&stream);
+        out.extend_from_slice(stream);
         out
     }
 
@@ -939,6 +993,16 @@ mod tests {
     }
 
     #[test]
+    fn mesh_stage_io_ignores_unused_vs_input_count() {
+        let mut blob = fssm(&[(HwStage::Ms, &VS_CODE)]);
+        let e = stage_data_at(&blob, HwStage::Ms);
+        // Mesh stage data has no vertex inputs; E+0xc4 is unused by MS.
+        blob[e + VS_INPUT_COUNT..][..4].copy_from_slice(&u32::MAX.to_le_bytes());
+        let p = &native_programs(&part(&[(KIND_NATIVE, &xbch(&blob))])).unwrap()[0];
+        assert!(matches!(p.io, StageIo::Ms(_)));
+    }
+
+    #[test]
     fn compute_dispatch_settings() {
         // 5 user SGPRs, group id x and y, thread ids in v0-v1, 1 KiB LDS.
         let cs = ComputeIo {
@@ -1019,5 +1083,33 @@ mod tests {
         let at = FSSM_HEADER + slot(HwStage::Ls);
         bad_record[at..at + 8].copy_from_slice(&u64::MAX.to_le_bytes());
         assert!(native_programs(&part(&[(KIND_NATIVE, &xbch(&bad_record))])).is_err());
+    }
+
+    #[test]
+    fn rejects_truncated_oversized_and_bad_checksum_xbch_streams() {
+        let plain = fssm(&[(HwStage::Vs, &VS_CODE)]);
+        let good = xbch(&plain);
+        assert_eq!(unpack(&good).unwrap(), plain);
+
+        // Truncated zlib stream (drop last byte, update packed length).
+        let mut truncated = good[..good.len() - 1].to_vec();
+        let new_packed = (truncated.len() - XBCH_HEADER) as u64;
+        truncated[8..16].copy_from_slice(&new_packed.to_le_bytes());
+        assert!(unpack(&truncated).is_err());
+
+        // Stated unpacked size smaller than the inflated output.
+        let mut oversized = good.clone();
+        oversized[16..24].copy_from_slice(&((plain.len() - 1) as u64).to_le_bytes());
+        assert!(unpack(&oversized).is_err());
+
+        // Stated unpacked size larger than the inflated output.
+        let mut underfilled = good.clone();
+        underfilled[16..24].copy_from_slice(&((plain.len() + 1) as u64).to_le_bytes());
+        assert!(unpack(&underfilled).is_err());
+
+        // Corrupt Adler-32 trailer.
+        let mut bad_adler = good.clone();
+        *bad_adler.last_mut().unwrap() ^= 1;
+        assert!(unpack(&bad_adler).is_err());
     }
 }

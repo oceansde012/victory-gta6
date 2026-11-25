@@ -73,6 +73,7 @@ pub const USER_VIEW_BIAS: u32 = 0x103;
 /// `ShaderFlags` bits (metadata) and their `SFI0` feature bits.
 pub(crate) mod flags {
     pub const RAW_BUFFERS: u64 = 1 << 4;
+    pub const DOUBLES: u64 = 1 << 2;
     pub const STENCIL_REF: u64 = 1 << 11;
     pub const TYPED_UAV_LOADS: u64 = 1 << 13;
     pub const WAVE_OPS: u64 = 1 << 19;
@@ -112,16 +113,21 @@ pub(crate) struct Geometry {
     pub max_vertices: u32,
 }
 
-/// The null slot a host view heap keeps at its end when the title's heap did not fit in it
-/// (0: no limit). Shaders translated while it is set read that slot for any view index at or
-/// past it: a host that caps its heap (NVIDIA at 1 000 000 views; a retail game's heap is
-/// larger) hung its GPU on reads past the end (GPU-based validation: "descriptor heap index
-/// out of bounds"), which AMD's driver forgives.
+/// The null slot every host view heap keeps at its end (0: no limit). Shaders translated while
+/// it is set read that slot for any view index at or past it. A read past a heap's end is
+/// undefined: a host that caps its heap (NVIDIA at 1 000 000 views; a retail game's heap is
+/// larger) hung its GPU (GPU-based validation: "descriptor heap index out of bounds"), and AMD
+/// RDNA3 took a page fault and removed the device.
 static VIEW_LIMIT: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
 
 /// See [`VIEW_LIMIT`]: `null_slot` is the last slot of the host's view heap, kept null.
 pub fn set_view_heap_limit(null_slot: u32) {
     VIEW_LIMIT.store(null_slot, std::sync::atomic::Ordering::Relaxed);
+}
+
+/// See [`VIEW_LIMIT`]: the null slot shaders translated now clamp view indices to (0: none).
+pub fn view_heap_limit() -> u32 {
+    VIEW_LIMIT.load(std::sync::atomic::Ordering::Relaxed)
 }
 
 pub(crate) struct Shader {
@@ -448,8 +454,10 @@ impl Shader {
         if passes != 0 {
             self.m.optimise(passes);
             let used = self.m.usage();
+            let has_bary_input = self.inputs.iter().any(|e| e.kind == 28);
             for (flag, used) in [
                 (flags::WAVE_OPS, used.wave_ops),
+                (flags::BARYCENTRICS, used.barycentrics || has_bary_input),
                 (flags::INT64, used.int64),
                 (flags::TYPED_UAV_LOADS, used.typed_uav_loads),
                 (flags::RESOURCE_HEAP, used.heap_views),
@@ -459,6 +467,10 @@ impl Shader {
                 if !used {
                     self.flags &= !flag;
                 }
+            }
+            let input_usage = self.m.input_usage(self.inputs.len());
+            for (e, mask) in self.inputs.iter_mut().zip(input_usage) {
+                e.usage = mask;
             }
         }
         let mut resources = None;
@@ -772,6 +784,9 @@ impl Shader {
         dxil.extend(&bitcode);
 
         let mut features = 0u64;
+        if self.flags & flags::DOUBLES != 0 {
+            features |= 0x1;
+        }
         if self.flags & flags::STENCIL_REF != 0 {
             features |= 0x200;
         }
