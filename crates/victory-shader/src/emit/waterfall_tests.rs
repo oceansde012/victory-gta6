@@ -207,14 +207,18 @@ fn lanes_load_from_the_buffer_their_nested_arms_chose() {
     let shader = build(WATERFALL_JOINED_BUFFER_WAVE32, true);
     let first: Vec<u32> = (0..32).map(|i| 100 + i).collect();
     let second: Vec<u32> = (0..32).map(|i| 200 + i).collect();
+    // `lower` annotates untyped buffer loads as raw (`ByteAddressBuffer`),
+    // matching `victory-gpu`'s `raw_window` host views; a structured SRV
+    // mismatches the DXIL handle and truncates byte offsets at `NumElements`
+    // on GCN 5 hardware.
     let views = [
         View::Buffer {
             data: &first,
-            stride: Stride::Structured(4),
+            stride: Stride::Raw,
         },
         View::Buffer {
             data: &second,
-            stride: Stride::Structured(4),
+            stride: Stride::Raw,
         },
         View::RawUav(32),
     ];
