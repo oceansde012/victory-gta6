@@ -72,7 +72,7 @@ pub(crate) fn signature(elements: &[SigElement], input: bool) -> Vec<u8> {
     // Validator 1.6 writes one name per element in element order, repeats
     // included, except that system values share theirs (it keys names by
     // the semantic's string, which is one static string per system value);
-    // the rows sorted by register (unallocated last).
+    // rows sort by register (unallocated last), then by name offset.
     let mut offsets: Vec<u32> = Vec::new();
     let mut next = 8 + 32 * elements.len() as u32;
     let mut names = Vec::new();
@@ -90,7 +90,7 @@ pub(crate) fn signature(elements: &[SigElement], input: bool) -> Vec<u8> {
         }
     }
     let mut order: Vec<usize> = (0..elements.len()).collect();
-    order.sort_by_key(|&i| (elements[i].row.unwrap_or(u32::MAX), elements[i].col));
+    order.sort_by_key(|&i| (elements[i].row.unwrap_or(u32::MAX), offsets[i]));
     for i in order {
         let (e, offset) = (&elements[i], offsets[i]);
         let used = e.usage << e.col;
@@ -418,6 +418,41 @@ fn md5_block(state: &mut [u32; 4], block: &[u8; 64]) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn signature_sorts_packed_registers_by_semantic_name_offset() {
+        let element = |name: &str, row, col| SigElement {
+            name: name.into(),
+            index: 0,
+            kind: 0,
+            comp: 9,
+            interp: 2,
+            row: Some(row),
+            col,
+            cols: 1,
+            usage: 1,
+            half: false,
+        };
+        let elements = [
+            element("LATER", 1, 0),
+            element("TEXCOORD", 0, 1),
+            element("COLOR", 0, 0),
+        ];
+        for input in [true, false] {
+            let part = signature(&elements, input);
+            let rows: Vec<_> = part[8..8 + 32 * elements.len()].chunks_exact(32).collect();
+            let name = |row: &[u8]| {
+                let offset = u32::from_le_bytes(row[4..8].try_into().unwrap()) as usize;
+                std::str::from_utf8(part[offset..].split(|&byte| byte == 0).next().unwrap())
+                    .unwrap()
+            };
+            assert_eq!(
+                rows.iter().map(|row| name(row)).collect::<Vec<_>>(),
+                ["TEXCOORD", "COLOR", "LATER"]
+            );
+            assert_eq!((rows[0][24], rows[1][24]), (0b10, 0b01));
+        }
+    }
 
     #[test]
     fn md5_core_matches_the_standard() {
