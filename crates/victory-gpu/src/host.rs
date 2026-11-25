@@ -2662,39 +2662,65 @@ pub(crate) fn late_signal(fence: usize, value: u64) -> bool {
 /// flight, which is the order the wait asks for. If the flights may write
 /// the value in a way not known here (shaders, a timestamp, another
 /// width), they are settled and memory is asked again.
-pub(crate) fn late_met(wait: &crate::list::ValueWait) -> bool {
-    let (address, bytes) = wait.place();
-    {
-        let line = line();
-        if line.line.is_empty() && line.in_hand.is_empty() {
-            return false;
+/// Pure decision for [`late_met`]: `Some(true)` if the final queued write to
+/// `[address, address + bytes)` satisfies `holds` with no conflicting shader,
+/// timestamp, or partial write; `Some(false)` if definitely not met without
+/// settling; `None` if an overlapping shader/timestamp/partial write requires
+/// settling and re-checking memory.
+fn eval_late_met(
+    written: &[(usize, usize)],
+    writes: impl IntoIterator<Item = (usize, crate::queue::Written, usize)>,
+    address: usize,
+    bytes: usize,
+    holds: impl Fn(u64) -> bool,
+) -> Option<bool> {
+    let end = address.saturating_add(bytes);
+    let mut unsure = touches(written, address, end);
+    let mut last_exact: Option<bool> = None;
+    for (at, what, n) in writes {
+        let write_end = at.saturating_add(n);
+        if at >= end || address >= write_end {
+            continue;
         }
-        let mut unsure = touches(&line.written, address, address + bytes);
-        // (With the relay: first the writes of flights being landed.)
-        let writes = line.in_hand.iter().map(|(at, what, n)| (at, what, n)).chain(line.line.iter().filter_map(|item| match item {
-            Late::Write(at, what, n) => Some((at, what, n)),
-            _ => None,
-        }));
-        for (at, what, n) in writes {
-            if *at >= address + bytes || address >= *at + *n {
-                continue;
+        match what {
+            crate::queue::Written::Value(v) if at == address && n >= bytes => {
+                last_exact = Some(holds(v));
             }
-            match what {
-                crate::queue::Written::Value(v) if *at == address && *n >= bytes => {
-                    if wait.holds_for(*v) {
-                        LATE_STATS[13].fetch_add(1, Ordering::Relaxed);
-                        return true;
-                    }
-                }
-                _ => unsure = true,
-            }
-        }
-        if !unsure {
-            return false;
+            _ => unsure = true,
         }
     }
-    settle_now(WHY_VALUE);
-    wait.met()
+    if unsure {
+        None
+    } else {
+        Some(last_exact.unwrap_or(false))
+    }
+}
+
+pub(crate) fn late_met(wait: &crate::list::ValueWait) -> bool {
+    let (address, bytes) = wait.place();
+    let decided = {
+        let line = line();
+        if line.line.is_empty() && line.in_hand.is_empty() && !line.settling {
+            return false;
+        }
+        // (With the relay: first the writes of flights being landed.)
+        let writes = line.in_hand.iter().copied().chain(line.line.iter().filter_map(|item| match item {
+            Late::Write(at, what, n) => Some((*at, *what, *n)),
+            _ => None,
+        }));
+        eval_late_met(&line.written, writes, address, bytes, |v| wait.holds_for(v))
+    };
+    match decided {
+        Some(true) => {
+            LATE_STATS[13].fetch_add(1, Ordering::Relaxed);
+            true
+        }
+        Some(false) => false,
+        None => {
+            settle_now(WHY_VALUE);
+            wait.met()
+        }
+    }
 }
 
 /// Settles the flights in the air, if any ([`Host::settle`]), for reason
@@ -4352,7 +4378,22 @@ impl Host {
                     }
                     landed.push((flight.lists, flight.order));
                 }
-                Late::Write(at, what, bytes) => what.write(at as *mut u8, bytes),
+                Late::Write(at, what, bytes) => {
+                    // Remove this write from `in_hand` before making it visible
+                    // to the title, so a subsequent reset + new wait cannot
+                    // falsely match the already-landed write.
+                    {
+                        let mut line = line();
+                        if let Some(pos) = line
+                            .in_hand
+                            .iter()
+                            .position(|&(a, _, b)| a == at && b == bytes)
+                        {
+                            line.in_hand.remove(pos);
+                        }
+                    }
+                    what.write(at as *mut u8, bytes);
+                }
                 Late::Signal(fence, value) => crate::fence::set(fence as crate::object::This, value),
             }
         }
@@ -7709,5 +7750,80 @@ mod batch {   // Batch::texture_due lives here; `mod tests` is already taken at 
         assert_eq!(ram_idle_ms(Some(0)), 2_000);
         // Missing falls back to normal
         assert_eq!(ram_idle_ms(None), 10_000);
+    }
+
+    #[test]
+    fn eval_late_met_uses_final_write_and_honors_unsure() {
+        use super::eval_late_met;
+        use crate::queue::Written;
+        let addr = 0x1000usize;
+        let eq_one = |v: u64| v == 1;
+
+        // Later overwrite (1 -> 0) invalidates an earlier matching write.
+        assert_eq!(
+            eval_late_met(
+                &[],
+                [(addr, Written::Value(1), 4), (addr, Written::Value(0), 4)],
+                addr,
+                4,
+                eq_one,
+            ),
+            Some(false)
+        );
+        // Later matching write (0 -> 1) satisfies the wait without settling.
+        assert_eq!(
+            eval_late_met(
+                &[],
+                [(addr, Written::Value(0), 4), (addr, Written::Value(1), 4)],
+                addr,
+                4,
+                eq_one,
+            ),
+            Some(true)
+        );
+        // An overlapping in-flight shader write forces settling (`None`) even
+        // when a bottom-of-pipe write matches.
+        assert_eq!(
+            eval_late_met(
+                &[(addr, addr + 4)],
+                [(addr, Written::Value(1), 4)],
+                addr,
+                4,
+                eq_one,
+            ),
+            None
+        );
+        // A partial/unaligned overlapping write or timestamp forces settling (`None`).
+        assert_eq!(
+            eval_late_met(
+                &[],
+                [(addr, Written::Value(1), 4), (addr + 2, Written::Value(0), 4)],
+                addr,
+                4,
+                eq_one,
+            ),
+            None
+        );
+        assert_eq!(
+            eval_late_met(
+                &[],
+                [(addr, Written::Value(1), 4), (addr, Written::GpuTimestamp, 8)],
+                addr,
+                4,
+                eq_one,
+            ),
+            None
+        );
+        // Unrelated writes return `Some(false)` without settling.
+        assert_eq!(
+            eval_late_met(
+                &[(addr + 16, addr + 32)],
+                [(addr + 8, Written::Value(1), 4)],
+                addr,
+                4,
+                eq_one,
+            ),
+            Some(false)
+        );
     }
 }
