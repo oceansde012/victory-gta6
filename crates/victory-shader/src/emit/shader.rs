@@ -391,7 +391,8 @@ impl Shader {
             self.m.i8(3), // sampler
         ];
         let bind = self.m.aggregate(self.t.bind, &bind);
-        let f = self.m.bool(false);
+        // The index comes from a per-lane branch condition.
+        let f = self.m.bool(true);
         let h = self.op(
             block,
             "createHandleFromBinding",

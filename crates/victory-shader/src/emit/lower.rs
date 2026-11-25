@@ -6667,11 +6667,16 @@ impl<'a> Lower<'a> {
                     _ => Err("a typed root view"),
                 }
             }
-            Source::Phi { block, args } if sampler && (2..=3).contains(&args.len()) => {
+            Source::Phi { block, args }
+                if sampler
+                    && !self.s.pixel
+                    && (2..=3).contains(&args.len())
+                    && args.iter().all(|a| matches!(a, Source::Constant(_))) =>
+            {
                 let mut words = Vec::with_capacity(args.len());
                 for a in args {
                     let Source::Constant(w) = a else {
-                        return Err("a descriptor chosen by control flow");
+                        unreachable!()
                     };
                     let w: [u32; 4] = w
                         .get(..4)
