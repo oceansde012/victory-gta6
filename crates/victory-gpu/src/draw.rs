@@ -3079,6 +3079,7 @@ impl State {
     pub(crate) fn execute_indirect(
         &mut self,
         list: &HostList,
+        clamps: Option<&HostList>,
         (kind, stride, max): (u32, u32, u32),
         arguments: u64,
         count: Option<u64>,
@@ -3168,7 +3169,38 @@ impl State {
         const WINDOW_USE: usize = usize::MAX - 0x77;
         let offset = args.offset(arguments);
         let clamped = crate::indirect::clamp_enabled();
-        let (exec_buf, at) = if !clamped {
+        // A draw of a run whose clamps go to the list before it
+        // (`crate::list`'s hoist, `VICTORY_HOIST_CLAMPS=1`): its arguments
+        // are refreshed and clamped there, so nothing of ours comes between
+        // the draws. Not for rectangles, whose records are the title's.
+        let hoisted = (clamped && kind != DISPATCH && self.topology != RECTANGLES)
+            .then_some(clamps)
+            .flatten()
+            .and_then(|clamps| {
+                args.refresh(clamps, arguments, len);
+                if let Some((s, at)) = &counter {
+                    s.refresh(clamps, *at, 4);
+                }
+                #[cfg(feature = "diagnostics")]
+                clamps.note_op(|| format!("hoisted clamp of kind {kind}"));
+                crate::indirect::bound_before(
+                    clamps,
+                    (&args.buffer, offset),
+                    counter.as_ref().map(|(s, at)| (&s.buffer, s.offset(*at))),
+                    (kind, stride, max),
+                )
+            });
+        if hoisted.is_some() {
+            self.window = None;
+            // The count buffer is read by the draw itself, in this list.
+            if let Some((s, at)) = &counter {
+                s.refresh(list, *at, 4);
+            }
+        }
+        let inline = hoisted.is_none();
+        let (exec_buf, at) = if let Some(h) = hoisted {
+            h
+        } else if !clamped {
             let count_off = counter.as_ref().map(|(s, at)| s.offset(*at));
             if crate::indirect::validate_layout((kind, stride, max), offset, count_off).is_none() {
                 why("direct indirect arguments not 4-byte aligned or invalid stride");
@@ -3285,7 +3317,7 @@ impl State {
             _ => false,
         };
         if !ran {
-            if clamped {
+            if clamped && inline {
                 crate::indirect::done(list, &exec_buf);
             }
             why("prepare failed");
@@ -3313,7 +3345,7 @@ impl State {
         if kind == MESH {
             self.mesh_scissor(list, false);
         }
-        if clamped {
+        if clamped && inline {
             crate::indirect::done(list, &exec_buf);
         }
         if kind == DISPATCH {
