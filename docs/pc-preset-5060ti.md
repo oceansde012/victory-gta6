@@ -85,3 +85,29 @@ own". Watch: the relay line's fetch ms (expect a few ms), copying back,
 fps, and the picture (walls, shadows, water) against run 2: the fetch now
 follows only the sends of flights already landed, so a wrong merge would
 show as flicker or stale geometry.
+
+## Added on top of 91078ff (fresh fxceless PRs, victory-unified)
+- fxceless #955: `VICTORY_PIPELINE_WORKERS`, `VICTORY_PIPELINE_NORMAL`.
+- fxceless #959 (most of it): XMA/audio fixes against the 7-11 min pool
+  crash (DexNom's audio.rs did not have them), wait for a submission ends
+  on device loss / GPU stall, pipeline library never saved over a bad one,
+  `VICTORY_NO_WATCHDOG=1` (opt-in), `VICTORY_INPLACE_POOL=1` (opt-in),
+  **upload buffers pooled by size class (on by default; `VICTORY_UPLOAD_POOL=0`
+  = old behaviour)**: in their run the driver held 5.4 GB of
+  write-combined memory for one-off upload buffers.
+- victory-unified fb3d60c: `VICTORY_AMBIENT=<level>` constant indirect
+  light (Belobug's), off unless set.
+- Not taken: fxceless #980 (live RT + in-place VRAM, 25 commits, 23
+  conflicting files on DexNom), #979/#965/#964 (files DexNom lacks or
+  rewrote).
+
+## Run 7: new default (upload pool on)
+Preset 2 + `VICTORY_FETCH_QUEUE=1`. Compare RAM, "RAM" in the HUD, fps
+and freezes with run 6.
+
+## Run 8: upload pool off
+Run 7 + `set VICTORY_UPLOAD_POOL=0`.
+
+## Run 9: constant ambient
+Run 7 + `set VICTORY_AMBIENT=0.6`. Screenshots indoors and in shade
+against run 7: brighter shade, but no lighting from the title's probes.
