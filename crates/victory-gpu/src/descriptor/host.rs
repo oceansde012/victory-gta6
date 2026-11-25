@@ -789,7 +789,9 @@ impl HostHeap {
         let mut run = 0;
         let mut found = None;
         let mut last = usize::MAX;
-        for at in starts.take(if enough { DYNAMIC as usize } else { 0 }) {
+        // The two ranges cover each slot at most once, plus the n - 1 past the
+        // cursor; a cap of DYNAMIC entries cut that tail off.
+        for at in starts.take(if enough { usize::MAX } else { 0 }) {
             // A run cannot wrap past the end.
             if at != last.wrapping_add(1) {
                 run = 0;
@@ -819,7 +821,7 @@ impl HostHeap {
         crate::copystat::add(crate::copystat::C::DynamicNs, started.elapsed().as_nanos() as u64);
         taken[first..first + n].fill(true);
         self.free.fetch_sub(n as u32, std::sync::atomic::Ordering::Relaxed);
-        *next = ((first + n) % DYNAMIC as usize) as u32;
+        *next = ((first + n) % self.dynamic as usize) as u32;
         Some(self.count + first as u32)
     }
 
