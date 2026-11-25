@@ -124,7 +124,7 @@ const WINDOW_MOST: u64 = 64;
 ///
 /// The step is the one the title is seen to take, not the stride its
 /// command signature names: it draws one record a call, for which the
-/// stride means nothing, and Grand Theft Auto VI names 12 bytes (the three
+/// stride means nothing, and the title names 12 bytes (the three
 /// words of a mesh dispatch) for records it keeps 32 bytes apart (2,173 of
 /// a frame's 3,349 mesh records in run 87's listed frame; 283 are 16
 /// apart, which ends a window). Walked by the named stride the window
@@ -175,6 +175,7 @@ pub(crate) struct State {
     scissors: Vec<RECT>,
     blend: Option<[f32; 4]>,
     stencil: Option<u32>,
+    depth_bounds: Option<[f32; 2]>,
     /// The indirect records clamped last, if later draws may still read
     /// them ([`windows`]).
     window: Option<Window>,
@@ -235,7 +236,7 @@ impl State {
 }
 
 /// An experiment on the title's scissor rectangles (`VICTORY_SCISSOR_TEST=full`):
-/// they are all widened to the whole target. Grand Theft Auto VI's room at
+/// they are all widened to the whole target. The title's room at
 /// the start of the prologue lost its walls in five runs of seven, and in
 /// those runs the player's body and the world outside were cut by one
 /// rectangle around the window (run 85, frame 2046): one run with this on
@@ -601,6 +602,11 @@ impl State {
         crate::draw::stencil_ref(list, reference);
     }
 
+    pub(crate) fn set_depth_bounds(&mut self, list: &HostList, min: f32, max: f32) {
+        self.depth_bounds = Some([min, max]);
+        crate::draw::depth_bounds(list, min, max);
+    }
+
     /// `list` is a new host list that continues the title's list (it was
     /// cut at a wait for a memory value, `crate::list::cut`): a new host
     /// list has nothing set, so what the title set so far is set again.
@@ -636,6 +642,9 @@ impl State {
         }
         if let Some(reference) = self.stencil {
             crate::draw::stencil_ref(list, reference);
+        }
+        if let Some([min, max]) = self.depth_bounds {
+            crate::draw::depth_bounds(list, min, max);
         }
     }
 
@@ -1739,7 +1748,7 @@ impl State {
             let targets: Vec<String> = self.targets.iter().filter_map(|&t| described(t)).collect();
             let _ = write!(text, " targets {targets:?} depth {:?} state [{}]", described(self.depth), p.state);
             // The title's scissor and viewport at this draw (the first of
-            // each): Grand Theft Auto VI draws what it sees through a
+            // each): the title draws what it sees through a
             // portal (a window, from inside a room) under the portal's
             // rectangle, and the listing did not say which draws those are.
             if let Some(r) = self.scissors.first() {
@@ -2291,7 +2300,7 @@ impl State {
             crate::pipeline::note_drop(self.pipeline as This);
             return false;
         };
-        // Indirect rectangles (Grand Theft Auto VI's tiled lighting, 256
+        // Indirect rectangles (the title's tiled lighting, 256
         // indirect draws a frame, makes their corners from the vertex
         // number) are completed by the pipeline's geometry stage: the
         // arguments stay the title's, three vertices a rectangle. They
@@ -2689,4 +2698,17 @@ pub(crate) fn stencil_ref(list: &HostList, reference: u32) {
     crate::capture::op(std::ptr::from_ref(list) as usize, || format!("STENCIL REF {reference:#x}"));
     // SAFETY: an open list.
     unsafe { list.list.OMSetStencilRef(reference) };
+}
+
+pub(crate) fn depth_bounds(list: &HostList, min: f32, max: f32) {
+    #[cfg(feature = "diagnostics")]
+    crate::capture::op(std::ptr::from_ref(list) as usize, || {
+        format!("DEPTH BOUNDS {min}..{max}")
+    });
+    if crate::host::host().is_some_and(|h| h.depth_bounds())
+        && let Ok(l1) = list.list.cast::<ID3D12GraphicsCommandList1>()
+    {
+        // SAFETY: an open list on a device that supports depth bounds.
+        unsafe { l1.OMSetDepthBounds(min, max) };
+    }
 }

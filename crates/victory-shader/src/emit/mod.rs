@@ -29,7 +29,7 @@
 //!   `b<i>` / `t<i>` in [`ROOT_CBV_SPACE`], `i` the title's root parameter
 //!   index ([`HostShader::root_cbvs`], [`HostShader::root_srvs`]); the
 //!   address the title sets is the buffer's.
-//! * **Vertex fetch** (added 2026-11-23). Grand Theft Auto VI's mesh and
+//! * **Vertex fetch** (added 2026-11-23). The title's mesh and
 //!   vertex programs fetch vertices themselves with typed-format loads
 //!   (`tbuffer_load_format_*`): the format (8_8_8_8 unorm, 16_16 snorm,
 //!   2_10_10_10 unorm, 8_8_8_8 and 16_16_16_16 uint...) is in the
@@ -612,7 +612,7 @@ fn emit_program(
     // primitives) (the code divides by that); the thread count is in PSV0
     // from runtime info version 2 on.
     // shortcut: older containers fall back to the group's lane count, right
-    // when the HLSL group fills its waves (Grand Theft Auto VI's do).
+    // when the HLSL group fills its waves (the title's do).
     let mesh_stride = match &native.io {
         crate::native::StageIo::Ms(ms) => {
             let psv = c.part(FourCC::PSV0).map(|p| p.data);
@@ -886,6 +886,10 @@ mod tests {
 
     /// A wave64 compute program: `body`, then a store of v1 to a UAV.
     fn stores_v1(body: &[u32]) -> Result<(), ShaderError> {
+        stores_v1_with(body, |p| p)
+    }
+
+    fn stores_v1_with(body: &[u32], form: impl FnOnce(ir::Program) -> ir::Program) -> Result<(), ShaderError> {
         use crate::native::RootParam;
         use crate::{ResourceType, RootType, UsedResource};
         // s_mov_b32 s1, 0; s_load_dwordx4 s[8:11], s[0:1], 0
@@ -922,13 +926,35 @@ mod tests {
             }),
             code: words.iter().flat_map(|w| w.to_le_bytes()).collect(),
         };
-        let p = ir::build(&native.patched_code(), native.wave64, native.vgprs).unwrap();
+        let p = form(ir::build(&native.patched_code(), native.wave64, native.vgprs).unwrap());
         let res = resource::track(&p, &native.layout, native.stage, None).unwrap();
         let io = io::raise(&p, &native).unwrap();
         let st = structure::structure(&p).unwrap();
         let container = crate::dxbc::build(&[]);
         let c = Container::parse(&container).unwrap();
         emit(&c, &native, &p, &st, &io, &res).map(|_| ())
+    }
+
+    #[test]
+    fn masked_vector_output_keeps_the_outer_restore_guard() {
+        for (nested, inner) in [
+            (false, &[0xBEFE_040C][..]),               // restore pre-branch EXEC
+            (true, &[0xBE90_246A, 0xBEFE_0410][..]),  // save and restore inner EXEC
+        ] {
+            let mut body = vec![
+                0x7E02_0287, // v_mov_b32 v1, 7
+                0x7D88_0000, // v_cmp_gt_u32 vcc, s0, v0
+                0xBE8C_246A, // s_and_saveexec_b64 s[12:13], vcc
+                0xBF88_0000 | (inner.len() as u32 + 1),
+            ];
+            body.extend_from_slice(inner);
+            body.extend([0x7E02_0289, 0xBEFE_040C]); // v1 = 9; restore outer EXEC
+            stores_v1_with(&body, |p| {
+                let walked = ir::without_skips(&p, true);
+                assert_eq!(walked.is_some(), nested);
+                walked.unwrap_or(p)
+            }).unwrap();
+        }
     }
 
     /// The high dword of a wave64 mask rewritten alone (`s_mov_b32 vcc_hi`
@@ -1508,6 +1534,11 @@ mod barycentric_tests {
     /// Translates a pixel program with the input VGPRs `input_addr`
     /// enables and one float4 TEXCOORD0 attribute (attr 0, row 0).
     fn pixel(words: &[u32], input_addr: u32) -> Result<HostShader, ShaderError> {
+        pixel_with(words, input_addr, false)
+    }
+
+    /// `pixel`, with TEXCOORD0 held as 16-bit values when `fp16`.
+    fn pixel_with(words: &[u32], input_addr: u32, fp16: bool) -> Result<HostShader, ShaderError> {
         let native = NativeProgram {
             stage: HwStage::Ps,
             wave64: false,
@@ -1521,7 +1552,7 @@ mod barycentric_tests {
                     mask: 0b1111,
                     attr: 0,
                     flat: false,
-                    fp16: false,
+                    fp16,
                     pack2: false,
                     row2: 0,
                 }],
@@ -1621,6 +1652,26 @@ mod barycentric_tests {
         let (features, inputs) = parts(&shader);
         assert_eq!(features & 0x2_0000, 0);
         assert!(inputs.iter().all(|e| e.kind != 28), "{inputs:?}");
+        validate(&shader);
+    }
+
+    /// An f16 interpolation's first half keeps no value of its own (the second half writes
+    /// another VGPR and recomputes it). A `v_fma_mixlo_f16` into that VGPR keeps its high
+    /// half: zero then, as for other 16-bit writes, and the program translates.
+    /// Eight of the title's deferred material pixel programs do this.
+    #[test]
+    fn mixlo_over_an_f16_first_interpolation_half() {
+        let [e0, e1] = exp_mrt0(4);
+        let words = [
+            0xD742_0003, 0x0002_0000, // v_interp_p1ll_f16 v3, v0, attr0.x
+            0xD75A_0002, 0x040E_0200, // v_interp_p2_f16 v2, v1, attr0.x, v3
+            0xCC21_0003, 0x0A02_0502, // v_fma_mixlo_f16 v3, v2, v2, 0
+            0x7E08_1703,              // v_cvt_f32_f16 v4, v3
+            e0,
+            e1,
+            0xBF81_0000,
+        ];
+        let shader = pixel_with(&words, PERSP_CENTER, true).unwrap();
         validate(&shader);
     }
 

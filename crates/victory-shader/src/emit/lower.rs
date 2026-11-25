@@ -1063,8 +1063,8 @@ pub(super) fn reads_mask_as_data(st: &Structured, i: &Inst) -> bool {
 /// second row. An element that shares a register behind another one (the
 /// signature packs a short element into the free columns of an earlier
 /// register) is NOT in that row's halves: it follows in the first
-/// parameter, in row order, that has whole dwords left. Grand Theft Auto
-/// VI's packed pedestrian shaders show both cases: TEXCOORD7 (register 1,
+/// parameter, in row order, that has whole dwords left.
+/// The title's packed pedestrian shaders show both cases: TEXCOORD7 (register 1,
 /// columns 2-3, behind the two columns of TEXCOORD0) is exported in dword 3
 /// of parameter 0, after TEXCOORD1's two dwords; TEXCOORD6 (register 4,
 /// column 3, behind the three columns of TEXCOORD4) in dword 3 of
@@ -4260,8 +4260,8 @@ impl<'a> Lower<'a> {
         if name == "ds_bpermute_b32" {
             // Backward permute: no LDS is touched. Each lane takes the data
             // register of the lane its address names, (address + offset) / 4
-            // within the wave; a source lane outside EXEC gives 0. (Grand
-            // Theft Auto VI's checkerboard shadow-mask generators read their
+            // within the wave; a source lane outside EXEC gives 0. (
+            // the title's checkerboard shadow-mask generators read their
             // neighbours' samples with it; without them every shadowed light
             // was multiplied by an empty mask.)
             // shortcut: a source lane that is not at this instruction on the
@@ -5346,8 +5346,8 @@ impl<'a> Lower<'a> {
         // heap holds a buffer view there, not a constant buffer: read as
         // raw bytes, as a table's SRV is below. Read as a constant buffer
         // (the host's validation: "Descriptor Type in Heap: SRV, Register
-        // Type: CBV", heap index 17) the loads gave nothing: Grand Theft
-        // Auto VI's meshlet culling (BatchCullMeshlets,
+        // Type: CBV", heap index 17) the loads gave nothing:
+        // the title's meshlet culling (BatchCullMeshlets,
         // BatchCullPreSkinnedMeshlets, BatchCullBatchCSMeshlets) reads its
         // batch records, mesh headers and instance transforms this way, so
         // it passed no meshlet and every indirect mesh draw ran empty.
@@ -5530,7 +5530,59 @@ impl<'a> Lower<'a> {
                 .find_map(|(s, _)| use_of(*s))
         };
         let use_at = use_of(site).or_else(twin);
-        let Some((at, first)) = use_at else {
+        let (first, src, props, image, uav, used) = if let Some((at, first)) = use_at {
+            let src = Source::Loaded { load: site, first };
+            let used = self.used_kind(&src);
+            let ui: &Inst = &self.x.p.blocks[at.0].insts[at.1];
+            let un = ui.name();
+            let uav = un.contains("store")
+                || un.contains("atomic")
+                || used.is_some_and(|u| u.kind == ResourceType::Uav);
+            let u = if uav { 0x1000 } else { 0 };
+            let (props, image) = match &ui.fields {
+                // A ray-tracing structure in a buffer of the host: read raw.
+                Fields::Image { .. } if un.starts_with("image_bvh") => ((11, 0), None),
+                Fields::Image { dim, .. } => {
+                    let kind = match dim {
+                        0 => 1,
+                        1 => 2,
+                        2 => 4,
+                        4 => 6,
+                        5 => 7,
+                        _ => return Err("an image dimension (cube or MSAA)"),
+                    };
+                    ((kind | u, 0x409), Some(kind))
+                }
+                Fields::Buffer { idxen, format, .. } => {
+                    let stride = used.map_or(0, |u| u.stride);
+                    let props = if un.starts_with("buffer_load_format")
+                        || un.starts_with("buffer_store_format")
+                    {
+                        (10 | u, 0x409)
+                    } else if *idxen && format.is_none() && stride >= 4 && stride.is_multiple_of(4) {
+                        (12 | u, stride)
+                    } else {
+                        (11 | u, 0)
+                    };
+                    if used.is_some_and(|u| u.kind == ResourceType::Cbv) {
+                        self.stale.extend(inst.writes.iter().map(|w| w.1));
+                        return Err("a constant buffer's descriptor read as data");
+                    }
+                    (props, None)
+                }
+                // Read by scalar buffer loads alone: the raw view `smem` reads it through.
+                Fields::Smem { .. } if used.is_some_and(|u| u.kind == ResourceType::Srv) => {
+                    ((11, 0), None)
+                }
+                // A constant buffer: nothing of its descriptor is a number.
+                Fields::Smem { .. } => {
+                    self.stale.extend(inst.writes.iter().map(|w| w.1));
+                    return Err("a constant buffer's descriptor read as data");
+                }
+                _ => return Err("a scalar memory read as data"),
+            };
+            (first, src, props, image, uav, used)
+        } else {
             // A descriptor kept per lane in VGPRs (`Resources::lane_copied`): the code only
             // copies its dwords and compares them, lane against first lane, and every load
             // that reaches those lanes reads one address. Each dword stands in as its place
@@ -5578,57 +5630,18 @@ impl<'a> Lower<'a> {
                 }
                 return Ok(());
             }
-            return Err("a descriptor read only as data");
-        };
-        let src = Source::Loaded { load: site, first };
-        let used = self.used_kind(&src);
-        let ui: &Inst = &self.x.p.blocks[at.0].insts[at.1];
-        let un = ui.name();
-        let uav = un.contains("store")
-            || un.contains("atomic")
-            || used.is_some_and(|u| u.kind == ResourceType::Uav);
-        let u = if uav { 0x1000 } else { 0 };
-        let (props, image) = match &ui.fields {
-            // A ray-tracing structure in a buffer of the host: read raw.
-            Fields::Image { .. } if un.starts_with("image_bvh") => ((11, 0), None),
-            Fields::Image { dim, .. } => {
-                let kind = match dim {
-                    0 => 1,
-                    1 => 2,
-                    2 => 4,
-                    4 => 6,
-                    5 => 7,
-                    _ => return Err("an image dimension (cube or MSAA)"),
-                };
-                ((kind | u, 0x409), Some(kind))
+            // An image the program only measures (it reads the size bits of a descriptor
+            // nothing samples): eight dwords are an image descriptor, taken here as 2D.
+            // shortcut: a 3D or array image would report depth or layers 1.
+            let src = Source::Loaded {
+                load: site,
+                first: 0,
+            };
+            let used = self.used_kind(&src);
+            if count != 8 || used.is_some_and(|u| u.kind != ResourceType::Srv) {
+                return Err("a descriptor read only as data");
             }
-            Fields::Buffer { idxen, format, .. } => {
-                let stride = used.map_or(0, |u| u.stride);
-                let props = if un.starts_with("buffer_load_format")
-                    || un.starts_with("buffer_store_format")
-                {
-                    (10 | u, 0x409)
-                } else if *idxen && format.is_none() && stride >= 4 && stride.is_multiple_of(4) {
-                    (12 | u, stride)
-                } else {
-                    (11 | u, 0)
-                };
-                if used.is_some_and(|u| u.kind == ResourceType::Cbv) {
-                    self.stale.extend(inst.writes.iter().map(|w| w.1));
-                    return Err("a constant buffer's descriptor read as data");
-                }
-                (props, None)
-            }
-            // Read by scalar buffer loads alone: the raw view `smem` reads it through.
-            Fields::Smem { .. } if used.is_some_and(|u| u.kind == ResourceType::Srv) => {
-                ((11, 0), None)
-            }
-            // A constant buffer: nothing of its descriptor is a number.
-            Fields::Smem { .. } => {
-                self.stale.extend(inst.writes.iter().map(|w| w.1));
-                return Err("a constant buffer's descriptor read as data");
-            }
-            _ => return Err("a scalar memory read as data"),
+            (0, src, (2, 0x409), Some(2), false, used)
         };
         let h = self.handle(site, &src, false, props)?;
         let c = self.cur;
@@ -7038,9 +7051,11 @@ impl<'a> Lower<'a> {
                 let Some(Operand::Vector { reg, .. }) = v.dst else {
                     return Err("a mixed-precision result");
                 };
-                let old = match inst.read(Reg::V(reg)) {
-                    Some(o) => self.i32_of(o)?,
-                    None => self.s.m.i32(0),
+                // An old value with none of its own (a first interpolation half the second
+                // half recomputes) keeps zero, as in `write_half`.
+                let old = match inst.read(Reg::V(reg)).map(|o| self.i32_of(o)) {
+                    Some(Ok(o)) => o,
+                    _ => self.s.m.i32(0),
                 };
                 let h = self
                     .s
@@ -9438,8 +9453,8 @@ impl<'a> Lower<'a> {
                         // are read at the level instead, in the gather's
                         // order: (u0,v1) (u1,v1) (u1,v0) (u0,v0).
                         // With an offset too (`image_gather4_l_o`): the
-                        // offset is in texels of that level. Grand Theft
-                        // Auto VI's meshlet culling takes a 4x4 block of
+                        // offset is in texels of that level.
+                        // The title's meshlet culling takes a 4x4 block of
                         // the pyramid as one gather and three offset ones
                         // ((2,0), (0,2), (2,2)); the three read level 0,
                         // two texels beside the first one's place, so a
@@ -10802,7 +10817,7 @@ mod tests {
         assert_eq!(p.get(&5), None);
     }
 
-    /// The packed pedestrian layouts of Grand Theft Auto VI: an element
+    /// The packed pedestrian layouts of the title: an element
     /// behind another one in its register follows in the first parameter
     /// with a dword left, and is not a half of its register's row.
     #[test]
