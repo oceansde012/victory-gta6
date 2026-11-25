@@ -378,3 +378,24 @@ than a 16 GB card has"; not tested on NVIDIA.
   base; to port by hand, not cherry-pick.
 - Every other commit checked conflicts (ambient chain, root-view reads,
   shader swap); the two code bases differ too much for picks.
+
+## Picture first (2026-11-25 evening)
+
+Taken into PR #7 (`b65fad7`): Codex's `codex/pr7-voxel-visibility-mask`
+(DexNom `76749ce`), `codex/pr7-empty-dispatch-2556` (Marvisak #2556),
+`codex/stencil-texture-upload`; fxceless #956 (textures picked by index
+read again), #795 (levels on demand keep their tiles); Marvisak #2297
+(texture sampled before an in-list copy uploaded again). fxceless #922 was
+left out: our base already turns blending off on integer targets
+(`VICTORY_FIX_INTBLEND`), and #922 defined the same function twice.
+
+**DexNom/VIctory** (GPL-3.0, `921d8d3`): Marvisak main with
+victory-world-runtime squashed in (`570a941`, 170 files, +49k/-36k) and 11
+commits of its own. It reports 25,742 of 25,758 shaders translating, an
+open world close to retail on an RX 7900 XTX, and experimental RT
+(`victory-play --rt`) at about 1 fps. Its own commits conflict in 4 to 18
+files each on our fxceless base (29 to 58 hunks for the picture ones), so
+porting it piece by piece is not practical. For a correct picture soonest,
+build DexNom as it is on the PC (its `Setup.cmd`, or `cargo build --locked
+--release -p victory --features diagnostics --bins`) and compare it with
+PR #7 at the same spot. It is untested on NVIDIA.
