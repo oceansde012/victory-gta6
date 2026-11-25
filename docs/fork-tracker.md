@@ -7,6 +7,7 @@
 
 | Апстрим PR | Что | Куда у нас | Статус |
 |------------|-----|------------|--------|
+| [DexNom `76749ce`](https://github.com/DexNom/VIctory/commit/76749ce58da23a43a3500454a8b69c53f05aa477) | Восстановление маски wave64 из двух скалярных копий. По данным DexNom, это позволило перевести и проверить DXIL одного пиксельного шейдера воксельной видимости. Наш синтетический тест проверяет обе половины маски, включая случай с неверным старшим словом. | `codex/pr7-voxel-visibility-mask` поверх #7 (`bc467c9`) | готово |
 | [fxceless #818](https://github.com/fxceless/victory-fork/pull/818) (Robbha, `f888b29`) | Учёт коротких проходов загрузки текстур в бюджете `VICTORY_BAKE_TEXTURES_MS` с точностью до микросекунд | `codex/texture-bake-budget` поверх #7 | готово |
 | fxceless #63 (arminkhaleghirod) | Hash recently changed textures at every check (startup flicker fix) | `claude/project-thread-5e9x96` | в работе |
 | fxceless #71 (MartinIndra02) | D3D12 COPY queue for relay card copies | `claude/project-thread-5e9x96` | в работе |
