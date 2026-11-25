@@ -323,7 +323,7 @@ impl Layout {
                 depth: if three_d { dim(d.depth, i, 1) } else { 1 },
                 pitch,
                 rows: h,
-                depth_pitch: if three_d { d.depth } else { 1 },
+                depth_pitch: if three_d { dim(d.depth, i, 1) } else { 1 },
                 offset,
                 tail: None,
             });
@@ -922,6 +922,20 @@ mod tests {
             deep.depth = u32::MAX;
             assert_eq!(Layout::new(&deep), Err(Error::Invalid));
         }
+    }
+
+    #[test]
+    fn linear_volume_depth_pitch_follows_the_mip() {
+        let d = Desc {
+            dimension: Dimension::Tex3d,
+            depth: 16,
+            ..desc(16, 16, 5, 4, Swizzle::LINEAR)
+        };
+        let l = Layout::new(&d).unwrap();
+        assert_eq!(
+            l.mips.iter().map(|m| m.depth_pitch).collect::<Vec<_>>(),
+            [16, 8, 4, 2, 1]
+        );
     }
 
     #[test]
