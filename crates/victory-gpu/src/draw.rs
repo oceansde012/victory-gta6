@@ -488,8 +488,11 @@ pub(crate) static HEAP_TEXTURES_FULL: AtomicU64 = AtomicU64::new(0);
 const RECHECK_FRAMES: [u64; 5] = [4, 12, 40, 120, 400];
 
 /// Looks at uploaded textures picked by index that found the memory as it
-/// was, and that found it changed (uploaded again), since the start.
-pub(crate) static HEAP_TEXTURES_RECHECKED: [AtomicU64; 2] = [AtomicU64::new(0), AtomicU64::new(0)];
+/// was, and that found it changed (uploaded again), since the start; of
+/// the changed, those found after the scheduled looks
+/// (`VICTORY_HEAP_RECHECK_EVERY`) and those only between the three
+/// windows (`VICTORY_HEAP_RECHECK_WHOLE_MB`).
+pub(crate) static HEAP_TEXTURES_RECHECKED: [AtomicU64; 4] = [const { AtomicU64::new(0) }; 4];
 
 /// Uploads of textures already on the card made while it had no room for
 /// new ones, since the start.
@@ -1960,17 +1963,35 @@ impl State {
             // only a changed texture is uploaded again.
             // `VICTORY_HEAP_RECHECK=0`: uploaded once, as before.
             if let Some((at, len, print, looks, uploaded)) = host.texture_slot_checked(index) {
-                if crate::texture::fingerprint(at, len) == print {
+                let now = crate::texture::fingerprint(at, len);
+                if now == print {
                     HEAP_TEXTURES_RECHECKED[0].fetch_add(1, Ordering::Relaxed);
-                    match RECHECK_FRAMES.get(usize::from(looks) + 1) {
-                        Some(wait) => {
-                            host.texture_slot_recheck(index, write, frame + wait, (at, len), print, looks + 1, uploaded)
-                        }
+                    // Past the last of `RECHECK_FRAMES`: every
+                    // `VICTORY_HEAP_RECHECK_EVERY` frames while unchanged, when set.
+                    let wait = RECHECK_FRAMES.get(usize::from(looks) + 1).copied();
+                    match wait.or_else(|| Some(crate::texture::recheck_every()).filter(|&n| n > 0)) {
+                        Some(wait) => host.texture_slot_recheck(
+                            index,
+                            write,
+                            frame + wait,
+                            (at, len),
+                            print,
+                            looks.saturating_add(1),
+                            uploaded,
+                        ),
                         None => host.texture_slot_done(index, write, None),
                     }
                     continue;
                 }
                 let n = HEAP_TEXTURES_RECHECKED[1].fetch_add(1, Ordering::Relaxed);
+                // What only the recheck switches found: a change after the
+                // scheduled looks, and one between the three windows.
+                if usize::from(looks) >= RECHECK_FRAMES.len() {
+                    HEAP_TEXTURES_RECHECKED[2].fetch_add(1, Ordering::Relaxed);
+                }
+                if crate::texture::fingerprint_split(len) && crate::texture::windows_same(now, print) {
+                    HEAP_TEXTURES_RECHECKED[3].fetch_add(1, Ordering::Relaxed);
+                }
                 if n < 200 || n.is_multiple_of(1000) {
                     tracing::warn!(
                         slot = index,

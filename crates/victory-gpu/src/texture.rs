@@ -1327,37 +1327,92 @@ pub(crate) fn staged_memory(resource: This) -> Option<(u64, u64)> {
     Some((at as u64, len as u64))
 }
 
+/// `VICTORY_HEAP_RECHECK_EVERY=<frames>`: a texture picked by index that
+/// was still unchanged at the last scheduled look (`draw::RECHECK_FRAMES`)
+/// is looked at again every that many frames (0, the default: never).
+pub(crate) fn recheck_every() -> u64 {
+    static EVERY: std::sync::OnceLock<u64> = std::sync::OnceLock::new();
+    *EVERY.get_or_init(|| std::env::var("VICTORY_HEAP_RECHECK_EVERY").ok().and_then(|v| v.parse().ok()).unwrap_or(0))
+}
+
+/// `VICTORY_HEAP_RECHECK_WHOLE_MB=<n>`: [`fingerprint`] reads textures of
+/// up to `n` MiB whole instead of three windows (0, the default: none).
+fn recheck_whole_bytes() -> u64 {
+    static WHOLE: std::sync::OnceLock<u64> = std::sync::OnceLock::new();
+    *WHOLE.get_or_init(|| {
+        std::env::var("VICTORY_HEAP_RECHECK_WHOLE_MB").ok().and_then(|v| v.parse::<u64>().ok()).unwrap_or(0) << 20
+    })
+}
+
+/// The bytes of each of the three windows [`fingerprint`] reads of
+/// memory over three times as large (smaller memory is read whole).
+const FINGERPRINT_WINDOW: usize = 16 << 10;
+
+/// Whether [`fingerprint`] of `len` bytes is split: the whole memory's
+/// hash in its high 32 bits and the three windows' in its low 32, so a
+/// change only between the windows can be told apart ([`windows_same`]).
+pub(crate) fn fingerprint_split(len: u64) -> bool {
+    len as usize > 3 * FINGERPRINT_WINDOW && len <= recheck_whole_bytes()
+}
+
+/// Of two split fingerprints ([`fingerprint_split`]): whether the three
+/// windows were the same, so only the memory between them changed.
+pub(crate) fn windows_same(a: u64, b: u64) -> bool {
+    a as u32 == b as u32
+}
+
 /// A fingerprint of the title memory `[at, at + len)`, never 0: of all of
 /// it up to 48 KiB, else of 16 KiB at its start, its middle and its end
-/// (a texture streams in whole mips; the small ones lie first). Read
-/// through the kernel, so pages not there count as zeros.
+/// (a texture streams in whole mips; the small ones lie first), and of
+/// the whole as well up to `VICTORY_HEAP_RECHECK_WHOLE_MB`
+/// ([`fingerprint_split`]). Read through the kernel, so pages not there
+/// count as zeros.
 pub(crate) fn fingerprint(at: u64, len: u64) -> u64 {
-    const WINDOW: usize = 16 << 10;
+    const WINDOW: usize = FINGERPRINT_WINDOW;
     thread_local! {
         static READ: std::cell::RefCell<Vec<u8>> = const { std::cell::RefCell::new(Vec::new()) };
     }
+    let split = fingerprint_split(len);
     let len = len as usize;
-    let mut hasher = blake3::Hasher::new();
-    READ.with(|read| {
+    let first8 = |hasher: blake3::Hasher| {
+        let mut first = [0u8; 8];
+        first.copy_from_slice(&hasher.finalize().as_bytes()[..8]);
+        u64::from_le_bytes(first)
+    };
+    let (windows, whole) = READ.with(|read| {
         let mut read = read.borrow_mut();
         read.resize(3 * WINDOW, 0);
-        let mut take = |from: usize, bytes: usize| {
+        let mut take = |hasher: &mut blake3::Hasher, from: usize, bytes: usize| {
             read[..bytes].fill(0);
             crate::host::copy_mapped(read.as_mut_ptr(), (at as usize + from) as *const u8, bytes, false);
             hasher.update(&read[..bytes]);
         };
+        let mut windows = blake3::Hasher::new();
         if len <= 3 * WINDOW {
-            take(0, len);
-        } else {
-            take(0, WINDOW);
-            take((len / 2) & !0xfff, WINDOW);
-            take(len - WINDOW, WINDOW);
+            take(&mut windows, 0, len);
+            return (first8(windows), None);
         }
+        take(&mut windows, 0, WINDOW);
+        take(&mut windows, (len / 2) & !0xfff, WINDOW);
+        take(&mut windows, len - WINDOW, WINDOW);
+        if !split {
+            return (first8(windows), None);
+        }
+        // Whole as well: a texture the title draws into piece by piece (a
+        // glyph cache) can change between the three windows.
+        let mut whole = blake3::Hasher::new();
+        let mut from = 0;
+        while from < len {
+            let bytes = (len - from).min(3 * WINDOW);
+            take(&mut whole, from, bytes);
+            from += bytes;
+        }
+        (first8(windows), Some(first8(whole)))
     });
-    let hash = hasher.finalize();
-    let mut first = [0u8; 8];
-    first.copy_from_slice(&hash.as_bytes()[..8]);
-    u64::from_le_bytes(first) | 1
+    match whole {
+        Some(whole) => (whole << 32 | windows & 0xffff_ffff) | 1,
+        None => windows | 1,
+    }
 }
 
 /// Whether a title texture has a staging buffer: a list recorded its
