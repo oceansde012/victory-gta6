@@ -259,6 +259,9 @@ upstream #974's wrap past the cursor; CI test).
 
 ## Stage 3 (2026-11-25): branch `integration/2026-11-25`
 
+Rollback point: PR #7's head before this stage was `9de1ab7` (code as
+`03e328f`); `git reset --hard 9de1ab7` on a local copy returns to it.
+
 Base: the Codex stack (`codex/fix-clzero-loop`, PRs #10 #11 #13 #14) with
 PR #7's head merged in. Backup of that state:
 `backup/2026-11-25-pre-integration` (`deefbbb`). Kept as is: the
