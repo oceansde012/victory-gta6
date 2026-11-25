@@ -22,6 +22,7 @@ victory-shader`. The full Windows suite runs in CI.
 | fxceless #743 | THROUGH alias cache keyed by (placed, source) | stale textures |
 | fxceless #768 | Texture checks of a submission run several at a time (`VICTORY_WIDE_TEXTURES=1`, opt-in) | CPU per submission |
 | Marvisak #2143 | A program's constant table starts after its instructions | GBs of NVIDIA video memory |
+| fxceless #772 | Residents (`VICTORY_INPLACE=4`, opt-in): big title buffers live on the card and the card merges shader writes back into title memory in the same submission; `VICTORY_EARLY_SIGNAL=1` | copy-back (upstream: 75% less copy-back, half the uploads) |
 | ours | `VICTORY_TEXTURE_STAGE_MS` default 250 -> 60 | PC run: smoother p95, no late textures |
 
 ## Dropped in the rebase

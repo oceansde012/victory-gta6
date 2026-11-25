@@ -30,3 +30,34 @@ folder about 60 s into the world saves the next frames) and send the
 
 Stability tip from ztrx's README: error 1455 in `crashes.log` means
 Windows commit memory ran out; raise the paging file.
+
+## Round 3: copy-back (2026-11-25)
+
+On the corrected base (PR #6 `fbde9d1`) the default frame is 291 ms, of
+which copy-back is 173 ms (the card itself 88 ms). Copy-back is the CPU
+waiting for each submission to finish, fetching what shaders wrote in
+the card's memory and putting it into title memory before the title may
+go on. Ways around it in this tree, all off by default:
+
+- `VICTORY_RELAY=2`: a thread lands flights as the card finishes them, so
+  the submitting thread does not wait for the fetch.
+- `VICTORY_CARD_FETCH_INFLIGHT=1` (with the relay): the fetch is recorded
+  into the flight itself, no extra wait or list.
+- `VICTORY_EARLY_SIGNAL=1` (with the relay): flights with nothing to copy
+  back tell the title at once instead of waiting for later copy-backs.
+- `VICTORY_INPLACE=4` (fxceless #772, residents): big title buffers live
+  in the card's memory and the card merges shader writes back itself, in
+  the same submission: no fetch, no CPU merge.
+
+| Run | Environment |
+|---|---|
+| G | `VICTORY_RELAY=2 VICTORY_CARD_FETCH_INFLIGHT=1 VICTORY_EARLY_SIGNAL=1` |
+| H | `VICTORY_INPLACE=4` |
+| I | `VICTORY_INPLACE=4 VICTORY_RELAY=2 VICTORY_EARLY_SIGNAL=1` |
+| J | I plus `VICTORY_CARD_TIME=1` (card time split: uploads, title lists, merge; for the log only) |
+
+For each: ms per frame, the copy-back share (the log's "copied back" /
+relay lines), "the card's clock per frame", the residents' line with
+`VICTORY_INPLACE=4` (MB uploaded and merged per frame), picture changes,
+and whether the run ended early. `VICTORY_INPLACE=4` is new upstream: if
+it crashes, note the last lines of the log and `crashes.log`.
