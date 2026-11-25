@@ -3757,17 +3757,25 @@ fn lookup(address: u64, len: u64, any: bool) -> Option<Arc<Shadow>> {
 /// [`window`] cuts the windows of asks that give a length on a finer grid.
 const WINDOW: u64 = 4 << 20;
 
-/// The grid the windows of asks with a length are cut on, in bytes: 4 MiB
-/// unless `VICTORY_WINDOW_KB` names a smaller power of two (64 at least).
+/// The grid the windows of asks with a length are cut on by default: 1 MiB.
+const DEFAULT_GRID: u64 = 1 << 20;
+
+/// The grid the windows of asks with a length are cut on, in bytes:
+/// [`DEFAULT_GRID`] unless `VICTORY_WINDOW_KB` names another power of two
+/// from 64 to 4096 (4096 is the old 4 MiB grid).
 /// A window is the PC's memory, all of it, however little of it is read:
 /// 803 windows held 3.3 GB in run 60's gameplay, and all that was ever
 /// asked for in them lay within 1.6 GB. On a grid of 1 MiB or 256 KiB a
 /// window ends nearer to what is read. An ask without a length keeps the
 /// 4 MiB grid whatever is set: a root view reads from its address to its
 /// window's end, and mesh streams bound that way reach megabytes.
-/// shortcut: the default stays 4 MiB until a run with the memory line's
-/// window counts has shown what the finer grids give; the same memory
-/// asked for with different ranges then lies in more than one window.
+///
+/// Measured in the first room on an 8 GB card (diagnostics build, warm
+/// shader cache, 312 s each), 1 MiB with tails against 4 MiB:
+/// windows 2,689 MB against 3,440, the PC's memory shared with the card
+/// 4,364 MB against 5,096, at 1.5 frames a second against 1.7 (windows
+/// are made and let go about seven times as often). The same memory asked
+/// for with different ranges may lie in more than one window.
 fn window() -> u64 {
     static GRID: std::sync::OnceLock<u64> = std::sync::OnceLock::new();
     *GRID.get_or_init(|| {
@@ -3777,11 +3785,11 @@ fn window() -> u64 {
 }
 
 /// The window grid in bytes for a setting in KiB: a power of two from
-/// 64 KiB to 4 MiB, 4 MiB for anything else.
+/// 64 KiB to 4 MiB, [`DEFAULT_GRID`] for anything else.
 fn grid(kb: Option<u64>) -> u64 {
     match kb {
         Some(kb) if kb.is_power_of_two() && (64..=4096).contains(&kb) => kb << 10,
-        _ => WINDOW,
+        _ => DEFAULT_GRID,
     }
 }
 
@@ -3801,16 +3809,16 @@ fn window_of(address: u64, end: u64, grid: u64) -> (u64, u64) {
 /// window is the cell's tail from the ask's step on ([`TAIL_STEP`]); an ask
 /// lower in the cell later makes a longer tail, which every ask from then
 /// on takes, and the shorter one goes when nothing holds it any more.
-/// shortcut: off unless `VICTORY_WINDOW_TAILS=1`. A longer tail is another
-/// host buffer than the shorter one: what was bound to the shorter stays
-/// right only because every list brings up to date the copy it bound
-/// (`draw.rs` keeps a root view's copy with its slot). It pays only
-/// together with `VICTORY_WINDOW_KB` below 4096: on the 4 MiB grid an ask
-/// with a length in the same cell makes the whole cell's window, and the
-/// tail is that.
+/// On by default, with the 1 MiB grid ([`window`]); `VICTORY_WINDOW_TAILS=0`
+/// turns it off. A longer tail is another host buffer than the shorter
+/// one: what was bound to the shorter stays right only because every list
+/// brings up to date the copy it bound (`draw.rs` keeps a root view's copy
+/// with its slot). It pays only together with a grid below 4 MiB: on the
+/// 4 MiB grid an ask with a length in the same cell makes the whole cell's
+/// window, and the tail is that.
 fn tails() -> bool {
     static ON: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
-    *ON.get_or_init(|| std::env::var_os("VICTORY_WINDOW_TAILS").is_some_and(|v| v == "1"))
+    *ON.get_or_init(|| std::env::var_os("VICTORY_WINDOW_TAILS").is_none_or(|v| v != "0"))
 }
 
 /// Tails begin on multiples of this. A longer tail is a new host buffer,
@@ -4035,7 +4043,7 @@ pub(crate) fn exact_line(frames: f64) {
 
 #[cfg(test)]
 mod window_tests {
-    use super::{WINDOW, cover, grid, holder, longest_tail, tail_of, window_of};
+    use super::{DEFAULT_GRID, WINDOW, cover, grid, holder, longest_tail, tail_of, window_of};
 
     /// An ask that may take any window takes the longest that holds all of
     /// it, and none that holds only a part.
@@ -4107,16 +4115,16 @@ mod window_tests {
     }
 
     /// The setting takes powers of two from 64 KiB to 4 MiB; anything else
-    /// leaves the grid as it was.
+    /// leaves the grid at its 1 MiB default.
     #[test]
     fn the_grid_is_a_power_of_two_or_the_default() {
-        assert_eq!(grid(None), WINDOW);
+        assert_eq!(grid(None), DEFAULT_GRID);
         assert_eq!(grid(Some(4096)), WINDOW);
         assert_eq!(grid(Some(1024)), 1 << 20);
         assert_eq!(grid(Some(256)), 256 << 10);
         assert_eq!(grid(Some(64)), 64 << 10);
         for bad in [0, 32, 100, 1000, 8192] {
-            assert_eq!(grid(Some(bad)), WINDOW, "{bad}");
+            assert_eq!(grid(Some(bad)), DEFAULT_GRID, "{bad}");
         }
     }
 
