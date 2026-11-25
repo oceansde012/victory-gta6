@@ -7,6 +7,7 @@
 
 | Апстрим PR | Что | Куда у нас | Статус |
 |------------|-----|------------|--------|
+| [fxceless #818](https://github.com/fxceless/victory-fork/pull/818) (Robbha, `f888b29`) | Учёт коротких проходов загрузки текстур в бюджете `VICTORY_BAKE_TEXTURES_MS` с точностью до микросекунд | `codex/texture-bake-budget` поверх #7 | готово |
 | fxceless #63 (arminkhaleghirod) | Hash recently changed textures at every check (startup flicker fix) | `claude/project-thread-5e9x96` | в работе |
 | fxceless #71 (MartinIndra02) | D3D12 COPY queue for relay card copies | `claude/project-thread-5e9x96` | в работе |
 | fxceless #32 (arminkhaleghirod) | RGBA16F stand-in for R9G9B9E5 render targets | `claude/project-thread-5e9x96` | в работе |
