@@ -1535,3 +1535,118 @@ fn v_cmp_class_f16_matches_rdna2() {
         );
     });
 }
+
+/// An f64 rounded to the nearest-even half (65520 and up to infinity).
+fn f16_rne(x: f64) -> u16 {
+    let sign = if x.is_sign_negative() { 0x8000 } else { 0 };
+    let a = x.abs();
+    if a >= 65520.0 {
+        return sign | 0x7C00;
+    }
+    if a == 0.0 {
+        return sign;
+    }
+    let e = (((a.to_bits() >> 52) & 0x7FF) as i32 - 1023).max(-14);
+    let r = (a / 2f64.powi(e - 10)).round_ties_even() as i32;
+    sign | (((e + 15) << 10) + r - 1024) as u16
+}
+
+#[test]
+fn f16_nearest_switch_rounds_every_narrowing() {
+    // With `VICTORY_F16_NEAREST=1` every f32-to-f16 narrowing rounds to nearest even,
+    // not only the VOP1/VOP2/VOP3 16-bit results: v_cvt_f16_f32, the packed v_pk_*_f16
+    // and v_fma_mixlo/mixhi_f16 too. The host's conversion rounds toward zero (NVIDIA,
+    // AMD and WARP), so each case below is one where the two differ.
+    fn h(x: u16) -> f64 {
+        f64::from(f16_to_f32(x))
+    }
+    let pk = |op: u32, three: bool| {
+        let src2 = if three { 0x103 << 18 } else { 0 };
+        vec![0xCC00_4000 | op << 16, 0x1800_0000 | src2 | 0x102 << 9 | 0x101]
+    };
+    // v_mov_b32 v0, v4 (the destination's other half), then v_fma_mix* v0, v1, v2, v3
+    // with all three sources f32 (op_sel_hi 0).
+    let mix = |op: u32| {
+        vec![vop1(0x001, 0, vgpr(4)), 0xCC00_0000 | op << 16, 0x103 << 18 | 0x102 << 9 | 0x101]
+    };
+    let pack = |lo: u16, hi: u16| u32::from(lo) | u32::from(hi) << 16;
+    let f32b = |x: f32| x.to_bits();
+    type Want = fn([u32; 4]) -> u32;
+    let cases: Vec<(&str, Vec<u32>, Vec<[u32; 4]>, Want)> = vec![
+        (
+            "v_cvt_f16_f32",
+            vec![vop1(0x001, 0, 0x80), vop1(0x00A, 0, vgpr(1))],
+            [0x3F7F_FFFF, 0xBF7F_FFFF, 0x3F80_1001, 0x3F80_1000, 0x477F_F000, 0x3586_0000]
+                .map(|x| [x, 0, 0, 0])
+                .to_vec(),
+            |i| u32::from(f16_rne(f64::from(f32::from_bits(i[0])))),
+        ),
+        (
+            "v_pk_add_f16",
+            pk(0x0F, false),
+            vec![
+                // Marvisak/VIctory#1614's example in the low lane: 0xf8b6 + 0x0001.
+                [pack(0xF8B6, 0x3C01), pack(0x0001, 0x1001), 0, 0],
+                [pack(0x7BFF, 0xC784), pack(0x7BFF, 0x2036), 0, 0],
+            ],
+            |i| {
+                let lane = |k: u32| {
+                    let (a, b) = ((i[0] >> k) as u16, (i[1] >> k) as u16);
+                    u32::from(f16_rne(h(a) + h(b))) << k
+                };
+                lane(0) | lane(16)
+            },
+        ),
+        (
+            "v_pk_fma_f16",
+            pk(0x0E, true),
+            // f32 holds each product and sum exactly, so the only rounding is the narrowing.
+            vec![[pack(0x3C01, 0x3BFF), pack(0x3C01, 0xBC00), pack(0x3C01, 0xBC00), 0]],
+            |i| {
+                let lane = |k: u32| {
+                    let (a, b, c) = ((i[0] >> k) as u16, (i[1] >> k) as u16, (i[2] >> k) as u16);
+                    u32::from(f16_rne(h(a) * h(b) + h(c))) << k
+                };
+                lane(0) | lane(16)
+            },
+        ),
+        (
+            "v_fma_mixlo_f16",
+            mix(0x21),
+            vec![
+                [0x3F7F_FFFF, f32b(1.0), 0, 0xABCD_1234],
+                [f32b(1.0), 0x3F80_1001, 0, 0x5555_AAAA],
+            ],
+            |i| {
+                let r = f64::from(f32::from_bits(i[0])) * f64::from(f32::from_bits(i[1]));
+                i[3] & 0xFFFF_0000 | u32::from(f16_rne(r))
+            },
+        ),
+        (
+            "v_fma_mixhi_f16",
+            mix(0x22),
+            vec![
+                [0x3F7F_FFFF, f32b(1.0), 0, 0xABCD_1234],
+                [f32b(1.0), 0x3F80_1001, 0, 0x5555_AAAA],
+            ],
+            |i| {
+                let r = f64::from(f32::from_bits(i[0])) * f64::from(f32::from_bits(i[1]));
+                i[3] & 0xFFFF | u32::from(f16_rne(r)) << 16
+            },
+        ),
+    ];
+    let mut wrong = Vec::new();
+    for (name, words, inputs, want) in cases {
+        let was = lower::TEST_F16_NEAREST.replace(Some(true));
+        let shader = build_valu_cs(&words);
+        lower::TEST_F16_NEAREST.set(was);
+        let mask = if name == "v_cvt_f16_f32" { 0xFFFF } else { u32::MAX };
+        run_cases(&shader, &inputs, |backend, _, inp, got| {
+            let w = want(inp);
+            if got & mask != w {
+                wrong.push(format!("{backend}: {name}({inp:08x?}) = {got:#010x}, want {w:#010x}"));
+            }
+        });
+    }
+    assert!(wrong.is_empty(), "{}", wrong.join("\n"));
+}
