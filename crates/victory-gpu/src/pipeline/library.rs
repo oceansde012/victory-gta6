@@ -59,6 +59,20 @@ static DIR: OnceLock<PathBuf> = OnceLock::new();
 
 /// Keeps the pipeline library and the early list in `dir` from now on.
 pub fn use_pipeline_cache(dir: PathBuf) {
+    // A library belongs to one adapter and driver, and one of another is
+    // started empty and saved over the old: with `VICTORY_ADAPTER` (another
+    // GPU than the default) it is kept in a folder of that name, so a run on
+    // one GPU never replaces the library made on the other.
+    let dir = match std::env::var("VICTORY_ADAPTER") {
+        Ok(name) if !name.is_empty() => {
+            let name: String = name
+                .chars()
+                .map(|c| if c.is_ascii_alphanumeric() { c.to_ascii_lowercase() } else { '-' })
+                .collect();
+            dir.join(format!("adapter-{name}"))
+        }
+        _ => dir,
+    };
     let _ = DIR.set(dir);
 }
 
