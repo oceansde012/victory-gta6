@@ -2267,6 +2267,13 @@ fn sync_tables() -> bool {
 pub(super) struct CopiedSlots(Vec<u64>);
 
 impl CopiedSlots {
+    /// Whether the mirror of title slot `index` has to be made whatever the
+    /// record now says: nothing was mirrored there yet, or what was has been
+    /// dropped since (a fingerprint of 0 is "never looked at").
+    pub(super) fn needs(&self, index: u32) -> bool {
+        self.0.get(index as usize).is_none_or(|print| *print == 0)
+    }
+
     fn changed(&mut self, index: u32, count: u32, record: &[u8]) -> bool {
         if self.0.is_empty() {
             self.0.resize(count as usize, 0);
