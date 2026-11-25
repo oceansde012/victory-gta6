@@ -1114,6 +1114,12 @@ fn null_sampler(at: D3D12_CPU_DESCRIPTOR_HANDLE) {
 }
 
 impl HostHeap {
+    /// The buffer view slots changed since the last heap pass (for tests).
+    #[cfg(test)]
+    pub(crate) fn buffer_changes(&self) -> std::collections::HashSet<u32> {
+        self.buffers.changed.lock().unwrap_or_else(|e| e.into_inner()).clone()
+    }
+
     /// `n` consecutive free dynamic slots (view heaps only), taken until
     /// [`HostHeap::release`]: the first's index.
     pub(crate) fn dynamic(&self, n: u32) -> Option<u32> {

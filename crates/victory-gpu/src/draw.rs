@@ -1530,6 +1530,10 @@ impl State {
             return Some(gpu);
         }
         let started = std::time::Instant::now();
+        // Discover raw-byte-copied buffer and placed-texture views before
+        // draining `buffer_changes()` and `heap_textures()`, so they are
+        // materialized for this frame rather than nulled out at `Host::submit`.
+        crate::descriptor::sync_heaps();
         // Per host heap: the host copy and range each slot's buffer view
         // reads, kept from pass to pass. Only the slots written since the
         // last pass are looked at again (83,000 slots a pass otherwise, 0.1 s
@@ -1701,6 +1705,7 @@ impl State {
             );
         }
         let began = std::time::Instant::now();
+        crate::descriptor::sync_heaps();
         PASS_BUDGET.set(Some(budget));
         self.heap_textures(list, heap, host);
         PASS_BUDGET.set(None);
