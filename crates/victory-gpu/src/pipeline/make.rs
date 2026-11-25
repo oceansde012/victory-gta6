@@ -550,16 +550,29 @@ fn workers() -> bool {
     static RUNNING: OnceLock<bool> = OnceLock::new();
     *RUNNING.get_or_init(|| {
         let mut running = false;
-        let workers = std::thread::available_parallelism().map_or(2, |n| (n.get() / 2).clamp(2, 8));
+        // `VICTORY_PIPELINE_WORKERS=<n>` overrides the count;
+        // `VICTORY_PIPELINE_NORMAL=1` runs them at normal priority, level
+        // with the title's threads (a title holding every core starves
+        // below-normal workers: about one pipeline per 2 s was seen).
+        let workers = std::env::var("VICTORY_PIPELINE_WORKERS")
+            .ok()
+            .and_then(|v| v.trim().parse::<usize>().ok())
+            .map(|n| n.clamp(1, 64))
+            .unwrap_or_else(|| std::thread::available_parallelism().map_or(2, |n| (n.get() / 2).clamp(2, 8)));
+        let normal = std::env::var_os("VICTORY_PIPELINE_NORMAL").is_some_and(|v| v == "1");
+        tracing::info!(workers, normal, "host pipeline workers");
         for i in 0..workers {
             let spawned = std::thread::Builder::new()
                 .name(format!("victory-pipelines-{i}"))
-                .spawn(|| {
-                    // Below the title's own threads (loading, recording).
+                .spawn(move || {
+                    // Below the title's own threads (loading, recording),
+                    // unless asked otherwise.
                     // SAFETY: a plain call on our own thread.
-                    unsafe {
-                        use windows::Win32::System::Threading::*;
-                        let _ = SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_BELOW_NORMAL);
+                    if !normal {
+                        unsafe {
+                            use windows::Win32::System::Threading::*;
+                            let _ = SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_BELOW_NORMAL);
+                        }
                     }
                     loop {
                         next().make();
