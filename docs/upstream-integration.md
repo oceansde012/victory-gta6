@@ -331,3 +331,26 @@ fps), so the cause is elsewhere among the six code commits between them
   (#799) + `4096561`.
 - quarters: a1 `58a7b02`, a2 `7f0ca9c`, b1 `e34702d`+`477fe24`, b2
   `cc970bc`+`4096561`.
+
+## Other projects, checked 2026-11-25 (afternoon)
+
+- **vitutu1/victory-perf** (GPL-3.0, base fxceless `310c6eb`): 9-14 fps
+  claims are Series S mode + 50% render scale + lighting stand-ins on a
+  4070 SUPER. New today: ports from victory-world-runtime (`1412d43`) and
+  watch/JOURNAL lock work (`4cb867b`). Deep conflicts with our base; ideas.
+- **ZSlayerHQ/victory-world-runtime** (GPL-3.0, `next`): fxceless
+  `310c6eb` + joshuu/victory-amd, "walls fix confirmed on an RTX 5090":
+  multi-view guard (we have it via fxceless `8dd30ab`) and the 9-bit mesh
+  index mask (taken: `b204a79`, Marvisak `c0228d93`).
+- **PastiiJay/klbf-lab** (GPL-3.0, AMD RX 9070 XT + 9800X3D): ~7.3 fps in
+  the cell, ~5 fps native, both with `--console series-s` (1280x720) and
+  AMD FSR. Its "cell walls missing" fix: pipelines waited for while the
+  world loads, textures shown from their first loaded mip, lost placed
+  views refreshed, dispatches over 65,535 groups split (from
+  myokex/victory-amd). Candidates for our see-through walls if `b204a79`
+  is not enough.
+- **"Experimental victory-fork PR at 7.6 fps"**: not found. fxceless #770
+  (validation stack on `f85101b`) is the likely one; its page was not
+  readable today.
+- Trackers (portwatch tracker.json, gta6-pc-race): no updates since
+  2026-11-24 evening.
