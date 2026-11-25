@@ -1774,9 +1774,11 @@ impl State {
         // records the frame, and making and staging 192 MB of textures took
         // 1.6-2.2 s of each of the world's first twenty frames (run 20).
         // The rest waits for the next frames, as it does past the bytes.
+        // 60 ms by default (it was 250): on an RTX 5060 Ti that smoothed the
+        // 95th percentile with no late textures seen (2026-11-25).
         static SPAN_MS: std::sync::OnceLock<u64> = std::sync::OnceLock::new();
         let span = std::time::Duration::from_millis(*SPAN_MS.get_or_init(|| {
-            std::env::var("VICTORY_TEXTURE_STAGE_MS").ok().and_then(|v| v.trim().parse().ok()).unwrap_or(250)
+            std::env::var("VICTORY_TEXTURE_STAGE_MS").ok().and_then(|v| v.trim().parse().ok()).unwrap_or(60)
         }));
         // A backlog (a scene's first minutes: 22,000 slots due, 2-3 minutes of black
         // surfaces at 192 MB a frame) gets three times the bytes and the time until it
