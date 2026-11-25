@@ -207,3 +207,33 @@ fork's code; to look at in stage 2):
 
 Measure this branch against PR #5 on the PC. If it is not worse, take the
 GPU-side upstream work one feature at a time, each with its own fps run.
+
+## Open fxceless/victory-fork PRs merged (2026-11-25)
+
+Each is its own merge commit (`git revert -m 1 <merge>` drops one). Picked
+for frame time, GPU stability and shader correctness; all merged without
+conflicts and build. Duplicates left out per fxceless issue #126's overlap
+map (#110 and #124 beside #112; #119 beside #139; #115, which fxceless
+main's view guard already covers; #91/#106; the Wine/Proton set).
+
+| PR | What | Why |
+|---|---|---|
+| #95 | textures no longer wait for remappings of other title memory | texture lane cost is the remap lock (fxceless issue #178) |
+| #108 | batch adjacent physical-page scatter unmaps | fewer system calls when streaming |
+| #144 | bind 256-byte-aligned table CBVs directly from shadow buffers | fewer copies per draw |
+| #154 | VEH-guarded in-process copy for `copy_mapped` / `write_mapped` | copies without a system call |
+| #158 | wave64: halve programs whose LDS accesses are the lane's own words | RTX cards are 32-lane |
+| #172 | a skipped pipeline is not started early either | no wasted pipeline builds |
+| #177 | batch 64 KiB block queries in texture `mapped_bytes` | fewer queries |
+| #169 | `VICTORY_INDIRECT_CLAMP=0` opt-out of per-draw argument clamping | test switch for the indirect draw cost (fxceless issue #107: 40 of 63 ms in 3,227 indirect draws); default unchanged |
+| #79, #66 | bound direct compute dispatch work; loop caps documented | GPU hang guard |
+| #67 | release directly indexed buffer ranges with their heap | leak |
+| #112, #61, #122 | DXIL signature order, PSV0 names, ISG1 usage after opt | shaders the runtime refused (fxceless #53, #12) |
+| #135, #139, #155 | 64-bit compares, `v_writelane_b32`, f16 narrowing switch | shader correctness |
+| #76, #78, #90, #87, #102 | test adapter wave width, 1-thread LDS programs, rect corner tolerance, volume pitch, a test | correctness |
+
+Not merged (conflict with this branch, later): #175, #104, #165, #124, #150,
+#160, #163, #170, #182 and the rest of the conflicting list.
+
+Fix on top: the dynamic descriptor slot search (fork's scan cap cut off
+upstream #974's wrap past the cursor; CI test).
