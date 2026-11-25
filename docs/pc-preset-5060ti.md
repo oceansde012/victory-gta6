@@ -111,3 +111,71 @@ Run 7 + `set VICTORY_UPLOAD_POOL=0`.
 ## Run 9: constant ambient
 Run 7 + `set VICTORY_AMBIENT=0.6`. Screenshots indoors and in shade
 against run 7: brighter shade, but no lighting from the title's probes.
+
+## A/B of two builds (2026-11-25 evening)
+Two builds, same spot (prison by the window, warm cache = second launch of
+each build), same 1920x1080 window, 3 minutes each after the world is in.
+
+- **A** = branch `claude/project-thread-go0fy1`: this DexNom build (0d3a650)
+  plus fxceless #1129 (changed_runs 64/8 bytes), VItoriaBr #34 (divergent
+  barriers on 32-lane GPUs), the small parts of fxceless #1117 (heap start
+  kept, root constants on the stack), Marvisak #2783 (wave64 mask set by
+  halves), Marvisak #2706 (pipeline library per translation), thin LTO +
+  one codegen unit in release.
+- **B** = branch `claude/vbr-ab-5060ti`: VItoriaBr main 69c665c (fxceless
+  085ee7c + their 5060 Ti work) plus our NVIDIA picks (Marvisak #2634,
+  #2007, #2143, fxceless #1002, #1044) and fxceless #1129, #1128, #1122,
+  Marvisak #2783.
+
+Cache note: A's first launch starts with an empty pipeline library (it now
+lives in a folder per translation, the old one stays in the cache root), so
+launch A once, quit after the world is in, then measure on the second
+launch. B keeps its library in the cache root, A's folders are not touched
+by it.
+
+### What to record for every run
+- fps, frame time and 1% low: PresentMon (portable exe, no install) on the
+  victory process for the 3 minutes, `--output_file run-XX.csv`; avg fps =
+  1000 / mean(MsBetweenPresents), 1% low = 1000 / p99(MsBetweenPresents).
+- RAM and CPU: `typeperf "\Process(victory)\Working Set - Private"
+  "\Processor(_Total)\% Processor Time" -si 1 -sc 180 -o run-XX-cpu.csv`.
+- VRAM and GPU load: `nvidia-smi --query-gpu=utilization.gpu,memory.used
+  --format=csv -l 1 > run-XX-gpu.csv`.
+- the layer's own frame line (copying back, textures, relay) from the log,
+  and the count of "no free dynamic descriptor slots" / device removed.
+- one screenshot at the window and one in shade, against 7933b42 (walls,
+  hair, glass, water, shadows).
+
+## Run 10: A, run-7 settings
+Preset 2 + `VICTORY_FETCH_QUEUE=1`.
+
+## Run 11: B, VItoriaBr's own preset
+```
+set VICTORY_RELAY=2
+set VICTORY_QUEUE2=1
+set VICTORY_ASYNC_SUBMIT=1
+set VICTORY_COPY_PLAIN=1
+set VICTORY_INDIRECT_GATHER=1
+set VICTORY_TABLE_BUFFERS=1
+set VICTORY_TEXTURE_BACK=1
+set VICTORY_TEXTURE_NO_WAIT=1
+set VICTORY_CARD_BUFFERS_MB=2048
+set VICTORY_TEXTURE_BUDGET_MB=10240
+set VICTORY_PAGE_WRITES=slots
+set VICTORY_AMBIENT=0.6
+set VICTORY_UNWATCHED_FRAMES=4
+set VICTORY_WIDE_REFRESH=1
+set VICTORY_WIDE_MERGE=1
+set VICTORY_JOIN_COPIES=1
+set VICTORY_DISPLAY_MODE=1920x1080
+```
+VItoriaBr reports 5.8 fps at 3840x2160 and copying back ~65-78 ms with
+this on the same GPU and CPU (their numbers, not ours).
+
+## Run 12: B without ambient
+Run 11 with `set VICTORY_AMBIENT=0`: the picture against 7933b42 without
+the constant light, to see what B renders by itself.
+
+## Run 13: B, RAM check
+Run 11 with `set VICTORY_CARD_BUFFERS_MB=1024`: our RAM is at the limit
+(32 GB, 8 GB pagefile); watch the private working set and freezes.

@@ -28,6 +28,8 @@ pub(crate) struct HostHeap {
     /// Set by the indexed texture pass while additional GPU allocations wait.
     texture_pressure: std::sync::atomic::AtomicBool,
     cpu: usize,
+    /// The shader-visible heap's GPU start (constant for the heap's life).
+    gpu: u64,
     step: u32,
     /// Slots mirroring the title's; view heaps have `dynamic` more.
     count: u32,
@@ -849,6 +851,7 @@ impl HostHeap {
             null_views: None,
             texture_pressure: std::sync::atomic::AtomicBool::new(false),
             cpu,
+            gpu,
             step,
             count,
             dynamic,
@@ -1844,10 +1847,9 @@ impl HostHeap {
 
     /// The shader-visible handle of slot `index`.
     pub(crate) fn gpu_handle(&self, index: u32) -> D3D12_GPU_DESCRIPTOR_HANDLE {
-        // SAFETY: a live shader-visible heap.
-        let start = unsafe { self.heap.GetGPUDescriptorHandleForHeapStart().ptr };
+        // The heap's start, kept when it was made (fxceless/victory-fork #1117).
         D3D12_GPU_DESCRIPTOR_HANDLE {
-            ptr: start + u64::from(index) * u64::from(self.step),
+            ptr: self.gpu + u64::from(index) * u64::from(self.step),
         }
     }
 

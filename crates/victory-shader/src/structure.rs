@@ -47,7 +47,7 @@ pub enum Atom {
     /// A mask the pass cannot see into (loaded, built from scalars, an
     /// EXEC write it does not follow): the lane's bit of the register pair
     /// this value is a dword of.
-    Opaque(Value),
+    Opaque(Value, Value),
     /// A constant mask other than all lanes or none.
     Constant(u64),
 }
@@ -928,15 +928,13 @@ impl<'a> Lanes<'a> {
                     })
                 };
                 let derived = exec_write(lo, k.0) || exec_write(hi, k.1);
-                // shortcut: the atom names the pair by its low dword, and
-                // lowering takes the high dword written beside it. For halves
-                // written apart (two `s_mov_b32`) lanes 32-63 are wrong unless
-                // lowering has no value for the low dword (EXEC, compares)
-                // and refuses. Give the atom both dwords when such code
-                // turns up.
+                // The atom names both dwords of the pair (Marvisak/VIctory
+                // #2783): halves written apart (two `s_mov_b32`, vcc_lo and
+                // vcc_hi) test their own high dword in lanes 32-63. Redefined
+                // where either dword is.
                 let m = m.unwrap_or_else(|| {
-                    let born = self.born(k.0);
-                    self.b.atom(Atom::Opaque(k.0), born)
+                    let born = self.born(k.0).max(self.born(k.1));
+                    self.b.atom(Atom::Opaque(k.0, k.1), born)
                 });
                 (m, derived)
             }
