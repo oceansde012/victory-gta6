@@ -282,7 +282,7 @@ fixes.
 | `f8afec2` | fxceless #783 `d695015` + `5e3e18e` | #783's final form, see below |
 | `005b9f1` | fxceless #781 `67efc51` | pooled texture staging buffers |
 | `d826b90` | fxceless #793 `c4d5ca5` | no diagnostic budget atomics/readbacks in the indirect clamp outside diagnostics builds |
-| `cc72b39` | fxceless #787 `04aff73` | split duplicate resource transitions across `ResourceBarrier` calls |
+| ~~`cc72b39`~~ | fxceless #787 `04aff73` | reverted: CI crashes in victory-gpu tests (see revert commit) |
 
 ### #783 and #786: the write-back conflict
 
