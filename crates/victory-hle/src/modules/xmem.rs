@@ -453,8 +453,10 @@ pub extern "system" fn XMemAllocatePhysicalPages(
     // (`VICTORY_INPLACE_POOL=1`) it is committed too, since only a
     // committed section can be opened as a host heap, and cut into
     // sections of `POOL_PIECE` pages: the host opens no section of 4 GiB or
-    // more (E_INVALIDARG, run-auto-12). If the host cannot commit them,
-    // one reserved section as before (and not in place).
+    // more (E_INVALIDARG, run-auto-12), and an opened section is resident
+    // with the card whole, however little of it the card reads. If the
+    // host cannot commit them, one reserved section as before (and not in
+    // place).
     let create = |pages: usize, protect| {
         let bytes = (pages * PAGE) as u64;
         // SAFETY: plain section creation.
@@ -520,8 +522,11 @@ pub extern "system" fn XMemAllocatePhysicalPages(
 }
 
 /// Pages per section when the page pool is made for the card to read in
-/// place: 1 GiB (the host opens sections below 4 GiB only).
-const POOL_PIECE: usize = (1 << 30) / PAGE;
+/// place: 32 MiB. The host opens sections below 4 GiB only, and each one
+/// opened counts whole against the card's share of the PC's memory: four
+/// of 1 GiB for 63 MB of windows ran it out (run-auto-13, E_OUTOFMEMORY
+/// closing command lists). Ranges across a seam are copied as before.
+const POOL_PIECE: usize = (32 << 20) / PAGE;
 
 /// Page numbers count 4 KiB frames, so a 64 KiB page's is a multiple of
 /// 16: the title keeps them as 21-bit `number >> 4` and rebuilds

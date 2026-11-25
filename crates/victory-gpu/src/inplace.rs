@@ -143,6 +143,17 @@ fn pool() -> bool {
     *ON.get_or_init(|| std::env::var("VICTORY_INPLACE_POOL").is_ok_and(|v| v.trim() == "1"))
 }
 
+/// The most page-pool sections open as heaps at once, in bytes
+/// (`VICTORY_INPLACE_POOL_MB`, 2048): each counts whole against the card's
+/// share of the PC's memory, which the copies use too.
+fn pool_most() -> u64 {
+    static MOST: std::sync::OnceLock<u64> = std::sync::OnceLock::new();
+    *MOST.get_or_init(|| std::env::var("VICTORY_INPLACE_POOL_MB").ok().and_then(|v| v.trim().parse::<u64>().ok()).unwrap_or(2048) << 20)
+}
+
+/// The bytes of the sections opened so far (they stay open for the run).
+static POOL_OPENED: AtomicU64 = AtomicU64::new(0);
+
 /// The heaps opened on whole sections, by section handle, or `None` where
 /// the host refused (not asked again); kept for the run (a section the
 /// title frees stays alive through its heap, as it does through views it
@@ -170,8 +181,13 @@ fn place_in_section(device: &ID3D12Device, section: usize, offset: u64, len: u64
         match heaps.iter().find(|h| h.0 == section) {
             Some((_, Some(heap))) => heap.clone(),
             Some((_, None)) => return Err(None),
+            None if POOL_OPENED.load(Ordering::Relaxed) + size > pool_most() => {
+                STATS[6].fetch_add(1, Ordering::Relaxed);
+                return Err(None);
+            }
             None => match open(device, From::Section(section)) {
                 Ok(heap) => {
+                    POOL_OPENED.fetch_add(size, Ordering::Relaxed);
                     // SAFETY: a live heap.
                     let got = unsafe { heap.GetDesc() }.SizeInBytes;
                     tracing::info!(section = format_args!("{section:#x}"), mb = got >> 20, "title page pool opened as a host heap");
@@ -295,7 +311,7 @@ fn say() {
     let s: Vec<u64> = STATS.iter().map(|s| s.load(Ordering::Relaxed)).collect();
     tracing::info!(
         "title memory in place: {} windows {} MB, {} title buffers {} MB (no copy, no refresh, no copy-back), {} MB of it in the page pool; turned down: {} view memory \
-         or not private memory committed whole, {} refused by the host, {} over VICTORY_INPLACE_MB; {} let go because their memory changed",
+         or not private memory committed whole, {} refused by the host, {} over VICTORY_INPLACE_MB or VICTORY_INPLACE_POOL_MB; {} let go because their memory changed;          {} MB of page-pool sections open",
         s[0],
         s[1] >> 20,
         s[2],
@@ -304,7 +320,8 @@ fn say() {
         s[4],
         s[5],
         s[6],
-        s[7]
+        s[7],
+        POOL_OPENED.load(Ordering::Relaxed) >> 20
     );
 }
 
