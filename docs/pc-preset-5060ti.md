@@ -71,3 +71,17 @@ Fetch runs inside the submission, with no flights queued ahead of it.
 If run 4 or 5 removes most of the 210 ms, the fix is a fetch on its own
 copy queue (needs care with `QUEUE_ORDER`: sends queued before the fetch
 must have run before it reads).
+
+## Confirmed (relay line, 0540763 runs 1-3)
+Fetch wait 157-172 ms of 202-221 ms landing. 
+
+## Run 6: fetch on its own copy queue (code in this commit, opt-in)
+Preset 2, plus:
+```
+set VICTORY_FETCH_QUEUE=1
+```
+Log at start: "card copies' pieces are fetched on a copy queue of their
+own". Watch: the relay line's fetch ms (expect a few ms), copying back,
+fps, and the picture (walls, shadows, water) against run 2: the fetch now
+follows only the sends of flights already landed, so a wrong merge would
+show as flicker or stale geometry.

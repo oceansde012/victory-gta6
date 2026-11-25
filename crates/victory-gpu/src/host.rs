@@ -1753,6 +1753,10 @@ struct CardPlan {
     /// The lists of ours the plan recorded (whether the compare, the
     /// list), given back by `Host::card_done`.
     lists: Vec<(bool, Prelude)>,
+    /// With [`relay`]: the number of this submission's send in
+    /// [`QUEUE_ORDER`]. Once the submission has run, every send numbered
+    /// up to this one has run too ([`fetch_queue`]).
+    sent_as: u64,
 }
 
 /// One piece of submission-time work, in recorded order.
@@ -2687,6 +2691,32 @@ struct RelayFetch {
     sent: u64,
     /// Buffer, mapping, bytes.
     buffer: Option<(ID3D12Resource, usize, u64)>,
+    /// With [`fetch_queue`]: a copy queue of the fetches' own, and `list`
+    /// is a copy list for it.
+    copy: Option<ID3D12CommandQueue>,
+}
+
+/// Whether the relay's fetches of card copies' pieces go to a copy queue of
+/// their own (`VICTORY_FETCH_QUEUE=1`; off by default).
+///
+/// On the host's queue a fetch runs behind everything sent meanwhile: the
+/// flights sent ahead, whose work it then waits for too. On an RTX 5060 Ti
+/// that wait was 157-172 ms of the frame's ~210 ms "copying back"
+/// (`the relay per frame ... for fetches of card copies' pieces`), for a
+/// few MB of pieces.
+///
+/// On its own queue the fetch starts at once, beside the flights in the
+/// air. What it reads is then as of no fixed point of the host's queue, so
+/// it is said to follow only the sends known to have run: those numbered
+/// up to the latest `sent_as` of the flights being landed (each flight's
+/// sends go to the queue with it, and it has run). Later sends are
+/// skipped by the merge as they are now for sends after the fetch
+/// (`Shadow::card_merge_relay`). Bytes of later flights' shaders may come
+/// along, as they already may on the host's queue; their own landing
+/// finds them merged, or merges what they end as.
+fn fetch_queue() -> bool {
+    static ON: OnceLock<bool> = OnceLock::new();
+    *ON.get_or_init(|| std::env::var_os("VICTORY_FETCH_QUEUE").is_some_and(|v| v == "1"))
 }
 
 /// The thread that lands flights ([`relay`]): as soon as the card has run
@@ -3670,6 +3700,7 @@ impl Host {
             check: None,
             _synced: dirty.into_iter().map(|(shadow, _)| shadow).collect(),
             lists: used,
+            sent_as,
         };
         // Each byte once, as the copy-back joins the declared ranges. The
         // results go behind those of plans still in the air.
@@ -3786,7 +3817,11 @@ impl Host {
 
     /// The relay's own list, fence, event for [`Host::relay_card_back`].
     fn make_relay_fetch(&self) -> Option<RelayFetch> {
-        let list = self.make_prelude()?;
+        let copy = if fetch_queue() { self.make_fetch_queue() } else { None };
+        let list = match &copy {
+            Some((_, list)) => list.clone(),
+            None => self.make_prelude()?,
+        };
         // SAFETY: plain objects of our own.
         unsafe {
             let fence: ID3D12Fence = self.device.CreateFence(0, D3D12_FENCE_FLAG_NONE).ok()?;
@@ -3797,7 +3832,38 @@ impl Host {
                 event,
                 sent: 0,
                 buffer: None,
+                copy: copy.map(|(queue, _)| queue),
             })
+        }
+    }
+
+    /// A copy queue and a copy list for [`fetch_queue`]; `None` (the host's
+    /// queue is used) if the host will not make them.
+    fn make_fetch_queue(&self) -> Option<(ID3D12CommandQueue, Prelude)> {
+        // SAFETY: plain object creation.
+        let made: windows::core::Result<(ID3D12CommandQueue, Prelude)> = unsafe {
+            (|| {
+                let queue: ID3D12CommandQueue = self.device.CreateCommandQueue(&D3D12_COMMAND_QUEUE_DESC {
+                    Type: D3D12_COMMAND_LIST_TYPE_COPY,
+                    ..Default::default()
+                })?;
+                let allocator: ID3D12CommandAllocator =
+                    self.device.CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COPY)?;
+                let list: ID3D12GraphicsCommandList =
+                    self.device.CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_COPY, &allocator, None)?;
+                list.Close()?;
+                Ok((queue, (allocator, list)))
+            })()
+        };
+        match made {
+            Ok(made) => {
+                tracing::info!("card copies' pieces are fetched on a copy queue of their own (VICTORY_FETCH_QUEUE=1)");
+                Some(made)
+            }
+            Err(e) => {
+                tracing::warn!(error = %e, "no copy queue for fetches; they go to the host's queue");
+                None
+            }
         }
     }
 
@@ -3871,6 +3937,10 @@ impl Host {
         };
         f.sent += 1;
         let ((allocator, list), fence, event, sent) = (f.list.clone(), f.fence.clone(), f.event, f.sent);
+        let copy = f.copy.clone();
+        // On a queue of its own the fetch follows only the sends known to
+        // have run: those of the flights being landed and before.
+        let known = plans.iter().map(|p| p.sent_as).max().unwrap_or(0);
         let waiting = std::time::Instant::now();
         // SAFETY: the list's last run was waited for by this thread; live
         // buffers (the copies are held by the plans); the fence and the
@@ -3882,6 +3952,13 @@ impl Host {
                 copy_fetch_runs(&list, &buffer, pieces.iter().map(|(shadow, lo, hi, at)| (&shadow.buffer, *lo, *hi, *at)));
                 list.Close()?;
                 let lists = [Some(list.cast::<ID3D12CommandList>()?)];
+                if let Some(copy) = &copy {
+                    copy.ExecuteCommandLists(&lists);
+                    copy.Signal(&fence, sent)?;
+                    fence.SetEventOnCompletion(sent, event)?;
+                    WaitForSingleObject(event, INFINITE);
+                    return Ok(known);
+                }
                 // In the order of the queue: the sends of title bytes so
                 // far are ahead of this fetch, every later one behind it.
                 let order = QUEUE_ORDER.lock().unwrap_or_else(|e| e.into_inner());
