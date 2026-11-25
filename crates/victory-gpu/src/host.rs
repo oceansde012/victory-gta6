@@ -1697,6 +1697,55 @@ fn take_chunk(host: &Host, size: u64) -> Option<Chunk> {
     })
 }
 
+/// Whether lists' upload buffers ([`HostList::upload`]) are kept for the
+/// next list when a list is done with them, by size class, instead of
+/// freed. One buffer was made and freed per copy: 155,286 upload buffers
+/// (61.7 GB) in run-auto-20, and the driver kept 242 blocks of 32 MB
+/// (5.4 GB) of write-combined memory for them. `VICTORY_UPLOAD_POOL=0`:
+/// one buffer per copy, as before.
+fn upload_pool() -> bool {
+    static ON: OnceLock<bool> = OnceLock::new();
+    *ON.get_or_init(|| std::env::var_os("VICTORY_UPLOAD_POOL").is_none_or(|v| v != "0"))
+}
+
+/// Upload buffers no list holds, by size class.
+static UPLOAD_SPARE: Mutex<Spare<Pooled>> = Mutex::new(Spare::new());
+/// The most bytes of upload buffers kept while no list holds them.
+const UPLOAD_SPARE_MOST: u64 = 256 << 20;
+/// Bigger asks get a buffer of their own, freed with the list.
+const UPLOAD_POOLED_MOST: u64 = 32 << 20;
+
+/// A mapped upload buffer that goes back to [`UPLOAD_SPARE`].
+struct Pooled {
+    buffer: ID3D12Resource,
+    data: usize,
+}
+
+/// The size class an upload of `size` bytes takes from the pool, if any:
+/// the next power of two, at least 64 KiB.
+fn upload_class(size: u64) -> Option<u64> {
+    (upload_pool() && size <= UPLOAD_POOLED_MOST).then(|| size.max(64 << 10).next_power_of_two())
+}
+
+/// A list is done with `buffers`: kept for the next list, or freed past
+/// [`UPLOAD_SPARE_MOST`].
+fn give_uploads(buffers: Vec<(Pooled, u64)>) {
+    if buffers.is_empty() {
+        return;
+    }
+    let mut freed = Vec::new();
+    {
+        let mut spare = UPLOAD_SPARE.lock().unwrap_or_else(|e| e.into_inner());
+        for (buffer, size) in buffers {
+            if let Some(back) = spare.give(buffer, size, UPLOAD_SPARE_MOST) {
+                freed.push(back);
+            }
+        }
+    }
+    // Freed outside the lock.
+    drop(freed);
+}
+
 /// A list is done with `chunks` (it was reset after its submissions ran,
 /// or dropped): kept for the next list, or freed past [`SPARE_MOST`] and
 /// without the pool.
@@ -1918,8 +1967,12 @@ struct Deferred {
     /// First of the contiguous fills at the end of `copies`.
     fill_start: usize,
     uploads: Vec<ID3D12Resource>,
-    /// The bytes of `uploads` (counted in [`ALIVE`] while they are held).
+    /// The bytes of `uploads` and `pooled` (counted in [`ALIVE`] while they
+    /// are held).
     upload_bytes: u64,
+    /// Upload buffers from [`UPLOAD_SPARE`] and their size class, given
+    /// back when the list is done.
+    pooled: Vec<(Pooled, u64)>,
     /// Host objects the list's commands name (pipelines, root signatures,
     /// descriptor heaps): the title may release its objects before it
     /// submits the list.
@@ -1991,12 +2044,22 @@ impl Deferred {
         self.upload_bytes += size;
         self.uploads.push(buffer);
     }
+
+    /// Holds `buffer` (of size class `size`) until the list is reset, then
+    /// gives it back to [`UPLOAD_SPARE`].
+    fn hold_pooled(&mut self, buffer: Pooled, size: u64) {
+        ALIVE[6].fetch_add(1, Ordering::Relaxed);
+        ALIVE[7].fetch_add(size, Ordering::Relaxed);
+        self.upload_bytes += size;
+        self.pooled.push((buffer, size));
+    }
 }
 
 impl Drop for Deferred {
     fn drop(&mut self) {
-        ALIVE[6].fetch_sub(self.uploads.len() as u64, Ordering::Relaxed);
+        ALIVE[6].fetch_sub((self.uploads.len() + self.pooled.len()) as u64, Ordering::Relaxed);
         ALIVE[7].fetch_sub(self.upload_bytes, Ordering::Relaxed);
+        give_uploads(std::mem::take(&mut self.pooled));
     }
 }
 
@@ -5783,6 +5846,7 @@ impl HostList {
             let deferred = self.deferred();
             if !(deferred.copies.is_empty()
                 && deferred.uploads.is_empty()
+                && deferred.pooled.is_empty()
                 && deferred.kept.is_empty()
                 && deferred.textures.is_empty()
                 && deferred.writes.is_empty()
@@ -5889,11 +5953,24 @@ impl HostList {
         self.deferred().writes.push((dst as usize, what, bytes));
     }
 
-    /// A mapped upload buffer of `size` bytes, alive until the list is
-    /// reset.
-    ///
-    /// shortcut: one buffer per copy; pool them once uploads are frequent.
+    /// A mapped upload buffer of at least `size` bytes, alive until the
+    /// list is reset: one kept from an earlier list ([`upload_pool`]) or a
+    /// new one. What it held before is still there.
     pub(crate) fn upload(&self, host: &Host, size: u64) -> Option<(ID3D12Resource, *mut u8)> {
+        if let Some(class) = upload_class(size) {
+            let kept = UPLOAD_SPARE.lock().unwrap_or_else(|e| e.into_inner()).take(class);
+            let pooled = match kept {
+                Some(pooled) => pooled,
+                None => {
+                    let (buffer, data) = host.upload_buffer(class)?;
+                    name(&buffer, || format!("list upload {class:#x} (pooled)"));
+                    Pooled { buffer, data: data as usize }
+                }
+            };
+            let out = (pooled.buffer.clone(), pooled.data as *mut u8);
+            self.deferred().hold_pooled(pooled, class);
+            return Some(out);
+        }
         let (buffer, data) = host.upload_buffer(size)?;
         name(&buffer, || format!("list upload {size:#x}"));
         self.deferred().hold_upload(buffer.clone(), size);
