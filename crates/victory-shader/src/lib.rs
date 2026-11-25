@@ -6,6 +6,10 @@
 //! (compiler options) and the zlib-compressed GFX10 code. The bitcode may use
 //! console-only intrinsics, so the GFX10 code is translated in general.
 
+/// What the translator is built from (`build.rs`), in 16 hex digits: the
+/// host pipeline library is kept per translation (Marvisak/VIctory #2706).
+pub const SOURCE_HASH: &str = env!("VICTORY_SHADER_SOURCE_HASH");
+
 pub mod bvh;
 pub mod dxbc;
 pub mod dxil;
