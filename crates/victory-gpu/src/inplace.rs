@@ -50,14 +50,17 @@ use windows::core::{Interface, s};
 use windows_sys::Win32::System::Memory as mem;
 
 /// The unit heaps and placed buffers are cut on, and the console's page.
-const K64: usize = 64 << 10;
+pub(crate) const K64: usize = 64 << 10;
 /// The host's write watching (not in windows-sys' memory module).
-const MEM_WRITE_WATCH: u32 = 0x20_0000;
+pub(crate) const MEM_WRITE_WATCH: u32 = 0x20_0000;
 
 /// `VICTORY_INPLACE_PROBE`: 0 (unset) nothing; 1 the probe on memory of
-/// its own at the first sweep, and the census 30 and 150 seconds later;
-/// 2 also opens one part of the title's own memory for a moment at the
-/// first census.
+/// its own at the first sweep (with Stage 0's small probes, P2-P6 and R9,
+/// `crate::inplace_probes`, on a thread of its own), and the census 30 and
+/// 150 seconds later; 2 also opens one part of the title's own memory for
+/// a moment at the first census; 3 also runs the probes that lock or
+/// commit gigabytes for a moment (P1, P2's 4 GiB, P7). The same probes
+/// without the title: `victory inplace-probe`.
 pub(crate) fn probe_level() -> u8 {
     static LEVEL: std::sync::OnceLock<u8> = std::sync::OnceLock::new();
     *LEVEL.get_or_init(|| std::env::var("VICTORY_INPLACE_PROBE").ok().and_then(|v| v.trim().parse().ok()).unwrap_or(0))
@@ -67,7 +70,16 @@ pub(crate) fn probe_level() -> u8 {
 /// buffers that lies in private memory committed whole is not copied: a
 /// part of the title's allocation is opened as a host heap and the window
 /// is a buffer placed over it ([`place_for`]). 2: title buffers too,
-/// except the big ones in the card's memory.
+/// except the big ones in the card's memory. 3: as 2, but each is a view
+/// into a shared arena (`crate::arena`: one heap per region of private
+/// memory the runtime reported committed, parts of at most 4 GiB - 64 KiB
+/// every 2 GiB; and one per committed section of physical pages, for view
+/// memory that is one run of a section), not a heap of its own; the
+/// budget is the arenas' bytes ([`crate::arena::most`]). 4: as 3, and the
+/// big title buffers that got a copy in the card's memory are residents
+/// where their memory lies in an arena (`crate::resident`: a buffer in the
+/// card's memory fed from the arena and merged back into it by the card,
+/// with no copying, hashing or copy-back on the CPU).
 ///
 /// What stage 1 covers is private memory (`XMemVirtualAlloc`'s). View
 /// memory (the page pool) is turned down here: its section is made
@@ -75,10 +87,16 @@ pub(crate) fn probe_level() -> u8 {
 /// the title maps pages.
 ///
 /// What it assumes, for 2: nothing reads title memory that a submission
-/// not yet run writes through such a buffer. With every submission waited
-/// for (the default) that holds; with `VICTORY_LATE_WAIT` it does not,
-/// since the flights' rules know shader writes only by the ranges copies
-/// declare. Do not combine 2 with late wait.
+/// not yet run writes through such a buffer, except what the flights'
+/// rules hold back. Shader writes in place are declared as for copies
+/// (`Shadow::gpu_writes`; `host::in_place_writes` puts them in the flights'
+/// `written`), so late wait and the relay hold back a CPU read of them (a
+/// title buffer copy, a fill, a texture, a step of ours, a value wait)
+/// until the flight has run, exactly as for a copy's declared ranges. That
+/// makes 2 with `VICTORY_LATE_WAIT`/`VICTORY_RELAY` as safe as copies are:
+/// the same assumption (shaders write only what is declared) and the same
+/// shortcut (another host copy of the same bytes is not told). Before, the
+/// writes were not declared and the two were not to be combined.
 ///
 /// shortcut: while a window is in place the title cannot decommit, free
 /// or protect its pages (the call fails with error 87; the probe shows
@@ -98,6 +116,42 @@ fn most() -> u64 {
     *MOST.get_or_init(|| std::env::var("VICTORY_INPLACE_MB").ok().and_then(|v| v.trim().parse::<u64>().ok()).unwrap_or(4096) << 20)
 }
 
+/// Title buffers smaller than this many bytes are not put in place: they
+/// stay copies, as without `VICTORY_INPLACE` (`VICTORY_INPLACE_MIN_KB`,
+/// 1024 by default; 0: no floor). Windows are not affected.
+///
+/// Shaders reach memory in place across the bus. Three compute passes that
+/// run once a frame went 1-6 ms -> 19-67 ms of card time with the tiny
+/// buffers they write with atomics (52 B, 480 B, 56 KB) in place; kept as
+/// copies, title lists took 100-129 ms of card time a frame against
+/// 222-244 ms, and the frame 234.6 ms against 495 ms (the control: 240 ms).
+/// Such buffers are 42 MB in all: copying them costs little.
+pub(crate) fn min_bytes() -> u64 {
+    static MIN: std::sync::OnceLock<u64> = std::sync::OnceLock::new();
+    *MIN.get_or_init(|| min_from(std::env::var("VICTORY_INPLACE_MIN_KB").ok().as_deref()))
+}
+
+/// The floor in bytes for a `VICTORY_INPLACE_MIN_KB` setting in KiB.
+fn min_from(kb: Option<&str>) -> u64 {
+    kb.and_then(|v| v.trim().parse::<u64>().ok()).unwrap_or(1024).saturating_mul(1 << 10)
+}
+
+#[cfg(test)]
+mod min_tests {
+    use super::min_from;
+
+    #[test]
+    fn floor_defaults_to_one_mib_and_zero_turns_it_off() {
+        assert_eq!(min_from(None), 1 << 20);
+        assert_eq!(min_from(Some("0")), 0);
+        assert_eq!(min_from(Some(" 64 ")), 64 << 10);
+        assert_eq!(min_from(Some("nonsense")), 1 << 20);
+    }
+}
+
+/// Title buffers kept as copies by [`min_bytes`], since the start: count, bytes.
+pub(crate) static BELOW_MIN: [AtomicU64; 2] = [const { AtomicU64::new(0) }; 2];
+
 /// In place now: windows and their bytes, title buffers and their bytes;
 /// then, since the start: asks turned down because the memory is a view
 /// or not private memory committed whole, because the host refused,
@@ -107,11 +161,14 @@ static STATS: [AtomicU64; 8] = [const { AtomicU64::new(0) }; 8];
 /// A buffer placed over title memory, and its heap.
 pub(crate) struct Placed {
     pub(crate) buffer: ID3D12Resource,
-    pub(crate) heap: ID3D12Heap,
+    pub(crate) heap: crate::arena::Heap,
     /// The host GPU address of the title memory's first byte.
     pub(crate) gpu: u64,
     /// Bytes from the buffer's first byte to the title memory's first.
     pub(crate) bias: u64,
+    /// View memory in a section's arena: the section (`bias` is then the
+    /// title memory's offset in it).
+    pub(crate) section: Option<usize>,
 }
 
 /// Opens the 64 KiB pages that hold title memory `[start, start + len)`
@@ -128,7 +185,7 @@ pub(crate) fn place_part(device: &ID3D12Device, start: u64, len: u64) -> Result<
     let buffer = place(device, &heap, 0, bytes).map_err(Some)?;
     // SAFETY: a live buffer.
     let gpu = unsafe { buffer.GetGPUVirtualAddress() } + (start - at);
-    Ok(Placed { buffer, heap, gpu, bias: start - at })
+    Ok(Placed { buffer, heap: heap.into(), gpu, bias: start - at, section: None })
 }
 
 /// Title memory `[start, start + len)` in place, for a window outside
@@ -137,6 +194,19 @@ pub(crate) fn place_part(device: &ID3D12Device, start: u64, len: u64) -> Result<
 pub(crate) fn place_for(start: u64, len: u64, window: bool) -> Option<Placed> {
     if level() < if window { 1 } else { 2 } {
         return None;
+    }
+    if level() >= 3 {
+        // A view into the arena that holds it (`crate::arena`): private
+        // memory the runtime reported committed, or a run of a committed
+        // section; no heap of its own.
+        let Some(r) = crate::arena::resolve(start, len).filter(|r| r.left >= len) else {
+            STATS[4].fetch_add(1, Ordering::Relaxed);
+            return None;
+        };
+        let kind = if r.kind == crate::arena::Kind::Section { 5 } else { 4 };
+        crate::arena::ARENA_STATS[kind].fetch_add(len, Ordering::Relaxed);
+        counted(window, len);
+        return Some(Placed { buffer: r.resource, heap: r.heap, gpu: r.gpu, bias: r.offset, section: r.section });
     }
     // View memory: known from the runtime without asking Windows.
     if cover(start as usize, len as usize) != Cover::None {
@@ -150,9 +220,7 @@ pub(crate) fn place_for(start: u64, len: u64, window: bool) -> Option<Placed> {
     let host = crate::host::host()?;
     match place_part(&host.device, start, len) {
         Ok(placed) => {
-            let at = if window { 0 } else { 2 };
-            STATS[at].fetch_add(1, Ordering::Relaxed);
-            STATS[at + 1].fetch_add(len, Ordering::Relaxed);
+            counted(window, len);
             Some(placed)
         }
         Err(None) => {
@@ -166,6 +234,23 @@ pub(crate) fn place_for(start: u64, len: u64, window: bool) -> Option<Placed> {
             None
         }
     }
+}
+
+/// Things in place let go because their memory changed, counted.
+pub(crate) fn let_go_counted(n: u64) {
+    STATS[7].fetch_add(n, Ordering::Relaxed);
+}
+
+/// The bytes of a section the runtime made committed, if it did.
+pub(crate) fn section_bytes(section: usize) -> Option<u64> {
+    views().sections.iter().find(|s| s.0 == section && s.2).map(|s| s.1)
+}
+
+/// What is in place now counts one more (undone by [`gone`]).
+pub(crate) fn counted(window: bool, bytes: u64) {
+    let at = if window { 0 } else { 2 };
+    STATS[at].fetch_add(1, Ordering::Relaxed);
+    STATS[at + 1].fetch_add(bytes, Ordering::Relaxed);
 }
 
 /// What [`place_for`] gave is gone.
@@ -185,8 +270,14 @@ pub fn title_memory_freeing(at: usize, len: usize) {
     if STATS[0].load(Ordering::Relaxed) + STATS[2].load(Ordering::Relaxed) == 0 {
         return;
     }
-    let gone = crate::shadow::in_place_let_go(at as u64, len as u64);
+    let gone = crate::shadow::in_place_let_go(at as u64, len as u64, true);
     STATS[7].fetch_add(gone, Ordering::Relaxed);
+}
+
+/// Whether `[at, at + len)` is still one run of `section` from `offset`
+/// (a window in place there stays good across the title's remapping).
+pub(crate) fn still_run(at: u64, len: u64, section: usize, offset: u64) -> bool {
+    cover(at as usize, len.max(1) as usize) == Cover::Run(section, offset)
 }
 
 /// The line of what is in place, every ten seconds while [`level`] is on.
@@ -198,6 +289,27 @@ fn say() {
         return;
     }
     let s: Vec<u64> = STATS.iter().map(|s| s.load(Ordering::Relaxed)).collect();
+    if level() >= 3 {
+        let (parts, sections, locked) = crate::arena::census();
+        let a: Vec<u64> = crate::arena::ARENA_STATS.iter().map(|s| s.load(Ordering::Relaxed)).collect();
+        tracing::info!(
+            "title memory in place, arenas: {parts} parts of private memory and {sections} sections open, {:.2} GiB locked (budget {:.1} GiB); \
+             since the start {} opened ({} MB), {} refused, {} retired, {} ranges resolved; buffers and windows placed in them: {} MB of private memory, {} MB of view memory; turned down: {}; \
+             remapped under a placement in a section: {} kept (still the same run), {} let go and placed again",
+            locked as f64 / f64::from(1u32 << 30),
+            crate::arena::most() as f64 / f64::from(1u32 << 30),
+            a[0],
+            a[3] >> 20,
+            a[1],
+            a[2],
+            a[6],
+            a[4] >> 20,
+            a[5] >> 20,
+            crate::arena::turned_down(),
+            crate::shadow::REMAPS[0].load(Ordering::Relaxed),
+            crate::shadow::REMAPS[1].load(Ordering::Relaxed)
+        );
+    }
     tracing::info!(
         "title memory in place: {} windows {} MB, {} title buffers {} MB (no copy, no refresh, no copy-back); turned down: {} view memory or not private memory committed whole, \
          {} refused by the host, {} over VICTORY_INPLACE_MB; {} let go because their memory changed",
@@ -218,12 +330,31 @@ pub(crate) enum From {
     Region(usize),
     /// A committed part of one: address and bytes.
     Part(usize, usize),
-    /// A section made with `SEC_COMMIT`, by its handle.
+    /// A section made with `SEC_COMMIT`, by its handle. Refused unless
+    /// `VICTORY_ALLOW_SECTION_HEAPS=1` ([`section_heaps_allowed`]).
     Section(usize),
+}
+
+/// Whether a heap may be opened on a section by its handle
+/// (`OpenExistingHeapFromFileMapping`): only with
+/// `VICTORY_ALLOW_SECTION_HEAPS=1`. A section opened so keeps its commit
+/// until the PC restarts, however the heap and the section are let go, on
+/// the card and on the software adapter alike
+/// (`tests::section_heap_commit_comes_back`); a view of it opened by its
+/// address does not ([`From::Part`], what the arenas do).
+pub(crate) fn section_heaps_allowed() -> bool {
+    static ON: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *ON.get_or_init(|| std::env::var_os("VICTORY_ALLOW_SECTION_HEAPS").is_some_and(|v| v == "1"))
 }
 
 /// Opens a heap on memory the process has.
 pub(crate) fn open(device: &ID3D12Device, from: From) -> windows::core::Result<ID3D12Heap> {
+    if matches!(from, From::Section(_)) && !section_heaps_allowed() {
+        return Err(windows::core::Error::new(
+            windows::Win32::Foundation::E_ACCESSDENIED,
+            "not opened: a section opened as a heap by its handle keeps its commit until the PC restarts (VICTORY_ALLOW_SECTION_HEAPS=1 to try)",
+        ));
+    }
     // SAFETY: the calls take an address or a handle and check both
     // themselves; a refusal is an error code.
     unsafe {
@@ -235,7 +366,7 @@ pub(crate) fn open(device: &ID3D12Device, from: From) -> windows::core::Result<I
     }
 }
 
-fn buffer_desc(size: u64, flags: D3D12_RESOURCE_FLAGS) -> D3D12_RESOURCE_DESC {
+pub(crate) fn buffer_desc(size: u64, flags: D3D12_RESOURCE_FLAGS) -> D3D12_RESOURCE_DESC {
     D3D12_RESOURCE_DESC {
         Dimension: D3D12_RESOURCE_DIMENSION_BUFFER,
         Width: size.max(1),
@@ -432,6 +563,34 @@ fn cover_in(views: &BTreeMap<usize, (usize, usize, u64)>, at: usize, len: usize)
     if one { Cover::Run(first.0, first.1) } else { Cover::Scattered }
 }
 
+/// Where the run of one section that holds `at` ends, at most at
+/// `most`: views that continue each other in the section are one run.
+/// `None` if no view holds `at`.
+fn run_end_in(views: &BTreeMap<usize, (usize, usize, u64)>, at: usize, most: usize) -> Option<usize> {
+    let (&base, &(bytes, section, offset)) = views.range(..=at).next_back().filter(|(base, view)| *base + view.0 > at)?;
+    let mut reached = base + bytes;
+    while reached < most {
+        match views.get(&reached) {
+            Some(&(n, s, o)) if s == section && o == offset + (reached - base) as u64 => reached += n,
+            _ => break,
+        }
+    }
+    Some(reached.min(most))
+}
+
+/// For a window outside buffers over view memory (`VICTORY_INPLACE=3`):
+/// the range `[start, start + len)` of whole 64 KiB pages around the ask
+/// `[at, end)` that is one run of one section, if the ask lies in one;
+/// for an ask without a length (it reads to the window's end), the run
+/// from the ask's page to where the run ends in its 4 MiB cell.
+pub(crate) fn run_window(at: u64, end: u64, unsized_ask: bool) -> Option<(u64, u64)> {
+    const CELL: u64 = 4 << 20;
+    let start = at & !(K64 as u64 - 1);
+    let most = if unsized_ask { (at & !(CELL - 1)) + CELL } else { end.next_multiple_of(K64 as u64) };
+    let reached = run_end_in(&views().views, start as usize, most as usize)? as u64;
+    (reached >= end.max(at + 1)).then_some((start, reached - start))
+}
+
 /// [`Cover`] of `[at, at + len)` by the title's views as they are now.
 pub(crate) fn cover(at: usize, len: usize) -> Cover {
     cover_in(&views().views, at, len)
@@ -454,7 +613,7 @@ pub(crate) fn private_whole(at: usize, len: usize) -> bool {
         && (info.BaseAddress as usize).saturating_add(info.RegionSize) >= at.saturating_add(len)
 }
 
-fn hr<T>(result: &windows::core::Result<T>) -> String {
+pub(crate) fn hr<T>(result: &windows::core::Result<T>) -> String {
     match result {
         Ok(_) => "ok".to_owned(),
         Err(e) => format!("REFUSED {:#010x} ({})", e.code().0, e.message().trim()),
@@ -463,9 +622,9 @@ fn hr<T>(result: &windows::core::Result<T>) -> String {
 
 /// A queue, a list and a fence of the probe's own on `device`: nothing of
 /// the host's submissions is touched.
-struct Rig {
-    device: ID3D12Device,
-    queue: ID3D12CommandQueue,
+pub(crate) struct Rig {
+    pub(crate) device: ID3D12Device,
+    pub(crate) queue: ID3D12CommandQueue,
     allocator: ID3D12CommandAllocator,
     list: ID3D12GraphicsCommandList,
     fence: ID3D12Fence,
@@ -483,7 +642,14 @@ impl Drop for Rig {
 }
 
 impl Rig {
-    fn new(device: &ID3D12Device) -> windows::core::Result<Rig> {
+    /// Why the device was removed, if it was.
+    pub(crate) fn removed(&self) -> Option<String> {
+        // SAFETY: a plain query.
+        let reason = unsafe { self.device.GetDeviceRemovedReason() };
+        reason.err().map(|e| format!("{:#010x} {}", e.code().0, e.message().trim()))
+    }
+
+    pub(crate) fn new(device: &ID3D12Device) -> windows::core::Result<Rig> {
         // SAFETY: plain creation of objects of our own.
         unsafe {
             let queue: ID3D12CommandQueue =
@@ -498,7 +664,7 @@ impl Rig {
     }
 
     /// Records with `record`, runs it and waits (ten seconds at most).
-    fn run(&mut self, record: impl FnOnce(&ID3D12GraphicsCommandList)) -> windows::core::Result<()> {
+    pub(crate) fn run(&mut self, record: impl FnOnce(&ID3D12GraphicsCommandList)) -> windows::core::Result<()> {
         // SAFETY: our own list and queue, one run at a time.
         unsafe {
             self.allocator.Reset()?;
@@ -528,7 +694,7 @@ impl Rig {
     }
 
     /// What the GPU reads of `size` bytes of `resource` from `offset`.
-    fn fetch(&mut self, resource: &ID3D12Resource, offset: u64, size: usize) -> windows::core::Result<Vec<u8>> {
+    pub(crate) fn fetch(&mut self, resource: &ID3D12Resource, offset: u64, size: usize) -> windows::core::Result<Vec<u8>> {
         let back = self.committed(D3D12_HEAP_TYPE_READBACK, size as u64, D3D12_RESOURCE_STATE_COPY_DEST)?;
         // SAFETY: two live buffers, the range inside both.
         self.run(|list| unsafe { list.CopyBufferRegion(&back, 0, resource, offset, size as u64) })?;
@@ -543,7 +709,7 @@ impl Rig {
     }
 
     /// The GPU writes `bytes` at `offset` of `resource` (a copy).
-    fn store(&mut self, resource: &ID3D12Resource, offset: u64, bytes: &[u8]) -> windows::core::Result<()> {
+    pub(crate) fn store(&mut self, resource: &ID3D12Resource, offset: u64, bytes: &[u8]) -> windows::core::Result<()> {
         let up = self.committed(D3D12_HEAP_TYPE_UPLOAD, bytes.len() as u64, D3D12_RESOURCE_STATE_GENERIC_READ)?;
         let mut data = std::ptr::null_mut();
         // SAFETY: the mapping holds the buffer's bytes until unmapped.
@@ -558,7 +724,7 @@ impl Rig {
 
     /// A compute shader stores, through a root unordered-access view at
     /// `gpu`, the sum of the buffer's first two words in its third.
-    fn shade(&mut self, gpu: u64) -> windows::core::Result<()> {
+    pub(crate) fn shade(&mut self, gpu: u64) -> windows::core::Result<()> {
         const SOURCE: &str = "#define RS \"UAV(u0)\"\nRWByteAddressBuffer b : register(u0);\n[RootSignature(RS)]\n[numthreads(1, 1, 1)]\nvoid main() { b.Store(8, b.Load(0) + b.Load(4)); }\n";
         let mut code: Option<ID3DBlob> = None;
         // SAFETY: the source and names live through the call; then the
@@ -605,20 +771,20 @@ impl Rig {
     }
 }
 
-fn fill(at: *mut u8, len: usize, seed: u8) {
+pub(crate) fn fill(at: *mut u8, len: usize, seed: u8) {
     for i in 0..len {
         // SAFETY: the caller's own committed memory of `len` bytes.
         unsafe { at.add(i).write((i as u8).wrapping_mul(31).wrapping_add(seed)) };
     }
 }
 
-fn same(at: *const u8, bytes: &[u8]) -> bool {
+pub(crate) fn same(at: *const u8, bytes: &[u8]) -> bool {
     // SAFETY: the caller's own committed memory of that length.
     unsafe { std::slice::from_raw_parts(at, bytes.len()) == bytes }
 }
 
 /// The process's working set in MB.
-fn working_set_mb() -> u64 {
+pub(crate) fn working_set_mb() -> u64 {
     use windows_sys::Win32::System::ProcessStatus::{K32GetProcessMemoryInfo, PROCESS_MEMORY_COUNTERS};
     let mut counters = PROCESS_MEMORY_COUNTERS { cb: size_of::<PROCESS_MEMORY_COUNTERS>() as u32, ..Default::default() };
     // SAFETY: our own process and a sized structure.
@@ -653,7 +819,23 @@ pub(crate) struct Probe {
 /// gives the card's memory account (`Host::video_memory`) where there is
 /// one. Nothing of the title's is touched. `mb` is the size of the cost
 /// measurement (0 leaves it out).
+#[cfg(test)]
 pub(crate) fn probe(device: &ID3D12Device, memory: &dyn Fn() -> Option<[u64; 4]>, mb: usize) -> Probe {
+    probe_with(device, memory, mb, false, false)
+}
+
+/// [`probe`], then Stage 0's probes (`crate::inplace_probes`): with `big`
+/// also those that lock or commit gigabytes, with `tiles` the tile mapping
+/// that removes the device (only on a device of the probe's own).
+pub(crate) fn probe_with(device: &ID3D12Device, memory: &dyn Fn() -> Option<[u64; 4]>, mb: usize, big: bool, tiles: bool) -> Probe {
+    let mut p = probe_first(device, memory, mb);
+    if let Ok(mut rig) = Rig::new(device) {
+        crate::inplace_probes::stage0(&mut p.lines, &mut rig, big, tiles);
+    }
+    p
+}
+
+fn probe_first(device: &ID3D12Device, memory: &dyn Fn() -> Option<[u64; 4]>, mb: usize) -> Probe {
     let mut p = Probe::default();
     let mut rig = match Rig::new(device) {
         Ok(rig) => rig,
@@ -781,10 +963,16 @@ unsafe fn section(p: &mut Probe, rig: &mut Rig) {
         let invalid = windows_sys::Win32::Foundation::INVALID_HANDLE_VALUE;
         let reserved = mem::CreateFileMappingW(invalid, std::ptr::null(), mem::PAGE_READWRITE | mem::SEC_RESERVE, 0, SIZE as u32, std::ptr::null());
         if !reserved.is_null() {
-            let opened = open(&rig.device, From::Section(reserved as usize));
+            // As the arenas open a section: a view of all of it, by its
+            // address.
+            let whole = mem::MapViewOfFile(reserved, mem::FILE_MAP_WRITE, 0, 0, SIZE);
+            let opened = if whole.Value.is_null() { Err(windows::core::Error::from_thread()) } else { open(&rig.device, From::Part(whole.Value as usize, SIZE)) };
             p.reserved_section_refused = opened.is_err();
-            p.lines.push(format!("a section made reserved, as the page pool is today (OpenExistingHeapFromFileMapping): {}", hr(&opened)));
+            p.lines.push(format!("a section made reserved, as the page pool is without VICTORY_INPLACE_POOL (a view of it, by its address): {}", hr(&opened)));
             drop(opened);
+            if !whole.Value.is_null() {
+                mem::UnmapViewOfFile(whole);
+            }
             windows_sys::Win32::Foundation::CloseHandle(reserved);
         }
         let handle = mem::CreateFileMappingW(invalid, std::ptr::null(), mem::PAGE_READWRITE | mem::SEC_COMMIT, 0, SIZE as u32, std::ptr::null());
@@ -796,8 +984,11 @@ unsafe fn section(p: &mut Probe, rig: &mut Rig) {
         // Pages 4..12 of the section at the placeholder's start.
         mem::VirtualFree(hole.cast(), 8 * K64, mem::MEM_RELEASE | mem::MEM_PRESERVE_PLACEHOLDER);
         let view = mem::MapViewOfFile3(handle, process, hole.cast(), (4 * K64) as u64, 8 * K64, mem::MEM_REPLACE_PLACEHOLDER, mem::PAGE_READWRITE, std::ptr::null_mut(), 0);
-        let opened = open(&rig.device, From::Section(handle as usize));
-        p.lines.push(format!("a section made committed (OpenExistingHeapFromFileMapping): {}", hr(&opened)));
+        // As the arenas open a section: a view of all of it of their own, by
+        // its address; the title's view below shows the same pages.
+        let whole = mem::MapViewOfFile(handle, mem::FILE_MAP_WRITE, 0, 0, SIZE);
+        let opened = if whole.Value.is_null() { Err(windows::core::Error::from_thread()) } else { open(&rig.device, From::Part(whole.Value as usize, SIZE)) };
+        p.lines.push(format!("a section made committed (a view of all of it, by its address): {}", hr(&opened)));
         let mut unmapped = false;
         if let (Ok(heap), false) = (&opened, view.Value.is_null()) {
             p.lines.push(format!("  {}", describe(heap)));
@@ -834,6 +1025,9 @@ unsafe fn section(p: &mut Probe, rig: &mut Rig) {
         drop(opened);
         if !unmapped && !view.Value.is_null() {
             mem::UnmapViewOfFile2(process, view, mem::MEM_PRESERVE_PLACEHOLDER);
+        }
+        if !whole.Value.is_null() {
+            mem::UnmapViewOfFile(whole);
         }
         windows_sys::Win32::Foundation::CloseHandle(handle);
         // The placeholder was split in two: each half is released.
@@ -1078,12 +1272,18 @@ pub(crate) fn tick() {
                 return;
             };
             let mb = std::env::var("VICTORY_INPLACE_PROBE_MB").ok().and_then(|v| v.trim().parse().ok()).unwrap_or(64usize);
-            let took = std::time::Instant::now();
-            let probe = probe(&host.device, &|| host.video_memory(), mb.min(1024));
-            for line in &probe.lines {
-                tracing::info!("in place probe: {line}");
-            }
-            tracing::info!("in place probe: took {:.0} ms", took.elapsed().as_secs_f64() * 1000.0);
+            // On a thread of its own (a queue of its own too): Stage 0's
+            // probes take seconds; with level 3 they also lock and commit
+            // gigabytes for a moment (P1, P2's 4 GiB, P7).
+            let device = host.device.clone();
+            let _ = std::thread::Builder::new().name("victory-inplace-probe".into()).spawn(move || {
+                let took = std::time::Instant::now();
+                let probe = probe_with(&device, &|| host.video_memory(), mb.min(1024), probe_level() >= 3, false);
+                for line in &probe.lines {
+                    tracing::info!("in place probe: {line}");
+                }
+                tracing::info!("in place probe: took {:.0} ms", took.elapsed().as_secs_f64() * 1000.0);
+            });
             now
         }
         Err(started) => started,
@@ -1110,7 +1310,7 @@ pub(crate) fn tick() {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
 
     /// Views as the runtime tells them: a range inside one view, or over
@@ -1133,6 +1333,36 @@ mod tests {
         assert_eq!(cover_in(&views, at + 6 * K64, 3 * K64), Cover::Holes);
         assert_eq!(cover_in(&views, at + 7 * K64, K64), Cover::None);
         assert_eq!(cover_in(&views, at - K64, 2 * K64), Cover::None);
+    }
+
+    /// A window over view memory with arenas is the run of one section
+    /// around the ask: as far as the views continue each other, within the
+    /// ask (with a length) or the ask's 4 MiB cell (without).
+    #[test]
+    fn a_window_over_views_is_the_run_around_the_ask() {
+        let mut views = BTreeMap::new();
+        let at = 0x7_c000_0000usize;
+        // Pages 0..3 continue each other in section 4; page 3 is from
+        // elsewhere; page 5 is unmapped.
+        for k in 0..3 {
+            views.insert(at + k * K64, (K64, 4, ((10 + k) * K64) as u64));
+        }
+        views.insert(at + 3 * K64, (K64, 4, 2 * K64 as u64));
+        views.insert(at + 4 * K64, (K64, 4, 3 * K64 as u64));
+        assert_eq!(run_end_in(&views, at, at + (4 << 20)), Some(at + 3 * K64));
+        assert_eq!(run_end_in(&views, at + 3 * K64, at + (4 << 20)), Some(at + 5 * K64));
+        assert_eq!(run_end_in(&views, at + K64, at + 2 * K64), Some(at + 2 * K64), "at most what is asked");
+        assert_eq!(run_end_in(&views, at + 5 * K64, at + (4 << 20)), None);
+        let base = 0x7_d000_0000usize;
+        for k in 0..3 {
+            title_memory_view(base + k * K64, K64, 4, ((10 + k) * K64) as u64);
+        }
+        let b = base as u64;
+        assert_eq!(run_window(b + 0x10, b + 0x20, false), Some((b, K64 as u64)));
+        assert_eq!(run_window(b + 0x10, b + K64 as u64 + 0x20, false), Some((b, 2 * K64 as u64)));
+        assert_eq!(run_window(b + K64 as u64 + 8, 0, true), Some((b + K64 as u64, 2 * K64 as u64)), "to the run's end");
+        assert_eq!(run_window(b + 0x10, b + 4 * K64 as u64, false), None, "past the run");
+        views_gone(base, 3 * K64);
     }
 
     /// What the runtime forgets when memory is mapped anew.
@@ -1205,8 +1435,223 @@ mod tests {
         assert!(probe.part_reads, "the GPU reads private memory in place");
         assert!(probe.part_writes, "GPU writes land in private memory");
         assert!(probe.section_reads && probe.section_writes, "a committed section in place");
-        assert!(probe.section_outlives_views, "the section's heap does not depend on views");
+        assert!(probe.section_outlives_views, "the section's heap does not depend on the title's views");
         assert!(probe.reserved_section_refused, "a reserved section is refused");
+    }
+
+    /// Stage 0's small probes on the software adapter: every one gives its
+    /// line and none removes the device.
+    #[test]
+    fn warp_stage0_probes_give_their_lines() {
+        let Some(device) = warp() else { return };
+        if device.cast::<ID3D12Device13>().is_err() {
+            return;
+        }
+        let mut rig = Rig::new(&device).unwrap();
+        let mut lines = Vec::new();
+        crate::inplace_probes::stage0(&mut lines, &mut rig, false, false);
+        for line in &lines {
+            eprintln!("in place probe: {line}");
+        }
+        let text = lines.join("\n");
+        for name in ["P1 GPU virtual", "P2 private", "P3 private part", "P3 committed section", "P4 ", "P5 512", "P5 two", "P6 vertex", "P6 root", "P6 ExecuteIndirect", "P6 CopyTextureRegion", "P6 ResolveQueryData", "R9 "] {
+            assert!(text.contains(name), "no line {name}: {text}");
+        }
+        assert!(!text.contains("REMOVED"), "{text}");
+        assert!(text.contains("InterlockedOr true, InterlockedAnd true"), "{text}");
+    }
+
+    /// All of Stage 0 on this PC's card (`cargo test -p victory-gpu --
+    /// --ignored probe_on_hardware --nocapture`); `victory inplace-probe`
+    /// is the same with a choice of what runs.
+    #[test]
+    #[ignore = "locks and commits gigabytes on the card's device"]
+    fn probe_on_hardware() {
+        for line in crate::inplace_probes::run_alone(1024, true, false, false) {
+            eprintln!("in place probe: {line}");
+        }
+    }
+
+    /// The system's shared commit (pagefile-backed sections), in MB.
+    pub(crate) fn shared_commit_mb() -> u64 {
+        #[link(name = "ntdll")]
+        unsafe extern "system" {
+            fn NtQuerySystemInformation(class: u32, info: *mut u8, len: u32, returned: *mut u32) -> i32;
+        }
+        let mut buf = [0u8; 512];
+        let mut returned = 0;
+        // SAFETY: SystemPerformanceInformation into a buffer big enough.
+        let status = unsafe { NtQuerySystemInformation(2, buf.as_mut_ptr(), buf.len() as u32, &mut returned) };
+        assert_eq!(status, 0, "NtQuerySystemInformation");
+        // SharedCommittedPages, in pages of 4 KiB.
+        (u64::from(u32::from_le_bytes(buf[336..340].try_into().unwrap())) * 4096) >> 20
+    }
+
+    fn card() -> ID3D12Device {
+        use windows::Win32::Graphics::Direct3D::D3D_FEATURE_LEVEL_12_0;
+        use windows::Win32::Graphics::Dxgi::*;
+        // SAFETY: plain DXGI queries and device creation.
+        unsafe {
+            let factory: IDXGIFactory6 = CreateDXGIFactory2(DXGI_CREATE_FACTORY_FLAGS(0)).unwrap();
+            let adapter: IDXGIAdapter1 = factory.EnumAdapterByGpuPreference(0, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE).unwrap();
+            let mut device: Option<ID3D12Device> = None;
+            D3D12CreateDevice(&adapter, D3D_FEATURE_LEVEL_12_0, &mut device).unwrap();
+            device.unwrap()
+        }
+    }
+
+    const LEAK_MB: usize = 256;
+
+    /// A committed section of [`LEAK_MB`] opened as a heap on the card, a
+    /// buffer placed over it and read by the card once.
+    fn section_heap(rig: &mut Rig) -> (HANDLE, ID3D12Heap, ID3D12Resource) {
+        let bytes = LEAK_MB << 20;
+        // SAFETY: plain section creation.
+        let handle = unsafe {
+            mem::CreateFileMappingW(windows_sys::Win32::Foundation::INVALID_HANDLE_VALUE, std::ptr::null(), mem::PAGE_READWRITE | mem::SEC_COMMIT, 0, bytes as u32, std::ptr::null())
+        };
+        assert!(!handle.is_null());
+        let heap = open(&rig.device, From::Section(handle as usize)).unwrap();
+        let buffer = place(&rig.device, &heap, 0, bytes as u64).unwrap();
+        rig.copy_ms(&buffer, bytes as u64).unwrap();
+        (HANDLE(handle), heap, buffer)
+    }
+
+    /// Whether the shared commit of a committed section opened as a heap on
+    /// the card comes back: released in the process, and in a child that is
+    /// killed holding it, killed after letting the heap go, or exits without
+    /// letting it go (`VICTORY_ALLOW_SECTION_HEAPS=1 cargo test -p
+    /// victory-gpu --release -- --ignored section_heap_commit_comes_back
+    /// --nocapture`); with `VICTORY_LEAK_VIEW=1`, a view of it opened by its
+    /// address instead. On the RTX 4090 (2026-11-24) every case by the
+    /// handle kept the 256 MB until a restart; the view kept none. A case
+    /// that leaks keeps [`LEAK_MB`] until the PC restarts.
+    #[test]
+    #[ignore = "may leak shared commit on the card's driver until a restart"]
+    fn section_heap_commit_comes_back() {
+        use std::io::BufRead;
+        if std::env::var_os("VICTORY_LEAK_VIEW").is_none() && !section_heaps_allowed() {
+            eprintln!("VICTORY_ALLOW_SECTION_HEAPS=1 to open sections by their handle on the card");
+            return;
+        }
+        if let Ok(mode) = std::env::var("VICTORY_LEAK_CHILD") {
+            let mut rig = Rig::new(&card()).unwrap();
+            let (handle, heap, buffer) = section_heap(&mut rig);
+            if mode == "release" {
+                drop((buffer, heap));
+                rig.run(|_| {}).unwrap();
+                println!("READY");
+            } else if mode == "exit" {
+                println!("READY");
+                std::process::exit(0);
+            } else {
+                println!("READY");
+                std::mem::forget((buffer, heap));
+            }
+            let _ = handle;
+            std::thread::sleep(std::time::Duration::from_secs(120));
+            return;
+        }
+        let settle = |before: u64| {
+            let mut now = shared_commit_mb();
+            for _ in 0..20 {
+                if now <= before + 32 {
+                    break;
+                }
+                std::thread::sleep(std::time::Duration::from_millis(500));
+                now = shared_commit_mb();
+            }
+            now
+        };
+        // A0, A1: opened only; opened and placed, the card never touching it.
+        let opens: &[bool] = if std::env::var_os("VICTORY_LEAK_VIEW").is_some() { &[] } else { &[false, true] };
+        for &place_it in opens {
+            let before = shared_commit_mb();
+            let rig = Rig::new(&card()).unwrap();
+            let bytes = LEAK_MB << 20;
+            // SAFETY: plain section creation.
+            let handle = unsafe {
+                mem::CreateFileMappingW(windows_sys::Win32::Foundation::INVALID_HANDLE_VALUE, std::ptr::null(), mem::PAGE_READWRITE | mem::SEC_COMMIT, 0, bytes as u32, std::ptr::null())
+            };
+            let heap = open(&rig.device, From::Section(handle as usize)).unwrap();
+            let buffer = place_it.then(|| place(&rig.device, &heap, 0, bytes as u64).unwrap());
+            drop((buffer, heap, rig));
+            // SAFETY: our handle.
+            unsafe { windows_sys::Win32::Foundation::CloseHandle(handle) };
+            let after = settle(before);
+            eprintln!("leak case A{} (opened{}, never used): shared commit {before} -> after {after} MB (leaked {} MB)", place_it as u8, if place_it { " and placed" } else { "" }, after as i64 - before as i64);
+        }
+        // V: a view of the section, opened by its address.
+        if std::env::var_os("VICTORY_LEAK_VIEW").is_some() {
+            let before = shared_commit_mb();
+            let mut rig = Rig::new(&card()).unwrap();
+            let bytes = LEAK_MB << 20;
+            // SAFETY: plain section creation and a view of all of it.
+            let (handle, view) = unsafe {
+                let handle = mem::CreateFileMappingW(windows_sys::Win32::Foundation::INVALID_HANDLE_VALUE, std::ptr::null(), mem::PAGE_READWRITE | mem::SEC_COMMIT, 0, bytes as u32, std::ptr::null());
+                (handle, mem::MapViewOfFile(handle, mem::FILE_MAP_WRITE, 0, 0, bytes))
+            };
+            fill(view.Value.cast(), 4096, 7);
+            let opened = open(&rig.device, From::Part(view.Value as usize, bytes));
+            let mut line = format!("open by address of a view: {}", hr(&opened));
+            if let Ok(heap) = &opened {
+                let buffer = place(&rig.device, heap, 0, bytes as u64).unwrap();
+                let seen = rig.fetch(&buffer, 0, 4096).unwrap();
+                line += &format!("; the card reads the view's bytes {}", same(view.Value.cast(), &seen));
+                rig.store(&buffer, 8192, &[0xAB; 64]).unwrap();
+                // SAFETY: inside the view.
+                line += &format!("; its write lands in the view {}", unsafe { *view.Value.cast::<u8>().add(8192 + 63) } == 0xAB);
+                drop(buffer);
+            }
+            drop((opened, rig));
+            // SAFETY: our view and handle.
+            unsafe {
+                mem::UnmapViewOfFile(view);
+                windows_sys::Win32::Foundation::CloseHandle(handle);
+            }
+            let after = settle(before);
+            eprintln!("leak case V ({line}): shared commit {before} -> after {after} MB (leaked {} MB)", after as i64 - before as i64);
+            return;
+        }
+        if std::env::var_os("VICTORY_LEAK_ONLY_OPEN").is_some() {
+            return;
+        }
+        // A: in the process, everything let go in order.
+        {
+            let before = shared_commit_mb();
+            let mut rig = Rig::new(&card()).unwrap();
+            let (handle, heap, buffer) = section_heap(&mut rig);
+            let held = shared_commit_mb();
+            drop((buffer, heap));
+            rig.run(|_| {}).unwrap();
+            // SAFETY: our handle.
+            unsafe { windows::Win32::Foundation::CloseHandle(handle).unwrap() };
+            drop(rig);
+            let after = settle(before);
+            eprintln!("leak case A (released in the process): shared commit {before} -> held {held} -> after {after} MB (leaked {} MB)", after as i64 - before as i64);
+        }
+        for mode in ["kill", "release", "exit"] {
+            let before = shared_commit_mb();
+            let mut child = std::process::Command::new(std::env::current_exe().unwrap())
+                .args(["--exact", "inplace::tests::section_heap_commit_comes_back", "--ignored", "--nocapture", "--test-threads=1"])
+                .env("VICTORY_LEAK_CHILD", mode)
+                .stdout(std::process::Stdio::piped())
+                .spawn()
+                .unwrap();
+            let out = std::io::BufReader::new(child.stdout.take().unwrap());
+            let ready = out.lines().map_while(Result::ok).any(|l| l.contains("READY"));
+            let held = shared_commit_mb();
+            if mode != "exit" {
+                child.kill().unwrap();
+            }
+            let status = child.wait().unwrap();
+            let after = settle(before);
+            eprintln!(
+                "leak case {mode} (child {}, {status}): shared commit {before} -> held {held} -> after {after} MB (leaked {} MB)",
+                if ready { "ready" } else { "NOT ready" },
+                after as i64 - before as i64
+            );
+        }
     }
 
     /// Stage 1's own call on the software adapter: a title buffer that

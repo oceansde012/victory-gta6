@@ -15,6 +15,8 @@ use crate::host::host;
 
 pub(crate) struct BufferRanges<T> {
     passes: u64,
+    /// [`crate::resident::generation`] at the last pass.
+    generation: u64,
     pub(crate) by_slot: std::collections::HashMap<u32, (T, u64, u64)>,
 }
 
@@ -33,6 +35,7 @@ impl<T> BufferViews<T> {
             changed: Mutex::default(),
             ranges: Mutex::new(BufferRanges {
                 passes: 0,
+                generation: 0,
                 by_slot: Default::default(),
             }),
         }
@@ -56,6 +59,13 @@ impl<T> BufferViews<T> {
         let changed = std::mem::take(&mut *self.changed.lock().unwrap_or_else(|e| e.into_inner()));
         // A view may go stale without a write. Revisit all slots in a
         // fresh heap and every 16 passes thereafter.
+        // After a buffer is retargeted (`crate::resident::retargeted`)
+        // all of them too: the copies kept may be ones no table hands out.
+        let now = crate::resident::generation();
+        if kept.generation != now {
+            kept.generation = now;
+            kept.passes = 0;
+        }
         let slots = if kept.passes.is_multiple_of(16) {
             kept.by_slot.clear();
             self.slots
@@ -89,6 +99,10 @@ pub(crate) struct HostHeap {
     /// records copied in as bytes last looked at it
     /// ([`HostHeap::mirror_copied`]; 0: never looked at). Made on first use.
     copied: Mutex<Vec<u64>>,
+    /// Per slot, `crate::resident::generation` when it was last looked at
+    /// for showing a buffer no table hands out any more (taken under
+    /// `made`'s lock).
+    checked: Mutex<Vec<u32>>,
     /// The host resource each slot views, held while the slot does: shaders
     /// index heaps directly, so a slot the title has not rewritten since it
     /// released the resource may still be read, and a freed host resource
@@ -1004,6 +1018,7 @@ impl HostHeap {
             sampler,
             made: Mutex::new(vec![0; count as usize]),
             copied: Mutex::new(Vec::new()),
+            checked: Mutex::new(vec![0; count as usize]),
             kept: Mutex::new(vec![None; (count + extra) as usize]),
             next: Mutex::new((0, vec![false; DYNAMIC as usize])),
             free: std::sync::atomic::AtomicU32::new(DYNAMIC),
@@ -1920,6 +1935,25 @@ impl HostHeap {
             }
             return None;
         };
+        // A buffer view whose slot shows a buffer no table hands out for
+        // its memory any more (a resident replaced by a bigger one, gone,
+        // or a window in place a resident took over): made again over the
+        // one handed out now. The title's record is the same, so nothing
+        // else would remake it, and shaders would read the old copy and
+        // write where nothing merges (Stage 2 latency plan, B1; open bug 2).
+        if for_draw && made[index as usize] == key && crate::resident::on() {
+            let now = crate::resident::generation() as u32;
+            let mut checked = self.checked.lock().unwrap_or_else(|e| e.into_inner());
+            if checked[index as usize] != now {
+                checked[index as usize] = now;
+                drop(checked);
+                let replaced = self.kept.lock().unwrap_or_else(|e| e.into_inner())[index as usize].as_ref().is_some_and(crate::resident::was_replaced);
+                if replaced {
+                    made[index as usize] = 0;
+                    crate::resident::slot_remade();
+                }
+            }
+        }
         if made[index as usize] != key {
             // Views of other textures in the memory this one describes
             // are stale: their host slots read nothing from here on, and
@@ -1978,9 +2012,8 @@ impl HostHeap {
     }
 
     /// Whether host slot `index` shows `buffer`; `None` if it shows no
-    /// resource (diagnostics: a buffer view's slot must show the host copy
-    /// that is brought up to date for it).
-    #[cfg(feature = "diagnostics")]
+    /// resource (a buffer view's slot must show the host copy that is
+    /// brought up to date for it).
     pub(crate) fn shows(&self, index: u32, buffer: &ID3D12Resource) -> Option<bool> {
         let kept = self.kept.lock().unwrap_or_else(|e| e.into_inner());
         let shown = kept.get(index as usize)?.as_ref()?;
@@ -2166,6 +2199,36 @@ pub(crate) fn buffer_copy(view: &View) -> Option<(std::sync::Arc<crate::shadow::
         return Some((shadow, address, len));
     }
     crate::shadow::find(address, len).map(|shadow| (shadow, address, len))
+}
+
+/// Whether a shader whose narrowest store is typed (`crate::pipeline::
+/// StoreWidth::Typed`) stores whole dwords through `view`: a typed buffer
+/// unordered access view whose elements are 4, 8, 12 or 16 bytes, starting
+/// on 4 bytes (a typed store on the host writes its element whole). Raw
+/// and structured views are not known to (a typed console store through
+/// one is as narrow as the console's format says), nor other views.
+pub(crate) fn typed_whole_dwords(view: &View) -> bool {
+    let (base, words): (u64, [u32; 10]) = match view {
+        View::Unordered(r, _, Some(desc)) => match crate::resource::buffer_bytes(*r as crate::object::This) {
+            Some((data, _)) => (data as u64, *desc),
+            None => return false,
+        },
+        View::Placed(true, resource, desc) if resource[0] == 1 => match desc[..10].try_into() {
+            Ok(words) => (u64::from(desc[10]) | u64::from(desc[11]) << 32, words),
+            Err(_) => return false,
+        },
+        _ => return false,
+    };
+    let desc = uav_desc(&words);
+    // SAFETY: a buffer view's union member.
+    let buffer = unsafe { desc.Anonymous.Buffer };
+    if buffer.StructureByteStride > 0 || buffer.Flags.0 & D3D12_BUFFER_UAV_FLAG_RAW.0 != 0 {
+        return false;
+    }
+    let Some((element, _)) = crate::resource::element(desc.Format.0 as u32) else {
+        return false;
+    };
+    element % 4 == 0 && (base + buffer.FirstElement * element) % 4 == 0
 }
 
 /// [`buffer_range`] of an unordered access view of memory at `base`.

@@ -70,6 +70,92 @@ thread_local! {
     /// milliseconds and the bytes that run may take, in place of the
     /// pass's own per frame.
     static PASS_BUDGET: std::cell::Cell<Option<(u64, u64)>> = const { std::cell::Cell::new(None) };
+    /// Since the draw's bind began ([`touched`]): what its views reach of
+    /// residents (draw-time probe, diagnostics timing runs).
+    static TOUCHED: std::cell::Cell<u8> = const { std::cell::Cell::new(0) };
+    /// While a stage of a pipeline named in `VICTORY_PROBE_PIPELINES` is
+    /// walked: its views are logged ([`probe_view`]).
+    static PROBE: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
+/// Whether a pipeline's name holds one of the hashes in
+/// `VICTORY_PROBE_PIPELINES` (comma-separated; draw-time probe).
+fn probed(name: &str) -> bool {
+    static NAMES: std::sync::OnceLock<Vec<String>> = std::sync::OnceLock::new();
+    let names = NAMES.get_or_init(|| {
+        std::env::var("VICTORY_PROBE_PIPELINES").map(|v| v.split(',').map(|s| s.trim().to_owned()).filter(|s| !s.is_empty()).collect()).unwrap_or_default()
+    });
+    !names.is_empty() && names.iter().any(|n| name.contains(n.as_str()))
+}
+
+/// Logs what a probed pipeline's view reaches, once per view and pipeline
+/// (at most 3,000 lines).
+fn probe_view(how: &str, view: &str, address: u64, len: u64, copy: &crate::shadow::Shadow) {
+    static SEEN: std::sync::Mutex<Option<std::collections::HashSet<(String, u64, u64)>>> = std::sync::Mutex::new(None);
+    let pipeline = PIPELINE_NAME.with(|n| n.borrow().clone());
+    let mut seen = SEEN.lock().unwrap_or_else(|e| e.into_inner());
+    let seen = seen.get_or_insert_with(Default::default);
+    if seen.len() >= 3000 || !seen.insert((pipeline.clone(), address, len)) {
+        return;
+    }
+    tracing::info!(
+        "probe view of {pipeline}: {how} title {address:#x}+{len:#x} ({} KB) in {}; view {}",
+        len >> 10,
+        copy.describe(),
+        view.chars().take(220).collect::<String>()
+    );
+}
+
+thread_local! {
+    /// The pipeline whose stage is walked, while [`PROBE`] is on.
+    static PIPELINE_NAME: std::cell::RefCell<String> = const { std::cell::RefCell::new(String::new()) };
+}
+
+/// [`TOUCHED`]: a view reads a resident, one writes one, a slot shows
+/// another buffer than its view's copy.
+const READS_RESIDENT: u8 = 1;
+const WRITES_RESIDENT: u8 = 2;
+const SLOT_ELSEWHERE: u8 = 4;
+
+fn touched(what: u8) {
+    if draw_probes() {
+        TOUCHED.set(TOUCHED.get() | what);
+    }
+}
+
+/// Whether the draw-time probes run: the `+R`/`+W`/`+S` tags, the check
+/// of every bound slot against its view's copy (a lock per view), and the
+/// views of the pipelines in `VICTORY_PROBE_PIPELINES`. Off unless
+/// `VICTORY_DRAW_PROBES=1` or `VICTORY_PROBE_PIPELINES` names pipelines:
+/// they cost draw time. Off, the residents' line counts no slots.
+pub(crate) fn draw_probes() -> bool {
+    static ON: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *ON.get_or_init(|| {
+        std::env::var_os("VICTORY_DRAW_PROBES").is_some_and(|v| v == "1")
+            || std::env::var_os("VICTORY_PROBE_PIPELINES").is_some_and(|v| !v.is_empty())
+    })
+}
+
+/// A command's note with its first word tagged by what the draw's views
+/// reach (`+R` reads a resident, `+W` writes one, `+S` a slot shows another
+/// buffer): the timing run's sums by first word and by pipeline keep them
+/// apart (draw-time probe).
+#[cfg(feature = "diagnostics")]
+fn tagged(kind: String) -> String {
+    let t = TOUCHED.get();
+    if t == 0 {
+        return kind;
+    }
+    let mut tag = String::from("+");
+    for (bit, c) in [(READS_RESIDENT, 'R'), (WRITES_RESIDENT, 'W'), (SLOT_ELSEWHERE, 'S')] {
+        if t & bit != 0 {
+            tag.push(c);
+        }
+    }
+    match kind.split_once(' ') {
+        Some((word, rest)) => format!("{word}{tag} {rest}"),
+        None => format!("{kind}{tag}"),
+    }
 }
 
 /// The milliseconds of every frame the pass that uploads textures picked
@@ -962,6 +1048,8 @@ impl State {
     /// False if the draw or dispatch must not run: a root SRV it reads
     /// could not be given a view.
     pub(crate) fn bind(&mut self, list: &HostList, p: &HostPipeline, compute: bool) -> bool {
+        TOUCHED.set(0);
+        PROBE.set(false);
         let l = &list.list;
         // Textures picked by index, before anything asks for them.
         self.early_textures(list, p, compute);
@@ -1017,6 +1105,27 @@ impl State {
         }
         for stage in &p.stages {
             let t = stage.translated();
+            // What this stage declares written, by its narrowest store.
+            let _writer = crate::shadow::writer(t.width);
+            PROBE.set(draw_probes() && probed(&p.name));
+            if PROBE.get() {
+                PIPELINE_NAME.with(|n| *n.borrow_mut() = p.name.clone());
+                static SAID: std::sync::Mutex<Option<std::collections::HashSet<String>>> = std::sync::Mutex::new(None);
+                if SAID.lock().unwrap_or_else(|e| e.into_inner()).get_or_insert_with(Default::default).insert(p.name.clone()) {
+                    tracing::info!(
+                        "probe pipeline {}: stores {}, narrowest {:?}; buffer stores {}, of them narrow {}, buffer atomics {}, image atomics {}; root UAVs {}, root SRVs {}",
+                        p.name,
+                        t.stores,
+                        t.width,
+                        t.store_counts[0],
+                        t.store_counts[1],
+                        t.store_counts[2],
+                        t.store_counts[3],
+                        stage.root_uavs.len(),
+                        stage.root_srvs.len()
+                    );
+                }
+            }
             STORES.set(t.stores);
             let made = self.tables(list, &t.used, &t.host.root_indexed_views, compute);
             STORES.set(true);
@@ -1214,7 +1323,13 @@ impl State {
             Some(s)
         };
         let ready = |a: u64, s: &std::sync::Arc<crate::shadow::Shadow>| {
+            if s.in_resident().is_some() {
+                touched(READS_RESIDENT | WRITES_RESIDENT);
+            }
             let len = s.left(a).min(limit);
+            if PROBE.get() {
+                probe_view("root UAV", "", a, len, s);
+            }
             s.refresh(list, a, len);
             if writes {
                 s.gpu_writes(list, a, len);
@@ -2116,6 +2231,7 @@ impl State {
     #[cfg(feature = "diagnostics")]
     fn op_text(&self, kind: String, compute: bool) -> String {
         use std::fmt::Write;
+        let kind = tagged(kind);
         let Some(p) = crate::pipeline::host_pipeline(self.pipeline as This) else {
             return kind;
         };
@@ -2477,7 +2593,28 @@ impl State {
             return;
         };
         if let Some(view) = host.mirror(index, handle, true) {
-            readable(list, u.kind, &view);
+            let copy = readable(list, u.kind, &view);
+            // The safety net of retargeting (Stage 2 latency plan, B1):
+            // a slot that shows another buffer than the one brought up to
+            // date for it.
+            if let Some(copy) = copy
+                && draw_probes()
+                && crate::resident::on()
+                && host.shows(index, &copy.buffer) == Some(false)
+            {
+                touched(SLOT_ELSEWHERE);
+                if PROBE.get() {
+                    let pipeline = PIPELINE_NAME.with(|n| n.borrow().clone());
+                    tracing::info!("probe slot of {pipeline}: slot {index} shows another buffer than its view's copy ({})", copy.describe());
+                }
+                crate::resident::stale_slot(if copy.in_resident().is_some() {
+                    0
+                } else if copy.in_place() {
+                    1
+                } else {
+                    2
+                });
+            }
             // Up to date by this draw: not the texture pass's to make.
             if crate::descriptor::host::is_texture_view(&view) {
                 host.texture_slot_tabled(index, true);
@@ -3239,19 +3376,35 @@ fn depth_state(texture: &ID3D12Resource, desc: Option<&D3D12_DEPTH_STENCIL_VIEW_
     }
 }
 
-fn readable(list: &HostList, kind: ResourceType, view: &View) {
+/// With the copy a buffer view's range is brought up to date in.
+fn readable(list: &HostList, kind: ResourceType, view: &View) -> Option<std::sync::Arc<crate::shadow::Shadow>> {
     const UNORDERED_ACCESS: u32 = 0x8;
     let placed = crate::descriptor::host::placed_texture(view);
     let view = placed.as_ref().unwrap_or(view);
+    let mut copy = None;
     // Buffer views read title memory: their range is copied at submission;
     // what shaders write through unordered access goes back to it after.
     if let Some((shadow, address, len)) = crate::descriptor::host::buffer_copy(view) {
+        copy = Some(shadow.clone());
+        if shadow.in_resident().is_some() {
+            touched(if kind == ResourceType::Uav { READS_RESIDENT | WRITES_RESIDENT } else { READS_RESIDENT });
+        }
+        if PROBE.get() {
+            probe_view(&format!("{kind:?}"), &format!("{view:?}"), address, len, &shadow);
+        }
         shadow.refresh(list, address, len);
         if kind == ResourceType::Uav {
             // A shader that cannot store to buffers leaves the range as
             // the title has it: nothing to find afterwards.
             if STORES.get() || !write_skip() {
-                shadow.gpu_writes(list, address, len);
+                // Typed stores through a typed view of whole-dword elements
+                // store whole dwords (B5: 272 of the 275 MB a frame merged
+                // with atomics were ranges of typed stores only).
+                let width = match crate::shadow::writer_width() {
+                    crate::pipeline::StoreWidth::Typed if crate::descriptor::host::typed_whole_dwords(view) => crate::pipeline::StoreWidth::Dwords,
+                    width => width,
+                };
+                shadow.gpu_writes_as(list, address, len, width);
             } else {
                 #[cfg(feature = "diagnostics")]
                 {
@@ -3309,6 +3462,7 @@ fn readable(list: &HostList, kind: ResourceType, view: &View) {
         }
         _ => {}
     }
+    copy
 }
 
 /// The pixel shaders whose draws get their slots listed
