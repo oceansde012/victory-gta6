@@ -241,13 +241,24 @@ const MAKING: u8 = 3;
 
 struct Queue {
     early: VecDeque<Arc<Pending>>,
+    /// Requested vertex/pixel graphics pipelines (including screen composition
+    /// and tonemapping): compiled ahead of mesh/compute so the 3D image shows
+    /// up quickly when the shader cache is cold.
+    requested_graphics: VecDeque<Arc<Pending>>,
     requested: VecDeque<Arc<Pending>>,
+}
+
+/// Whether `p` is a traditional vertex graphics pipeline (as opposed to mesh
+/// or compute).
+fn is_vertex_graphics(p: &Pending) -> bool {
+    p.shaders.iter().any(|s| s.stage == "vertex")
 }
 
 impl Queue {
     const fn new() -> Self {
         Self {
             early: VecDeque::new(),
+            requested_graphics: VecDeque::new(),
             requested: VecDeque::new(),
         }
     }
@@ -261,7 +272,11 @@ impl Queue {
         }
         p.queue_state.store(priority, Ordering::Relaxed);
         if priority == REQUESTED {
-            self.requested.push_back(p.clone());
+            if is_vertex_graphics(p) {
+                self.requested_graphics.push_back(p.clone());
+            } else {
+                self.requested.push_back(p.clone());
+            }
         } else {
             self.early.push_back(p.clone());
         }
@@ -269,11 +284,15 @@ impl Queue {
     }
 
     fn pop(&mut self) -> Option<Arc<Pending>> {
-        let p = self.requested.pop_front().or_else(|| {
-            // An early entry can have been promoted and claimed already.
-            std::iter::from_fn(|| self.early.pop_front())
-                .find(|p| p.queue_state.load(Ordering::Relaxed) == EARLY)
-        })?;
+        let p = self
+            .requested_graphics
+            .pop_front()
+            .or_else(|| self.requested.pop_front())
+            .or_else(|| {
+                // An early entry can have been promoted and claimed already.
+                std::iter::from_fn(|| self.early.pop_front())
+                    .find(|p| p.queue_state.load(Ordering::Relaxed) == EARLY)
+            })?;
         p.queue_state.store(MAKING, Ordering::Relaxed);
         Some(p)
     }
