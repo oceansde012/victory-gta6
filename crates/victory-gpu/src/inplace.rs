@@ -311,7 +311,8 @@ fn say() {
     let s: Vec<u64> = STATS.iter().map(|s| s.load(Ordering::Relaxed)).collect();
     tracing::info!(
         "title memory in place: {} windows {} MB, {} title buffers {} MB (no copy, no refresh, no copy-back), {} MB of it in the page pool; turned down: {} view memory \
-         or not private memory committed whole, {} refused by the host, {} over VICTORY_INPLACE_MB or VICTORY_INPLACE_POOL_MB; {} let go because their memory changed;          {} MB of page-pool sections open",
+         or not private memory committed whole, {} refused by the host, {} over VICTORY_INPLACE_MB or VICTORY_INPLACE_POOL_MB; {} let go because their memory changed; \
+         {} MB of page-pool sections open",
         s[0],
         s[1] >> 20,
         s[2],
