@@ -95,10 +95,6 @@ pub(crate) struct HostHeap {
     sampler: bool,
     /// The record (view index and generation) each slot was last made from.
     made: Mutex<Vec<u64>>,
-    /// A fingerprint of the record each slot held when the pass over
-    /// records copied in as bytes last looked at it
-    /// ([`HostHeap::mirror_copied`]; 0: never looked at). Made on first use.
-    copied: Mutex<Vec<u64>>,
     /// Per slot, `crate::resident::generation` when it was last looked at
     /// for showing a buffer no table hands out any more (taken under
     /// `made`'s lock).
@@ -1017,7 +1013,6 @@ impl HostHeap {
             dynamic: extra,
             sampler,
             made: Mutex::new(vec![0; count as usize]),
-            copied: Mutex::new(Vec::new()),
             checked: Mutex::new(vec![0; count as usize]),
             kept: Mutex::new(vec![None; (count + extra) as usize]),
             next: Mutex::new((0, vec![false; DYNAMIC as usize])),
@@ -1861,7 +1856,14 @@ impl HostHeap {
     /// `record`: the record's bytes as the caller read them (through the
     /// kernel, which fails on a page the title unmapped meanwhile where a
     /// read in place would fault: the title unmaps heap pages too).
-    pub(crate) fn mirror_copied(&self, index: u32, handle: u64, record: &[u8]) -> bool {
+    pub(super) fn mirror_copied(
+        &self,
+        index: u32,
+        handle: u64,
+        record: &[u8],
+        copied: &mut CopiedSlots,
+        tabled: &mut u64,
+    ) -> bool {
         if index >= self.count {
             return false;
         }
@@ -1876,28 +1878,11 @@ impl HostHeap {
         // views (some 50 ms a frame). `VICTORY_HEAP_SYNC_TABLES=1`: they
         // are mirrored too, as in run 200.
         if !sync_tables() && self.tabled_lately(index, crate::frame::current()) {
-            COPIED_TABLED.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            *tabled += 1;
             return false;
         }
-        let n = record.len();
-        // Never 0, which is "never looked at". (A multiply-and-fold over
-        // the record's words: BLAKE3 here was most of the 35 to 42 ms a
-        // frame this pass took over some 250,000 to 300,000 records, run
-        // 200.)
-        let print = record_print(record) | 1;
-        {
-            let mut copied = self.copied.lock().unwrap_or_else(|e| e.into_inner());
-            if copied.is_empty() {
-                copied.resize(self.count as usize, 0);
-            }
-            let Some(last) = copied.get_mut(index as usize) else {
-                return false;
-            };
-            // A slot never looked at that holds nothing: as it was.
-            if *last == print || (*last == 0 && record[..n].iter().all(|&b| b == 0)) {
-                return false;
-            }
-            *last = print;
+        if !copied.changed(index, self.count, record) {
+            return false;
         }
         self.mirror(index, handle, false);
         true
@@ -2276,9 +2261,27 @@ fn sync_tables() -> bool {
     *ON.get_or_init(|| std::env::var_os("VICTORY_HEAP_SYNC_TABLES").is_some_and(|v| v == "1"))
 }
 
-/// Since the last frame line: slots on changed heap pages that
-/// [`HostHeap::mirror_copied`] left to their draws (tables' slots).
-pub(crate) static COPIED_TABLED: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+/// Last raw-copy fingerprint per host-visible slot. Allocated on the first
+/// eligible record and discarded when its shader heap is unregistered.
+#[derive(Default)]
+pub(super) struct CopiedSlots(Vec<u64>);
+
+impl CopiedSlots {
+    fn changed(&mut self, index: u32, count: u32, record: &[u8]) -> bool {
+        if self.0.is_empty() {
+            self.0.resize(count as usize, 0);
+        }
+        let last = &mut self.0[index as usize];
+        // Zero is the unobserved sentinel. A first read of an empty slot
+        // needs no mirror, but clearing a previously populated slot does.
+        let print = record_print(record) | 1;
+        if *last == print || (*last == 0 && record.iter().all(|&b| b == 0)) {
+            return false;
+        }
+        *last = print;
+        true
+    }
+}
 
 /// A 64-bit fingerprint of a descriptor record's bytes (16 or 32 of them):
 /// equal records give equal prints, and two different records the same
@@ -3771,7 +3774,25 @@ mod tests {
 
 #[cfg(test)]
 mod record_print_tests {
-    use super::record_print;
+    use super::{CopiedSlots, record_print};
+
+    #[test]
+    fn raw_copy_history_is_per_heap_and_per_slot() {
+        for size in [16, 32] {
+            let mut slots = CopiedSlots::default();
+            let empty = vec![0; size];
+            let mut record = empty.clone();
+            record[size - 1] = 7;
+            assert!(!slots.changed(0, 2, &empty));
+            assert!(slots.changed(0, 2, &record));
+            assert!(!slots.changed(0, 2, &record));
+            assert!(slots.changed(1, 2, &record));
+            assert!(slots.changed(0, 2, &empty));
+            assert!(!slots.changed(0, 2, &empty));
+            assert!(!slots.changed(1, 2, &record));
+            assert!(CopiedSlots::default().changed(1, 2, &record));
+        }
+    }
 
     /// Equal records print alike; a record that differs in any one byte,
     /// or in its length, prints otherwise.

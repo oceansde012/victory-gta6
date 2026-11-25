@@ -123,20 +123,25 @@ const VIEWS_KIND: u32 = 0;
 const SAMPLERS: u32 = 1;
 const SHADER_VISIBLE: u32 = 1;
 
-/// Shader-visible heaps by address range, for mirroring descriptor writes:
-/// start, end, heap.
+/// Mirroring raw copies already holds the registry lock to keep each heap
+/// alive. Store its fingerprints here so a scan needs no per-slot lock.
 #[cfg(windows)]
-static SHADER_HEAPS: std::sync::Mutex<Vec<(u64, u64, usize)>> = std::sync::Mutex::new(Vec::new());
+struct ShaderHeap {
+    range: std::ops::Range<u64>,
+    at: usize,
+    copied: host::CopiedSlots,
+}
+
+#[cfg(windows)]
+static SHADER_HEAPS: std::sync::Mutex<Vec<ShaderHeap>> = std::sync::Mutex::new(Vec::new());
 
 /// The shader-visible heap holding `handle`, and the descriptor's index.
 #[cfg(windows)]
 fn shader_slot<'a>(handle: u64) -> Option<(&'a Heap, u32)> {
     let heaps = SHADER_HEAPS.lock().unwrap_or_else(|e| e.into_inner());
-    let &(_, _, at) = heaps
-        .iter()
-        .find(|&&(start, end, _)| (start..end).contains(&handle))?;
+    let entry = heaps.iter().find(|entry| entry.range.contains(&handle))?;
     // SAFETY: registered heaps are live (removed when dropped).
-    let heap = unsafe { &*(at as *const Heap) };
+    let heap = unsafe { &*(entry.at as *const Heap) };
     Some((heap, heap.index(handle)?))
 }
 
@@ -146,15 +151,12 @@ fn shader_slot<'a>(handle: u64) -> Option<(&'a Heap, u32)> {
 #[cfg(windows)]
 fn mirror(handle: u64) {
     let heaps = SHADER_HEAPS.lock().unwrap_or_else(|e| e.into_inner());
-    let Some(&(_, _, at)) = heaps
-        .iter()
-        .find(|&&(start, end, _)| (start..end).contains(&handle))
-    else {
+    let Some(entry) = heaps.iter().find(|entry| entry.range.contains(&handle)) else {
         return;
     };
     // SAFETY: registered heaps stay alive until `Heap::drop`, which takes
     // the `SHADER_HEAPS` lock we hold here.
-    let heap = unsafe { &*(at as *const Heap) };
+    let heap = unsafe { &*(entry.at as *const Heap) };
     let Some(index) = heap.index(handle) else {
         return;
     };
@@ -199,13 +201,14 @@ pub(crate) fn sync_heaps() {
         return;
     }
     let started = std::time::Instant::now();
-    let (mut pages, mut looked, mut mirrored) = (0u64, 0u64, 0u64);
+    let (mut pages, mut looked, mut mirrored, mut tabled) = (0u64, 0u64, 0u64, 0u64);
     let mut page_bytes: Vec<u8> = Vec::new();
     let mut straddle = [0u8; 32];
-    let heaps = SHADER_HEAPS.lock().unwrap_or_else(|e| e.into_inner());
-    for &(start, end, at) in heaps.iter() {
+    let mut heaps = SHADER_HEAPS.lock().unwrap_or_else(|e| e.into_inner());
+    for entry in heaps.iter_mut() {
+        let (start, end) = (entry.range.start, entry.range.end);
         // SAFETY: registered heaps are live (removed when dropped).
-        let heap = unsafe { &*(at as *const Heap) };
+        let heap = unsafe { &*(entry.at as *const Heap) };
         let (Some(Some(host)), Some(written), Some(step)) =
             (heap.host.get(), &heap.written, increment(heap.desc.kind))
         else {
@@ -269,7 +272,13 @@ pub(crate) fn sync_heaps() {
                         looked += 1;
                         // Only a record that is not the one last seen there
                         // (`HostHeap::mirror_copied`).
-                        if host.mirror_copied(index as u32, handle, record) {
+                        if host.mirror_copied(
+                            index as u32,
+                            handle,
+                            record,
+                            &mut entry.copied,
+                            &mut tabled,
+                        ) {
                             mirrored += 1;
                         }
                     }
@@ -279,22 +288,26 @@ pub(crate) fn sync_heaps() {
         }
     }
     drop(heaps);
-    for (count, n) in SYNCED.iter().zip([pages, looked, mirrored, started.elapsed().as_micros() as u64]) {
+    let micros = started.elapsed().as_micros() as u64;
+    for (count, n) in SYNCED.iter().zip([pages, looked, mirrored, micros, tabled]) {
         count.fetch_add(n, Relaxed);
     }
 }
 
 /// Since the last frame line, of [`sync_heaps`]: changed pages of placed
 /// shader-visible heaps looked at, slots on them, slots whose record was
-/// not the one last seen (mirrored), and the microseconds it took.
+/// not the one last seen (mirrored), the microseconds it took, and slots
+/// left to draws that read them through tables.
 #[cfg(windows)]
-pub(crate) static SYNCED: [std::sync::atomic::AtomicU64; 4] = [const { std::sync::atomic::AtomicU64::new(0) }; 4];
+static SYNCED: [std::sync::atomic::AtomicU64; 5] =
+    [const { std::sync::atomic::AtomicU64::new(0) }; 5];
 
 /// With the frame line: what [`sync_heaps`] did per frame over `frames`.
 /// Nothing while no heap page changed.
 #[cfg(windows)]
 pub(crate) fn sync_line(frames: f64) {
-    let [pages, looked, mirrored, micros] = [0, 1, 2, 3].map(|i| SYNCED[i].swap(0, std::sync::atomic::Ordering::Relaxed));
+    let [pages, looked, mirrored, micros, tabled] =
+        SYNCED.each_ref().map(|c| c.swap(0, std::sync::atomic::Ordering::Relaxed));
     if pages == 0 {
         return;
     }
@@ -304,7 +317,7 @@ pub(crate) fn sync_line(frames: f64) {
         pages as f64 / frames,
         looked as f64 / frames,
         mirrored as f64 / frames,
-        host::COPIED_TABLED.swap(0, std::sync::atomic::Ordering::Relaxed) as f64 / frames,
+        tabled as f64 / frames,
         micros as f64 / 1000.0 / frames
     );
 }
@@ -331,7 +344,7 @@ fn changed_slots(
 #[cfg(windows)]
 pub(crate) fn release_dynamic(heap: usize, first: u32, n: u32) {
     let heaps = SHADER_HEAPS.lock().unwrap_or_else(|e| e.into_inner());
-    if heaps.iter().any(|&(_, _, h)| h == heap)
+    if heaps.iter().any(|entry| entry.at == heap)
         // SAFETY: registered heaps are live (removed when dropped).
         && let Some(Some(host)) = unsafe { &*(heap as *const Heap) }.host.get()
     {
@@ -344,7 +357,7 @@ impl Drop for Heap {
     fn drop(&mut self) {
         let at = std::ptr::from_ref::<Heap>(self) as usize;
         let mut heaps = SHADER_HEAPS.lock().unwrap_or_else(|e| e.into_inner());
-        heaps.retain(|&(_, _, h)| h != at);
+        heaps.retain(|entry| entry.at != at);
     }
 }
 
@@ -1155,7 +1168,11 @@ pub(crate) extern "system" fn create_heap(
     if visible {
         let at = std::ptr::from_ref::<Heap>(&heap) as usize;
         let mut heaps = SHADER_HEAPS.lock().unwrap_or_else(|e| e.into_inner());
-        heaps.push((start, start + size, at));
+        heaps.push(ShaderHeap {
+            range: start..start + size,
+            at,
+            copied: Default::default(),
+        });
     }
     #[cfg(not(windows))]
     let _ = visible;
