@@ -75,9 +75,9 @@ pub(crate) struct Shadow {
     /// heap opened on the title memory itself, so shaders read and write
     /// the title's own bytes and nothing is copied either way. The heap,
     /// and the bytes from the buffer's first byte to `start` (the heap
-    /// begins on a 64 KiB line; a title buffer need not), and whether the
-    /// heap is a whole page-pool section (`crate::inplace::Placed`).
-    place: Option<(windows::Win32::Graphics::Direct3D12::ID3D12Heap, u64, bool)>,
+    /// begins on a 64 KiB line; a title buffer need not), and the
+    /// page-pool section it lies in, if any (`crate::inplace::Placed`).
+    place: Option<(windows::Win32::Graphics::Direct3D12::ID3D12Heap, u64, Option<usize>)>,
 }
 
 /// What a copy in the card's memory ([`cards`]) has beside the buffer

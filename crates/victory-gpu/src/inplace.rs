@@ -113,8 +113,9 @@ fn most() -> u64 {
 /// or not private memory committed whole, because the host refused,
 /// because of [`most`]; and what was let go because its memory changed;
 /// then, in place now, the bytes of the windows and buffers above that
-/// lie in view memory (not locked, not held to [`most`]).
-static STATS: [AtomicU64; 9] = [const { AtomicU64::new(0) }; 9];
+/// lie in view memory (not locked, not held to [`most`]); then the
+/// page-pool sections closed again since the start.
+static STATS: [AtomicU64; 10] = [const { AtomicU64::new(0) }; 10];
 
 /// A buffer placed over title memory, and its heap.
 pub(crate) struct Placed {
@@ -124,9 +125,10 @@ pub(crate) struct Placed {
     pub(crate) gpu: u64,
     /// Bytes from the buffer's first byte to the title memory's first.
     pub(crate) bias: u64,
-    /// In a section opened whole (view memory), not in locked private
-    /// memory: [`gone`] must be told.
-    pub(crate) pooled: bool,
+    /// The page-pool section it lies in (view memory), if not in locked
+    /// private memory: [`gone`] must be told, to close the section's heap
+    /// when nothing lies in it any more.
+    pub(crate) pooled: Option<usize>,
 }
 
 /// Whether the runtime should make physical-page sections committed, so
@@ -144,21 +146,30 @@ fn pool() -> bool {
 }
 
 /// The most page-pool sections open as heaps at once, in bytes
-/// (`VICTORY_INPLACE_POOL_MB`, 2048): each counts whole against the card's
-/// share of the PC's memory, which the copies use too.
+/// (`VICTORY_INPLACE_POOL_MB`, 1024): each counts whole against the card's
+/// share of the PC's memory, which the copies use too (2048 ran it out
+/// in run-auto-16, E_OUTOFMEMORY recording a compare).
 fn pool_most() -> u64 {
     static MOST: std::sync::OnceLock<u64> = std::sync::OnceLock::new();
-    *MOST.get_or_init(|| std::env::var("VICTORY_INPLACE_POOL_MB").ok().and_then(|v| v.trim().parse::<u64>().ok()).unwrap_or(2048) << 20)
+    *MOST.get_or_init(|| std::env::var("VICTORY_INPLACE_POOL_MB").ok().and_then(|v| v.trim().parse::<u64>().ok()).unwrap_or(1024) << 20)
 }
 
-/// The bytes of the sections opened so far (they stay open for the run).
+/// The bytes of the sections open now.
 static POOL_OPENED: AtomicU64 = AtomicU64::new(0);
 
-/// The heaps opened on whole sections, by section handle, or `None` where
-/// the host refused (not asked again); kept for the run (a section the
-/// title frees stays alive through its heap, as it does through views it
-/// still has).
-static SECTION_HEAPS: Mutex<Vec<(usize, Option<ID3D12Heap>)>> = Mutex::new(Vec::new());
+/// A page-pool section as a heap: the heap (`None` where the host refused:
+/// not asked again), its bytes, and how many placed buffers lie in it.
+/// When the last goes ([`gone`]) the heap is closed here; lists and slots
+/// that still hold it keep it until they let go. A section the title
+/// frees stays alive through its heap, as it does through views.
+struct SectionHeap {
+    section: usize,
+    heap: Option<ID3D12Heap>,
+    bytes: u64,
+    placed: u64,
+}
+
+static SECTION_HEAPS: Mutex<Vec<SectionHeap>> = Mutex::new(Vec::new());
 
 /// A buffer over `len` bytes of `section` from `offset` on, in the heap
 /// opened on the whole section (opened on first use). `Err(None)` if the
@@ -176,36 +187,52 @@ fn place_in_section(device: &ID3D12Device, section: usize, offset: u64, len: u64
     if at + bytes > size {
         return Err(None);
     }
-    let heap = {
-        let mut heaps = SECTION_HEAPS.lock().unwrap_or_else(|e| e.into_inner());
-        match heaps.iter().find(|h| h.0 == section) {
-            Some((_, Some(heap))) => heap.clone(),
-            Some((_, None)) => return Err(None),
-            None if POOL_OPENED.load(Ordering::Relaxed) + size > pool_most() => {
-                STATS[6].fetch_add(1, Ordering::Relaxed);
+    // Under the lock throughout, so that a heap is never closed between
+    // being found here and the buffer counted in it.
+    let mut heaps = SECTION_HEAPS.lock().unwrap_or_else(|e| e.into_inner());
+    let k = match heaps.iter().position(|h| h.section == section) {
+        Some(k) if heaps[k].heap.is_none() => return Err(None),
+        Some(k) => k,
+        None if POOL_OPENED.load(Ordering::Relaxed) + size > pool_most() => {
+            STATS[6].fetch_add(1, Ordering::Relaxed);
+            return Err(None);
+        }
+        None => match open(device, From::Section(section)) {
+            Ok(heap) => {
+                POOL_OPENED.fetch_add(size, Ordering::Relaxed);
+                heaps.push(SectionHeap { section, heap: Some(heap), bytes: size, placed: 0 });
+                heaps.len() - 1
+            }
+            Err(e) => {
+                tracing::warn!(section = format_args!("{section:#x}"), mb = size >> 20, error = %e, "title page pool not opened as a host heap: its windows are copied");
+                heaps.push(SectionHeap { section, heap: None, bytes: size, placed: 0 });
                 return Err(None);
             }
-            None => match open(device, From::Section(section)) {
-                Ok(heap) => {
-                    POOL_OPENED.fetch_add(size, Ordering::Relaxed);
-                    // SAFETY: a live heap.
-                    let got = unsafe { heap.GetDesc() }.SizeInBytes;
-                    tracing::info!(section = format_args!("{section:#x}"), mb = got >> 20, "title page pool opened as a host heap");
-                    heaps.push((section, Some(heap.clone())));
-                    heap
-                }
-                Err(e) => {
-                    tracing::warn!(section = format_args!("{section:#x}"), mb = size >> 20, error = %e, "title page pool not opened as a host heap: its windows are copied");
-                    heaps.push((section, None));
-                    return Err(None);
-                }
-            },
+        },
+    };
+    let Some(heap) = heaps[k].heap.clone() else {
+        return Err(None);
+    };
+    let buffer = match place(device, &heap, at, bytes) {
+        Ok(buffer) => buffer,
+        Err(e) => {
+            if heaps[k].placed == 0 {
+                close_section(&mut heaps, k);
+            }
+            return Err(Some(e));
         }
     };
-    let buffer = place(device, &heap, at, bytes).map_err(Some)?;
+    heaps[k].placed += 1;
     // SAFETY: a live buffer.
     let gpu = unsafe { buffer.GetGPUVirtualAddress() } + (offset - at);
-    Ok(Placed { buffer, heap, gpu, bias: offset - at, pooled: true })
+    Ok(Placed { buffer, heap, gpu, bias: offset - at, pooled: Some(section) })
+}
+
+/// Forgets the open section at `k`: its heap goes when what holds it does.
+fn close_section(heaps: &mut Vec<SectionHeap>, k: usize) {
+    let gone = heaps.swap_remove(k);
+    POOL_OPENED.fetch_sub(gone.bytes, Ordering::Relaxed);
+    STATS[9].fetch_add(1, Ordering::Relaxed);
 }
 
 /// Opens the 64 KiB pages that hold title memory `[start, start + len)`
@@ -222,7 +249,7 @@ pub(crate) fn place_part(device: &ID3D12Device, start: u64, len: u64) -> Result<
     let buffer = place(device, &heap, 0, bytes).map_err(Some)?;
     // SAFETY: a live buffer.
     let gpu = unsafe { buffer.GetGPUVirtualAddress() } + (start - at);
-    Ok(Placed { buffer, heap, gpu, bias: start - at, pooled: false })
+    Ok(Placed { buffer, heap, gpu, bias: start - at, pooled: None })
 }
 
 /// Title memory `[start, start + len)` in place, for a window outside
@@ -258,7 +285,7 @@ pub(crate) fn place_for(start: u64, len: u64, window: bool) -> Option<Placed> {
             let at = if window { 0 } else { 2 };
             STATS[at].fetch_add(1, Ordering::Relaxed);
             STATS[at + 1].fetch_add(len, Ordering::Relaxed);
-            if placed.pooled {
+            if placed.pooled.is_some() {
                 STATS[8].fetch_add(len, Ordering::Relaxed);
             }
             Some(placed)
@@ -277,12 +304,20 @@ pub(crate) fn place_for(start: u64, len: u64, window: bool) -> Option<Placed> {
 }
 
 /// What [`place_for`] gave is gone.
-pub(crate) fn gone(window: bool, bytes: u64, pooled: bool) {
+pub(crate) fn gone(window: bool, bytes: u64, pooled: Option<usize>) {
     let at = if window { 0 } else { 2 };
     STATS[at].fetch_sub(1, Ordering::Relaxed);
     STATS[at + 1].fetch_sub(bytes, Ordering::Relaxed);
-    if pooled {
-        STATS[8].fetch_sub(bytes, Ordering::Relaxed);
+    let Some(section) = pooled else {
+        return;
+    };
+    STATS[8].fetch_sub(bytes, Ordering::Relaxed);
+    let mut heaps = SECTION_HEAPS.lock().unwrap_or_else(|e| e.into_inner());
+    if let Some(k) = heaps.iter().position(|h| h.section == section && h.heap.is_some()) {
+        heaps[k].placed = heaps[k].placed.saturating_sub(1);
+        if heaps[k].placed == 0 {
+            close_section(&mut heaps, k);
+        }
     }
 }
 
@@ -312,7 +347,7 @@ fn say() {
     tracing::info!(
         "title memory in place: {} windows {} MB, {} title buffers {} MB (no copy, no refresh, no copy-back), {} MB of it in the page pool; turned down: {} view memory \
          or not private memory committed whole, {} refused by the host, {} over VICTORY_INPLACE_MB or VICTORY_INPLACE_POOL_MB; {} let go because their memory changed; \
-         {} MB of page-pool sections open",
+         {} MB of page-pool sections open, {} closed again",
         s[0],
         s[1] >> 20,
         s[2],
@@ -322,7 +357,8 @@ fn say() {
         s[5],
         s[6],
         s[7],
-        POOL_OPENED.load(Ordering::Relaxed) >> 20
+        POOL_OPENED.load(Ordering::Relaxed) >> 20,
+        s[9]
     );
 }
 
