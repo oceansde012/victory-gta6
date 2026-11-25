@@ -237,3 +237,22 @@ Not merged (conflict with this branch, later): #175, #104, #165, #124, #150,
 
 Fix on top: the dynamic descriptor slot search (fork's scan cap cut off
 upstream #974's wrap past the cursor; CI test).
+
+## Correction and fxceless main `a26859f` (2026-11-25, later)
+
+- The merge `6674a60` recorded fxceless `8dd30ab` as a parent, but its tree
+  only kept the files `8dd30ab` added; the rest of its changes (about 6,000
+  lines, mostly `victory-gpu`) were lost. Commit `4c44a70` applies the diff
+  from the merge base `2119b0e` to `8dd30ab` on top, keeping the earlier
+  conflict choices (depth bounds in `pipeline/host.rs`, Marvisak's
+  descriptor-as-image path in `lower.rs`). Any fps number measured on the
+  earlier head of this branch did not include `8dd30ab`'s GPU work.
+- fxceless main `9376fd6` (heap pass on the CPU: 70-220 ms -> ~3 ms a
+  frame) and `a26859f` (first room renders right) merged as one merge.
+  Conflicts: `host.rs` relay fields (kept both: `order_after` from the
+  copy-queue PR and `sent_as`/in-flight fetch), `lower.rs` unused
+  descriptors (fxceless `unused_descriptor_kind` first, then Marvisak's
+  fallback path).
+- Open fxceless PRs merged clean, each as its own merge: #785 (relay
+  `late_met`/`relay_land` race), #786 (relay/card merges write only
+  GPU-changed runs), #783 (skip unchanged heap pages, one write-back).
