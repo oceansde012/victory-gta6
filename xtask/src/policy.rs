@@ -27,6 +27,10 @@ const ALLOWED_NAMES: &[&str] = &[
     "LICENSE-APACHE",
 ];
 
+// Source files with a nonstandard extension are allowed by exact path, but
+// still pass the same size, magic, binary and encoded-payload checks.
+const ALLOWED_SOURCE_PATHS: &[&str] = &["tools/perf/analyze_run.py"];
+
 /// Paths explicitly exempted, with a reason. Keep this empty if at all possible.
 const EXCEPTIONS: &[(&str, &str)] = &[(
     "crates/victory-formats/src/bcpack-tables.bin",
@@ -148,6 +152,7 @@ pub fn check(path: &str, content: &[u8]) -> Vec<String> {
     let name = path.rsplit('/').next().unwrap_or(path);
     let ext = name.rsplit_once('.').map(|(_, e)| e.to_ascii_lowercase());
     let allowed = ALLOWED_NAMES.contains(&name)
+        || ALLOWED_SOURCE_PATHS.contains(&path)
         || ext
             .as_deref()
             .is_some_and(|e| ALLOWED_EXTENSIONS.contains(&e));
@@ -196,6 +201,16 @@ mod tests {
         assert!(check("crates/x/src/lib.rs", b"fn main() {}\n").is_empty());
         assert!(check(".gitignore", b"/target/\n").is_empty());
         assert!(check(".githooks/pre-commit", b"#!/bin/sh\n").is_empty());
+    }
+
+    #[test]
+    fn performance_analyzer_is_source_not_an_asset_exception() {
+        let path = "tools/perf/analyze_run.py";
+        assert!(check(path, b"print('ok')\n").is_empty());
+        assert!(!check("elsewhere/analyze_run.py", b"print('ok')\n").is_empty());
+        assert!(!check(path, b"MZ\x90\0").is_empty());
+        assert!(!check(path, &vec![b'A'; 600 * 1024]).is_empty());
+        assert!(!check(path, &vec![b'A'; 800]).is_empty());
     }
 
     #[test]
