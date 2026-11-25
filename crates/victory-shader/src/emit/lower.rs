@@ -6681,7 +6681,6 @@ impl<'a> Lower<'a> {
             }
             Source::Phi { block, args }
                 if sampler
-                    && !self.s.pixel
                     && (2..=3).contains(&args.len())
                     && args.iter().all(|a| matches!(a, Source::Constant(_))) =>
             {
@@ -6711,15 +6710,18 @@ impl<'a> Lower<'a> {
                         self.s.cmp_samplers |= 1 << n;
                     }
                 }
-                let mut index = self.s.m.i32(lo);
-                for (k, &pred) in preds.iter().enumerate().skip(1) {
-                    let cond = self.boolean(self.x.st.reach[pred], *block)?;
-                    let n = self.s.m.i32(lo + k as u32);
-                    index = self.s.m.select(self.cur, cond, n, index);
-                }
+                // A path phi at the join: true for the lanes that came by
+                // the second predecessor. (`reach` would name a value from
+                // one predecessor, which does not dominate the join.)
+                let cond = self.s.m.phi(*block, self.s.t.i1);
+                let (one, zero) = (self.s.m.bool(true), self.s.m.bool(false));
+                self.s.m.set_phi(cond, vec![(one, preds[1]), (zero, preds[0])]);
+                let n = self.s.m.i32(lo + 1);
+                let n0 = self.s.m.i32(lo);
+                let index = self.s.m.select(self.cur, cond, n, n0);
                 Ok(self
                     .s
-                    .sampler_range_handle(self.cur, lo, lo + args.len() as u32 - 1, index))
+                    .sampler_range_handle(self.cur, lo, lo + 1, index))
             }
             Source::Phi { block, args } => {
                 let _ = site;
