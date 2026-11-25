@@ -1278,7 +1278,10 @@ impl Staging {
             let tiled = &tiled[start..start + plane.layout.size as usize];
             let f = footprint.Footprint;
             let pitch = f.RowPitch as usize;
-            let len = pitch * rows as usize * f.Depth as usize;
+            let Some(len) = subresource_len(footprint.Offset, pitch, rows, f.Depth, self.bytes) else {
+                tracing::warn!(offset = footprint.Offset, total = self.bytes, "texture footprint outside staging buffer");
+                return;
+            };
             // SAFETY: the subresource's part of the mapped staging buffer.
             let linear = unsafe {
                 std::slice::from_raw_parts_mut(self.data.add(footprint.Offset as usize), len)
@@ -1298,6 +1301,13 @@ impl Staging {
         }
         self.stale.store(false, std::sync::atomic::Ordering::Relaxed);
     }
+}
+
+/// Limit a padded footprint to the size returned by GetCopyableFootprints;
+/// the final row need not have a full row pitch of trailing padding.
+fn subresource_len(offset: u64, pitch: usize, rows: u32, depth: u32, total: u64) -> Option<usize> {
+    let remaining = usize::try_from(total.checked_sub(offset)?).ok()?;
+    Some(pitch.saturating_mul(rows as usize).saturating_mul(depth as usize).min(remaining))
 }
 
 /// Lets go of a title texture's staging buffer (lists that recorded an
@@ -1646,8 +1656,17 @@ fn staging(resource: This, texture: &ID3D12Resource) -> Option<Arc<Staging>> {
 
 #[cfg(test)]
 mod pool_tests {
-    use super::{class, give_back, pool_limit, take};
+    use super::{class, give_back, pool_limit, subresource_len, take};
     use windows::core::Interface;
+
+    #[test]
+    fn subresource_length_respects_the_actual_staging_size() {
+        assert_eq!(subresource_len(0, 256, 4, 1, 784), Some(784));
+        assert_eq!(subresource_len(512, 256, 4, 1, 784), Some(272));
+        assert_eq!(subresource_len(0, 256, 4, 1, 2048), Some(1024));
+        assert_eq!(subresource_len(785, 256, 4, 1, 784), None);
+        assert_eq!(subresource_len(0, usize::MAX, 2, 2, 784), Some(784));
+    }
 
     /// Classes are whole 64 KiB up to 1 MiB, then eighths of a power of
     /// two, and hold the size asked.
