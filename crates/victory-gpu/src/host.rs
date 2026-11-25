@@ -2316,6 +2316,14 @@ fn inflight_tickets_landed(plans: &[&CardPlan]) {
     }
 }
 
+/// Whether a fallback `relay_card_back` fetch taken at queue count `after`
+/// can overlap any flight still in the air after landing plans up to `landed`.
+/// Submissions up to `after - 1` have already had their lists queued; when
+/// `after - 1 <= landed`, no later in-flight plan can ever match `b.3 >= sent_as`.
+fn should_record_brought(after: u64, landed: Option<u64>) -> bool {
+    after > 1 && landed.is_none_or(|last| after - 1 > last)
+}
+
 /// Of the line's things in order (a flight: the value signalled on the
 /// host's fence behind it; a write or a signal behind a flight: `None`):
 /// how many, from the front, can be landed when the card has reached
@@ -4123,6 +4131,9 @@ impl Host {
         // not read yet: the area starts again only when none is out.
         if !relay() || work.out == 0 {
             work.taken = 0;
+            if let Some(inflight) = &mut work.inflight {
+                inflight.brought.clear();
+            }
         }
     }
 
@@ -4314,8 +4325,9 @@ impl Host {
         // (`relay_card_inflight`). Sends up to `after` are numbered, and the
         // submission numbered `after` may not have its lists on the queue
         // yet; every one before it has (the submission lock).
+        let landed = plans.iter().map(|p| p.sent_as).max();
         if inflight_fetch()
-            && after > 1
+            && should_record_brought(after, landed)
             && let Some(inflight) = CARD_WORK.lock().unwrap_or_else(|e| e.into_inner()).as_mut().and_then(|w| w.inflight.as_mut())
         {
             inflight.brought.extend(pieces.iter().map(|(shadow, lo, hi, _)| (shadow.clone(), *lo, *hi, after - 1)));
@@ -8098,6 +8110,21 @@ mod batch {   // Batch::texture_due lives here; `mod tests` is already taken at 
         assert_eq!(ram_idle_ms(Some(0)), 2_000);
         // Missing falls back to normal
         assert_eq!(ram_idle_ms(None), 10_000);
+    }
+
+    #[test]
+    fn should_record_brought_only_when_later_flights_exist() {
+        use super::should_record_brought;
+        // Single/last flight overflow (after == 5, landed == Some(5)): after - 1 = 4 <= 5.
+        assert!(!should_record_brought(5, Some(5)));
+        // Next submission numbered 6 has not queued lists yet (after == 6, landed == Some(5)): after - 1 = 5 <= 5.
+        assert!(!should_record_brought(6, Some(5)));
+        // True overlap with flight 6 in the air (after == 7, landed == Some(5)): after - 1 = 6 > 5.
+        assert!(should_record_brought(7, Some(5)));
+        // Degenerate `after <= 1` never records.
+        assert!(!should_record_brought(0, None));
+        assert!(!should_record_brought(1, None));
+        assert!(should_record_brought(2, None));
     }
 
     #[test]
