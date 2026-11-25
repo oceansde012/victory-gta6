@@ -161,36 +161,17 @@ pub(crate) unsafe fn emulate(ctx: &mut CONTEXT) -> i32 {
             // SAFETY: the 64-byte line is committed and writable.
             unsafe { std::ptr::write_bytes(line as *mut u8, 0, 64) };
         }
-        ConsoleOnly::ClzeroLoop { end_reg } => {
-            // the whole `clzero; add rax,40h; cmp rax,end; jb` loop at once
-            let regs: [u64; 16] = [
-                ctx.Rax, ctx.Rcx, ctx.Rdx, ctx.Rbx, ctx.Rsp, ctx.Rbp, ctx.Rsi, ctx.Rdi, ctx.R8, ctx.R9, ctx.R10, ctx.R11, ctx.R12, ctx.R13, ctx.R14, ctx.R15,
-            ];
-            let end = regs[end_reg as usize & 15] as usize;
-            let start = ctx.Rax as usize;
-            if end > start && end - start < 2 << 30 {
-                // Region by region: a block may lie across several (the title's pages are
-                // mapped one view each), and one answer for all of it was a refusal, after
-                // which every 64-byte line took an exception of its own.
-                let mut at = start;
-                while at < end {
-                    let Some(to) = writable_to(at, end) else { break };
-                    // SAFETY: committed and writable from `at` to `to`.
-                    unsafe { std::ptr::write_bytes(at as *mut u8, 0, to - at) };
-                    at = to;
-                }
-                if at == start {
-                    return 0;
-                }
-                ZEROED.fetch_add((at - start) as u64, Relaxed);
-                if at < end {
-                    // What follows is not writable: the loop goes on there (the same
-                    // instruction again), where the real one faults too.
-                    ctx.Rax = at as u64;
-                    return CONTINUE_EXECUTION;
-                }
+        ConsoleOnly::ClzeroLoop { .. } => {
+            // Use the existing loop emulator, which preserves the final
+            // register and comparison flags even for unaligned limits.
+            // The backward branch goes to the opcode, past any prefixes.
+            ctx.Rip += (len - 12) as u64;
+            // SAFETY: the exception context names the title's memory.
+            if unsafe { crate::crash::clzero(ctx) } {
+                return CONTINUE_EXECUTION;
             }
-            ctx.Rax = end as u64;
+            ctx.Rip = rip as u64;
+            return 0;
         }
         ConsoleOnly::Rdpru => {
             let mut v = 0i64;

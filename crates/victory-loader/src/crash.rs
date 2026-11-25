@@ -328,7 +328,7 @@ fn clwb_loop(code: &[u8]) -> Option<ClwbLoop> {
 /// # Safety
 /// `context` is the state of a thread that faulted at a `clzero`; the
 /// lines its registers name are the title's to zero.
-unsafe fn clzero(context: &mut CONTEXT) -> bool {
+pub(crate) unsafe fn clzero(context: &mut CONTEXT) -> bool {
     // SAFETY: (every use) a line the title asked to zero.
     let zero = |rax: u64| unsafe { ((rax & !63) as *mut u8).write_bytes(0, 64) };
     let at = context.Rip as usize;
@@ -1175,6 +1175,28 @@ mod tests {
         assert_eq!((last, next), (start + 128, start + 192));
         assert_eq!(flags as u32 & CMP_FLAGS, native_compare(next, start + 192));
         assert_eq!(zeroed(&mem), [false, true, true]);
+    }
+
+    #[test]
+    fn console_instruction_handler_preserves_clzero_loop_state() {
+        #[repr(align(64))]
+        struct Lines([u8; 192]);
+        for (limit, bytes) in [(0u64, 64usize), (64, 64), (100, 128), (128, 128)] {
+            let mut mem = Lines([0xff; 192]);
+            let start = mem.0.as_mut_ptr() as u64;
+            let code: [u8; 12] = [0x0f, 0x01, 0xfc, 0x48, 0x83, 0xc0, 0x40, 0x4c, 0x39, 0xd0, 0x72, 0xf4];
+            let mut context: CONTEXT = unsafe { std::mem::zeroed() };
+            context.Rip = code.as_ptr() as u64;
+            context.Rax = start;
+            context.R10 = start + limit;
+            // SAFETY: code is readable and the zeroed lines belong to mem.
+            assert_eq!(unsafe { crate::console_insn::emulate(&mut context) }, -1);
+            assert_eq!(context.Rax, start + bytes as u64);
+            assert_eq!(context.EFlags & CMP_FLAGS, native_compare(start + bytes as u64, start + limit));
+            assert_eq!(context.Rip, code.as_ptr() as u64 + code.len() as u64);
+            assert!(mem.0[..bytes].iter().all(|&b| b == 0));
+            assert!(mem.0[bytes..].iter().all(|&b| b == 0xff));
+        }
     }
 
     fn reg(low: u64, high: u64) -> M128A {
