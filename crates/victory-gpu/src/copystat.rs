@@ -752,6 +752,16 @@ fn log_memory() {
             WALKING.store(false, Relaxed);
         }
     }
+    let pool = crate::texture::pool_stats();
+    tracing::info!(
+        "staging buffers since the start: {} made, {} taken from the pool, {} given back to it, {} released with it full; the pool now: {} buffers {:.0} MB (VICTORY_STAGING_POOL_MB)",
+        pool[0],
+        pool[1],
+        pool[2],
+        pool[3],
+        pool[4],
+        mb(pool[5])
+    );
     let kept = crate::pipeline::kept();
     tracing::info!(
         "memory kept beside the lines below: {} shader containers {:.0} MB, {} translations \
