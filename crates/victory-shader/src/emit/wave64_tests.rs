@@ -450,3 +450,82 @@ fn scc_of_a_mask_operation_joined_with_a_scalar_test_needs_the_skip_wave_wide() 
     }
     eprintln!("ran on the hardware device: the inner test's SCC for every lane once some lane is inside");
 }
+
+/// One console wave of 64. `v_writelane_b32` writes its lane whatever EXEC is: inside
+/// `if (t > s0) { ... }`, lane 0 (never inside) takes the scalar as soon as any thread is.
+/// The compiler parks scalars this way in a VGPR that has other uses too (`unspill` leaves
+/// those alone). Every thread stores what lane 0 holds after the join: 5 once the body
+/// ran, 7 when the wave skipped it.
+#[test]
+fn a_lane_write_reaches_its_lane_outside_exec() {
+    let words = [
+        0x7E12_0287, // v_mov_b32 v9, 7
+        0x7D82_0000, // v_cmp_lt_u32 vcc, s0, v0
+        0xBE8C_246A, // s_and_saveexec_b64 s[12:13], vcc
+        0xBF88_0003, // s_cbranch_execz to "join"
+        0xBE86_0385, // s_mov_b32 s6, 5
+        0xD761_0009,
+        0x0001_0006, // v_writelane_b32 v9, s6, 0
+        0xBEFE_040C, // join: s_mov_b64 exec, s[12:13]
+        0xD760_0007,
+        0x0001_0109, // v_readlane_b32 s7, v9, 0
+        0x7E02_0207, // v_mov_b32 v1, s7
+        0x38 << 26 | 0x1C << 18,
+        0x80 << 24 | 2 << 16 | 1 << 8, // buffer_store_dword v1, off, s[8:11], 0
+    ];
+    let native = native(&words);
+    let p = ir::build(&native.code, native.wave64, native.vgprs).expect("ir::build");
+    for i in p.blocks.iter().flat_map(|b| &b.insts) {
+        eprintln!("  {:#06x} {}", i.machine.offset, i.name());
+    }
+    let _one = super::valu_tests::ONE_AT_A_TIME.lock().unwrap_or_else(|e| e.into_inner());
+    let forms = [
+        ("as is", Some(p.clone())),
+        ("without skips", ir::without_skips(&p, false)),
+        ("without skips, scalars followed", ir::without_skips(&p, true)),
+    ];
+    let mut wrong = Vec::new();
+    let mut ran = 0;
+    for (name, q) in &forms {
+        let Some(q) = q else {
+            eprintln!("{name}: the skip is kept");
+            continue;
+        };
+        lower::take_needs();
+        let shader = match lowered(&native, q, &HashSet::new()) {
+            Ok(s) => s,
+            // With the skip, lane 0 is not where the write stands: refused, and the forms
+            // without the skip are taken instead (`super::emit`).
+            Err(ShaderError::Unsupported { what, .. }) if *name == "as is" => {
+                assert_eq!(what, "a lane write where not every lane runs");
+                assert!(lower::needs_every_lane(what));
+                continue;
+            }
+            Err(e) => panic!("{name}: {e}"),
+        };
+        ran += 1;
+        // (threads above s0 inside) -> lane 0 after the join
+        for (s0, expected) in [(10u32, 5u32), (62, 5), (63, 7)] {
+            let Some(got) = on_the_card(&shader, [s0, 0]) else { return };
+            eprintln!("{name}: threads above {s0} inside -> {got} (the console: {expected})");
+            if got != expected {
+                wrong.push(format!("{name}: s0 = {s0}: {got}, not {expected}"));
+            }
+        }
+    }
+    // The same with lane 0 inside (`t < s0`).
+    let mut inside = words;
+    inside[1] = 0x7D88_0000; // v_cmp_gt_u32 vcc, s0, v0
+    let native = native_of(&inside, true, 64);
+    let p = ir::build(&native.code, native.wave64, native.vgprs).expect("ir::build");
+    lower::take_needs();
+    let p = ir::without_skips(&p, false).expect("the skip is left out");
+    let shader = lowered(&native, &p, &HashSet::new()).expect("lower");
+    for (s0, expected) in [(10u32, 5u32), (64, 5), (0, 7)] {
+        let Some(got) = on_the_card(&shader, [s0, 0]) else { return };
+        eprintln!("lane 0 inside, without skips: threads below {s0} inside -> {got} (the console: {expected})");
+        assert_eq!(got, expected, "lane 0 inside, s0 = {s0}");
+    }
+    assert!(wrong.is_empty(), "{wrong:#?}");
+    assert_eq!(ran, 2, "both forms without the skip translate");
+}

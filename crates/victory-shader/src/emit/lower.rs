@@ -7444,10 +7444,34 @@ impl<'a> Lower<'a> {
                 if self.local && !self.local_any {
                     return Err("a lane write in a half-wave");
                 }
+                // The instruction ignores EXEC: its lane takes the scalar whenever the console
+                // wave runs it, which is when some lane of the wave is in EXEC here (a wave
+                // with none took the skip around it), whether or not that lane is the one
+                // written. So the write is not under the lane's own guard: with a guard, the
+                // wave is asked whether some lane's holds. Two host waves of 32 exchange
+                // their answers, and the lane written must be here to take the scalar: both
+                // need every lane, as a lane read does.
+                let halves = self.exchange.as_ref().is_some_and(|e| !e.1) && !self.local;
+                if halves && !self.all_lanes(self.cur_ir) {
+                    need(self.cur_ir);
+                    return Err("a lane write where not every lane runs");
+                }
                 let me = self.console_lane();
-                let is = self.s.m.cmp(c, pred::EQ, me, lane);
+                let mut is = self.s.m.cmp(c, pred::EQ, me, lane);
+                if let Some(g) = guard {
+                    let (i1t, i32t) = (self.s.t.i1, self.s.t.i32);
+                    let mut some = self.s.op(c, "waveAnyTrue", Attr::NoUnwind, i1t, 113, &[g]);
+                    if halves {
+                        let mine = self.s.m.cast(c, Cast::ZExt, some, i32t);
+                        let (lo, hi) = self.exchange_halves(c, mine);
+                        let both = self.s.m.bin(c, Bin::Or, lo, hi);
+                        let z = self.s.m.i32(0);
+                        some = self.s.m.cmp(c, pred::NE, both, z);
+                    }
+                    is = self.s.m.bin(c, Bin::And, is, some);
+                }
                 let r = self.s.m.select(c, is, a, old);
-                int(self, r)
+                self.write_i(inst, r, None)
             }
             "v_readfirstlane_b32"
                 if inst
