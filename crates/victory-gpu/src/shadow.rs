@@ -75,8 +75,9 @@ pub(crate) struct Shadow {
     /// heap opened on the title memory itself, so shaders read and write
     /// the title's own bytes and nothing is copied either way. The heap,
     /// and the bytes from the buffer's first byte to `start` (the heap
-    /// begins on a 64 KiB line; a title buffer need not).
-    place: Option<(windows::Win32::Graphics::Direct3D12::ID3D12Heap, u64)>,
+    /// begins on a 64 KiB line; a title buffer need not), and whether the
+    /// heap is a whole page-pool section (`crate::inplace::Placed`).
+    place: Option<(windows::Win32::Graphics::Direct3D12::ID3D12Heap, u64, bool)>,
 }
 
 /// What a copy in the card's memory ([`cards`]) has beside the buffer
@@ -1425,9 +1426,9 @@ static LIVE: [std::sync::atomic::AtomicU64; 2] = [const { std::sync::atomic::Ato
 
 impl Drop for Shadow {
     fn drop(&mut self) {
-        if self.place.is_some() {
+        if let Some(place) = &self.place {
             // Never counted with the copies (`Shadow::placed`).
-            crate::inplace::gone(self.window, self.len);
+            crate::inplace::gone(self.window, self.len, place.2);
             return;
         }
         LIVE[0].fetch_sub(1, Ordering::Relaxed);
@@ -1723,7 +1724,7 @@ impl Shadow {
         LIVE[1].fetch_sub(len, Ordering::Relaxed);
         *shadow.watched.get_mut() = NOT_WATCHED;
         shadow.window = window;
-        shadow.place = Some((placed.heap, placed.bias));
+        shadow.place = Some((placed.heap, placed.bias, placed.pooled));
         shadow
     }
 

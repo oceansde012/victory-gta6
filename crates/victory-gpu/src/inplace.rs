@@ -69,16 +69,26 @@ pub(crate) fn probe_level() -> u8 {
 /// is a buffer placed over it ([`place_for`]). 2: title buffers too,
 /// except the big ones in the card's memory.
 ///
-/// What stage 1 covers is private memory (`XMemVirtualAlloc`'s). View
-/// memory (the page pool) is turned down here: its section is made
-/// reserved, which the host refuses, and what a view shows changes when
-/// the title maps pages.
+/// `VICTORY_INPLACE_POOL=1` adds view memory (the title's page pool) to
+/// whichever of the two the level asks for, where one run of one section
+/// shows the whole range ([`Cover::Run`]): the runtime makes those
+/// sections committed ([`views_wanted`]), each is opened once as a heap
+/// (which locks nothing, so it is not held to [`most`]) and a buffer is
+/// placed at the run's offset.
+///
+/// What stage 1 covers is private memory (`XMemVirtualAlloc`'s). Without
+/// the pool switch, view memory (the page pool) is turned down: its
+/// section is made reserved, which the host refuses. What a view shows changes when the
+/// title maps pages; the runtime tells [`title_memory_freeing`] first, and
+/// what was in place there is let go.
 ///
 /// What it assumes, for 2: nothing reads title memory that a submission
 /// not yet run writes through such a buffer. With every submission waited
 /// for (the default) that holds; with `VICTORY_LATE_WAIT` it does not,
 /// since the flights' rules know shader writes only by the ranges copies
-/// declare. Do not combine 2 with late wait.
+/// declare. Do not combine 2 with late wait, which the relay turns on and
+/// which is on by default: 2 needs `VICTORY_RELAY=0` (run-auto-11 with
+/// both: the device hung, `DXGI_ERROR_DEVICE_HUNG`, within 3 minutes).
 ///
 /// shortcut: while a window is in place the title cannot decommit, free
 /// or protect its pages (the call fails with error 87; the probe shows
@@ -101,8 +111,10 @@ fn most() -> u64 {
 /// In place now: windows and their bytes, title buffers and their bytes;
 /// then, since the start: asks turned down because the memory is a view
 /// or not private memory committed whole, because the host refused,
-/// because of [`most`]; and what was let go because its memory changed.
-static STATS: [AtomicU64; 8] = [const { AtomicU64::new(0) }; 8];
+/// because of [`most`]; and what was let go because its memory changed;
+/// then, in place now, the bytes of the windows and buffers above that
+/// lie in view memory (not locked, not held to [`most`]).
+static STATS: [AtomicU64; 9] = [const { AtomicU64::new(0) }; 9];
 
 /// A buffer placed over title memory, and its heap.
 pub(crate) struct Placed {
@@ -112,6 +124,64 @@ pub(crate) struct Placed {
     pub(crate) gpu: u64,
     /// Bytes from the buffer's first byte to the title memory's first.
     pub(crate) bias: u64,
+    /// In a section opened whole (view memory), not in locked private
+    /// memory: [`gone`] must be told.
+    pub(crate) pooled: bool,
+}
+
+/// Whether the runtime should make physical-page sections committed, so
+/// that [`place_for`] can open them as heaps. A committed section is
+/// charged against the PC's commit limit whole when made (its pages still
+/// take memory only when first touched).
+pub fn views_wanted() -> bool {
+    level() > 0 && pool()
+}
+
+/// `VICTORY_INPLACE_POOL`: 1 puts view memory in place too (see [`level`]).
+fn pool() -> bool {
+    static ON: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *ON.get_or_init(|| std::env::var("VICTORY_INPLACE_POOL").is_ok_and(|v| v.trim() == "1"))
+}
+
+/// The heaps opened on whole sections, by section handle; kept for the
+/// run (a section the title frees stays alive through its heap, as it
+/// does through views it still has).
+static SECTION_HEAPS: Mutex<Vec<(usize, ID3D12Heap)>> = Mutex::new(Vec::new());
+
+/// A buffer over `len` bytes of `section` from `offset` on, in the heap
+/// opened on the whole section (opened on first use). `Err(None)` if the
+/// section is not committed or the range runs past it.
+fn place_in_section(device: &ID3D12Device, section: usize, offset: u64, len: u64) -> Result<Placed, Option<windows::core::Error>> {
+    let size = {
+        let v = views();
+        match v.sections.iter().find(|s| s.0 == section) {
+            Some(&(_, bytes, true)) => bytes,
+            _ => return Err(None),
+        }
+    };
+    let at = offset & !(K64 as u64 - 1);
+    let bytes = (offset + len.max(1)).next_multiple_of(K64 as u64) - at;
+    if at + bytes > size {
+        return Err(None);
+    }
+    let heap = {
+        let mut heaps = SECTION_HEAPS.lock().unwrap_or_else(|e| e.into_inner());
+        match heaps.iter().find(|h| h.0 == section) {
+            Some((_, heap)) => heap.clone(),
+            None => {
+                let heap = open(device, From::Section(section)).map_err(Some)?;
+                // SAFETY: a live heap.
+                let got = unsafe { heap.GetDesc() }.SizeInBytes;
+                tracing::info!(section = format_args!("{section:#x}"), mb = got >> 20, "title page pool opened as a host heap");
+                heaps.push((section, heap.clone()));
+                heap
+            }
+        }
+    };
+    let buffer = place(device, &heap, at, bytes).map_err(Some)?;
+    // SAFETY: a live buffer.
+    let gpu = unsafe { buffer.GetGPUVirtualAddress() } + (offset - at);
+    Ok(Placed { buffer, heap, gpu, bias: offset - at, pooled: true })
 }
 
 /// Opens the 64 KiB pages that hold title memory `[start, start + len)`
@@ -128,7 +198,7 @@ pub(crate) fn place_part(device: &ID3D12Device, start: u64, len: u64) -> Result<
     let buffer = place(device, &heap, 0, bytes).map_err(Some)?;
     // SAFETY: a live buffer.
     let gpu = unsafe { buffer.GetGPUVirtualAddress() } + (start - at);
-    Ok(Placed { buffer, heap, gpu, bias: start - at })
+    Ok(Placed { buffer, heap, gpu, bias: start - at, pooled: false })
 }
 
 /// Title memory `[start, start + len)` in place, for a window outside
@@ -138,21 +208,35 @@ pub(crate) fn place_for(start: u64, len: u64, window: bool) -> Option<Placed> {
     if level() < if window { 1 } else { 2 } {
         return None;
     }
-    // View memory: known from the runtime without asking Windows.
-    if cover(start as usize, len as usize) != Cover::None {
-        STATS[4].fetch_add(1, Ordering::Relaxed);
-        return None;
-    }
-    if STATS[1].load(Ordering::Relaxed) + STATS[3].load(Ordering::Relaxed) + len > most() {
+    // View memory: known from the runtime without asking Windows. One run
+    // of one section can be placed in that section's heap (the pool switch).
+    let tried = match cover(start as usize, len as usize) {
+        Cover::None => None,
+        Cover::Run(section, offset) if pool() => Some((section, offset)),
+        _ => {
+            STATS[4].fetch_add(1, Ordering::Relaxed);
+            return None;
+        }
+    };
+    // Only private memory is locked when opened; a section is not.
+    let locked = STATS[1].load(Ordering::Relaxed) + STATS[3].load(Ordering::Relaxed) - STATS[8].load(Ordering::Relaxed);
+    if tried.is_none() && locked + len > most() {
         STATS[6].fetch_add(1, Ordering::Relaxed);
         return None;
     }
     let host = crate::host::host()?;
-    match place_part(&host.device, start, len) {
+    let placed = match tried {
+        Some((section, offset)) => place_in_section(&host.device, section, offset, len),
+        None => place_part(&host.device, start, len),
+    };
+    match placed {
         Ok(placed) => {
             let at = if window { 0 } else { 2 };
             STATS[at].fetch_add(1, Ordering::Relaxed);
             STATS[at + 1].fetch_add(len, Ordering::Relaxed);
+            if placed.pooled {
+                STATS[8].fetch_add(len, Ordering::Relaxed);
+            }
             Some(placed)
         }
         Err(None) => {
@@ -169,10 +253,13 @@ pub(crate) fn place_for(start: u64, len: u64, window: bool) -> Option<Placed> {
 }
 
 /// What [`place_for`] gave is gone.
-pub(crate) fn gone(window: bool, bytes: u64) {
+pub(crate) fn gone(window: bool, bytes: u64, pooled: bool) {
     let at = if window { 0 } else { 2 };
     STATS[at].fetch_sub(1, Ordering::Relaxed);
     STATS[at + 1].fetch_sub(bytes, Ordering::Relaxed);
+    if pooled {
+        STATS[8].fetch_sub(bytes, Ordering::Relaxed);
+    }
 }
 
 /// Title memory `[at, at + len)` is about to show something else, or the
@@ -199,12 +286,13 @@ fn say() {
     }
     let s: Vec<u64> = STATS.iter().map(|s| s.load(Ordering::Relaxed)).collect();
     tracing::info!(
-        "title memory in place: {} windows {} MB, {} title buffers {} MB (no copy, no refresh, no copy-back); turned down: {} view memory or not private memory committed whole, \
-         {} refused by the host, {} over VICTORY_INPLACE_MB; {} let go because their memory changed",
+        "title memory in place: {} windows {} MB, {} title buffers {} MB (no copy, no refresh, no copy-back), {} MB of it in the page pool; turned down: {} view memory \
+         or not private memory committed whole, {} refused by the host, {} over VICTORY_INPLACE_MB; {} let go because their memory changed",
         s[0],
         s[1] >> 20,
         s[2],
         s[3] >> 20,
+        s[8] >> 20,
         s[4],
         s[5],
         s[6],
