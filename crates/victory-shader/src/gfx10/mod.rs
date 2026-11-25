@@ -63,6 +63,18 @@ pub struct Instruction {
 }
 
 impl Instruction {
+    /// An instruction of `encoding` and `opcode` made up rather than
+    /// decoded, its name resolved as [`decode`] does.
+    pub fn new(offset: usize, encoding: Encoding, opcode: u16, words: Vec<u32>) -> Instruction {
+        Instruction {
+            offset,
+            encoding,
+            opcode,
+            words,
+            name: name(encoding, opcode),
+        }
+    }
+
     /// AMD's name for the opcode, if it is in our table.
     pub fn name(&self) -> Option<&'static str> {
         self.name

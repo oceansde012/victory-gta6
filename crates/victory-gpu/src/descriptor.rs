@@ -124,6 +124,18 @@ const SHADER_VISIBLE: u32 = 1;
 #[cfg(windows)]
 static SHADER_HEAPS: std::sync::Mutex<Vec<(u64, u64, usize)>> = std::sync::Mutex::new(Vec::new());
 
+/// The shader-visible heap holding `handle`, and the descriptor's index.
+#[cfg(windows)]
+fn shader_slot<'a>(handle: u64) -> Option<(&'a Heap, u32)> {
+    let heaps = SHADER_HEAPS.lock().unwrap_or_else(|e| e.into_inner());
+    let &(_, _, at) = heaps
+        .iter()
+        .find(|&&(start, end, _)| (start..end).contains(&handle))?;
+    // SAFETY: registered heaps are live (removed when dropped).
+    let heap = unsafe { &*(at as *const Heap) };
+    Some((heap, heap.index(handle)?))
+}
+
 /// Makes the host descriptor for what the title wrote at `handle`, if it
 /// is in a shader-visible heap. Keeps `SHADER_HEAPS` locked for the duration
 /// so `Heap::drop` cannot free the heap concurrently.
