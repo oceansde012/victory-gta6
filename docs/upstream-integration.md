@@ -354,3 +354,27 @@ fps), so the cause is elsewhere among the six code commits between them
   readable today.
 - Trackers (portwatch tracker.json, gta6-pc-race): no updates since
   2026-11-24 evening.
+
+## Belobug/VIctory-Belobug-AMD (checked 2026-11-25)
+
+GPL-3.0. Base: Marvisak main `8e79c80` (2026-11-24) plus 501 commits of
+its own, not fxceless. One machine: RX 9070 XT 16 GB, 9800X3D, 64 GB;
+3-5 fps in the world. Its README: about 22 GB RAM and "more video memory
+than a 16 GB card has"; not tested on NVIDIA.
+
+- Light in shadow is a **constant stand-in** (`VICTORY_AMBIENT`, 0.6):
+  the ray-traced indirect light does not run there either. Our `03e328f`
+  runs the title's indirect light computes (#799), which is better
+  picture; not taken.
+- Already in ours by other routes: quad reads with helper lanes,
+  `v_readfirstlane` helper lanes, guard over every view of a page.
+- Twice the dynamic descriptor slots (`2aad398`, draws dropped when they
+  ran out): AMD only. On NVIDIA the host heap is capped at 1,000,000 views
+  and our dynamic slots come out of the title's. To check on the PC: does
+  the log say "no free dynamic descriptor slots" where walls vanish?
+- Hoisted indirect clamps (`ccab973`, `918ab03`, `76387c2`: clamps of a run
+  of indirect draws recorded before it, no flicker in mode 7): an idea for
+  our indirect cost (113 ms a frame in run L). 22 conflict hunks on our
+  base; to port by hand, not cherry-pick.
+- Every other commit checked conflicts (ambient chain, root-view reads,
+  shader swap); the two code bases differ too much for picks.
