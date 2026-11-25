@@ -873,6 +873,22 @@ mod tests {
 
     use super::*;
 
+    /// A texture a list sampled is uploaded again for draws after a copy
+    /// of the list rewrote its memory.
+    #[test]
+    fn a_title_memory_copy_makes_textures_due_again() {
+        let Some(host) = host() else { return };
+        let list = host.new_list().unwrap();
+        assert!(list.first_use(8), "the first draw uploads it");
+        assert!(!list.first_use(8), "later draws find it done");
+        list.defer_copy(std::ptr::null_mut(), std::ptr::null(), 0);
+        assert!(list.first_use(8), "after a copy: again");
+        assert!(!list.first_use(8));
+        list.defer(|| {});
+        assert!(list.first_use(8), "after work that writes title memory: again");
+        list.close();
+    }
+
     #[test]
     fn warp_adapter_accepts_only_software() {
         // This probes DXGI without creating a D3D12 device or running a title.
@@ -6181,6 +6197,8 @@ impl HostList {
             .copies
             .push(Step::Copy(dst as usize, src as usize, len));
         deferred.refreshed.clear();
+        // A texture sampled before the copy is brought up to date again.
+        deferred.textures.clear();
     }
 
     /// Copies `len` bytes of title memory at `src` into the list's upload
@@ -6451,8 +6469,10 @@ impl HostList {
     /// Runs `work` when the list is submitted, in order with its copies.
     /// `work` may write title memory (refreshes after it copy again).
     pub(crate) fn defer(&self, work: impl Fn() + Send + 'static) {
-        self.deferred().copies.push(Step::Run(Box::new(work)));
-        self.deferred().refreshed.clear();
+        let mut deferred = self.deferred();
+        deferred.copies.push(Step::Run(Box::new(work)));
+        deferred.refreshed.clear();
+        deferred.textures.clear();
     }
 
     /// As [`HostList::defer`], for work that writes only host memory.
