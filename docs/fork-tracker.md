@@ -6,6 +6,9 @@
 ## Проверки инфраструктуры
 
 - Анализатор производительности: точечное разрешение для `tools/perf/analyze_run.py` в PR #8; 25 ноября поиск `policy python allowlist` в обоих апстримах не показал аналогичного исправления. Проверки содержимого сохранены.
+- Проверяемая сборка для измерений: `tools/perf/build-verified.ps1` требует чистое дерево и ожидаемый коммит, сохраняет SHA-256 созданного EXE; 25 ноября поиск `verified build manifest` в обоих апстримах не показал аналогичного средства. Игра не запускается.
+
+  В чистой рабочей копии: `powershell -NoProfile -ExecutionPolicy Bypass -File tools/perf/build-verified.ps1 -ExpectedCommit <commit> -TargetDir B:\victory-build`. Манифест сохраняется в target-директории; для запуска нужно отдельно проверить хеш EXE и параметры игры.
 
 ## Взято из апстримов досрочно (cherry-pick открытых PR)
 
