@@ -123,6 +123,21 @@ impl Host {
         }
     }
 
+    /// The widest wave supported by the adapter used for pipeline checks.
+    pub fn max_wave_lanes(&self) -> Option<u32> {
+        let mut options = D3D12_FEATURE_DATA_D3D12_OPTIONS1::default();
+        // SAFETY: the feature and buffer size match the output structure.
+        unsafe {
+            self.device.CheckFeatureSupport(
+                D3D12_FEATURE_D3D12_OPTIONS1,
+                (&raw mut options).cast(),
+                size_of_val(&options) as u32,
+            )
+        }
+        .ok()?;
+        (options.WaveLaneCountMax != 0).then_some(options.WaveLaneCountMax)
+    }
+
     /// The root signature translated shaders expect: user data per stage
     /// at `b0`, immediate samplers per stage at `s<n>`, heaps directly
     /// indexed.

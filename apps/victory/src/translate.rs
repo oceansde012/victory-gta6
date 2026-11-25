@@ -69,7 +69,7 @@ struct Tally {
     ms_emitted: usize,
     ms_validated: usize,
     ms_pipelines: usize,
-    /// Reason → programs stopped by it, and the first one.
+    /// Reason â†’ programs stopped by it, and the first one.
     failed: BTreeMap<String, (usize, String)>,
     /// With `--list`: one line per program and outcome.
     list: bool,
@@ -164,11 +164,6 @@ pub fn run(
         victory_core::ensure_outside_repo(Path::new(&dir))?;
     }
     let paths = crate::default_paths(paths)?;
-    // `VICTORY_HOST_MAX_WAVE=32`: translate as for a host whose waves have
-    // at most 32 lanes (as the runtime does on such a card).
-    if let Some(n) = std::env::var("VICTORY_HOST_MAX_WAVE").ok().and_then(|v| v.parse().ok()) {
-        victory_shader::emit::set_host_max_wave(n);
-    }
     let dll = validate.then(Validator::default_path).flatten();
     if validate {
         Validator::load(dll.as_deref()).map_err(anyhow::Error::msg)?;
@@ -178,8 +173,20 @@ pub fn run(
                 .map_or("dxil.dll".into(), |p| p.display().to_string())
         );
     }
-    if pipelines {
-        Host::new(false).map_err(anyhow::Error::msg)?;
+    // Explicit target widths also work without a device. Keep MAX_WAVE's
+    // precedence when both spellings are set.
+    let requested_wave = ["VICTORY_HOST_MAX_WAVE", "VICTORY_HOST_WAVE"]
+        .iter()
+        .find_map(|name| std::env::var(name).ok()?.parse::<u32>().ok());
+    let wave = if pipelines {
+        let host = Host::new(false).map_err(anyhow::Error::msg)?;
+        requested_wave.or_else(|| host.max_wave_lanes())
+    } else {
+        requested_wave
+    };
+    if let Some(n) = wave {
+        emit::set_host_max_wave(n);
+        println!("wave max     {n}");
     }
     let pairs: Vec<(String, String)> = std::env::var("VICTORY_PAIRS")
         .unwrap_or_default()
