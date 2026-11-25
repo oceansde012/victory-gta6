@@ -39,3 +39,35 @@ The "shader writes looked for on the CPU" log line says how many MB this
 would move to the card.
 
 Keep `VICTORY_INPLACE` unset (no gain on our earlier build).
+
+## Result of 0540763 (runs 1-3)
+Copy-back ~210 ms, 3.7-3.8 fps; preset 2 cuts freezes 8-9 -> 5. CPU side:
+26 MB in 279 ranges, 0 MB in copies of 1 MiB or more. Those 26 MB are
+already joined per range and compared on 8 threads (`hand_back` /
+`relay_hand_back`): a few ms, not 210.
+
+Suspect: `Host::relay_card_back`. With the relay (default) the landing
+thread fetches the card copies' changed pieces with a list on the **main
+queue** and waits for it (`WaitForSingleObject(INFINITE)`). The flights sent
+ahead are already in that queue, so the fetch waits for their GPU work too,
+and that wait is counted in "copying back". The log line
+`the relay per frame ... waited X ms for fetches of card copies' pieces,
+and was Y ms landing in all` gives the split.
+
+## Run 4: card copies off (no fetch at all)
+Preset 2, plus:
+```
+set VICTORY_CARD_BUFFERS=0
+```
+Card-copy compares move to the CPU (more RAM/CPU, no fetch wait).
+
+## Run 5: relay off
+Preset 2, plus:
+```
+set VICTORY_RELAY=0
+```
+Fetch runs inside the submission, with no flights queued ahead of it.
+
+If run 4 or 5 removes most of the 210 ms, the fix is a fetch on its own
+copy queue (needs care with `QUEUE_ORDER`: sends queued before the fetch
+must have run before it reads).
