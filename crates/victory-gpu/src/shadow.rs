@@ -2686,11 +2686,6 @@ impl Shadow {
             // range, most of whose ranges differ nowhere, was most of the
             // work for small ranges.
             let (mut title, mut mask, mut runs) = (Vec::new(), Vec::new(), Vec::new());
-            // The runs of the stretch being written back, joined where they
-            // are close ([`GAP`] in the loop below), and where they start.
-            let mut written_span: Vec<u8> = Vec::new();
-            let mut written_span_at: usize = 0;
-            let mut written_span_open = false;
             for (at, n) in differing {
                 // SAFETY: inside the mapping; only the submitting thread
                 // writes it.
@@ -2700,62 +2695,15 @@ impl Shadow {
                 let Some((first, n)) = back_piece(host, old, &mut title, &mut mask, &mut runs, read) else {
                     continue;
                 };
-                // One write for the whole copy: the stretches are contiguous,
-                // and a write through the kernel of 64 KiB costs what 62 MB
-                // in one call costs per megabyte several times over (217 to
-                // 224 ms a frame for 53 to 75 MB). The bytes between two runs
-                // are the title's as read, so putting them back writes what
-                // is already there; a gap that the last read did not cover is
-                // read now.
-                let at_abs = at + first;
-                if !written_span_open {
-                    written_span_at = at_abs;
-                    written_span_open = true;
-                } else if written_span_at + written_span.len() < at_abs {
-                    let gap_from = written_span_at + written_span.len();
-                    let gap = at_abs - gap_from;
-                    let have = written_span.len();
-                    written_span.resize(have + gap, 0);
-                    if !crate::host::read_into(
-                        (start + gap_from) as *const u8,
-                        &mut written_span[have..],
-                    ) {
-                        // A gap that cannot be read: give back what we have.
-                        written_span.truncate(have);
-                        crate::host::write_mapped(
-                            (start + written_span_at) as *mut u8,
-                            written_span.as_ptr(),
-                            written_span.len(),
-                        );
-                        written_span.clear();
-                        written_span_at = at_abs;
-                    }
-                }
-                written_span.extend_from_slice(&title[..n]);
                 let at = at + first;
                 crate::watch::writing(start + at, n);
                 // Only the GPU's bytes (upstream #2009): the rest of the
                 // stretch is the title's as read, and a title write landing
                 // there since stays.
-                //
-                // Runs closer together than [`GAP`] go back in one call: a
-                // write through the kernel costs tens of microseconds
-                // whatever its length, and a shader that sets a few words of
-                // a piece leaves runs a handful of bytes long (52 to 75 MB a
-                // frame came to 217 to 224 ms that way). The bytes between
-                // two runs are the title's as read, so putting them back
-                // writes what is already there.
-                for &(_off, len) in &runs {
+                for &(off, len) in &runs {
+                    crate::host::write_mapped((start + at + off) as *mut u8, title[off..].as_ptr(), len);
                     written += len;
                 }
-            }
-            // One write for the copy, as gathered above.
-            if written_span_open && !written_span.is_empty() {
-                crate::host::write_mapped(
-                    (start + written_span_at) as *mut u8,
-                    written_span.as_ptr(),
-                    written_span.len(),
-                );
             }
             // Our write shows as a title write at the copy's next refresh,
             // which copies those pages once more (some dozens of MB a
