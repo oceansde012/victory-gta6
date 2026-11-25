@@ -166,6 +166,27 @@ fn shared_budget() -> bool {
     *ON.get_or_init(|| std::env::var_os("VICTORY_PIPELINE_WAIT_SHARED").is_none_or(|v| v != "0"))
 }
 
+/// Claims remaining wait budget for `frame`. Lagging threads from an older
+/// frame get `Duration::ZERO` without resetting the newer frame's budget.
+fn take_budget(
+    spent: &mut (u64, Duration),
+    frame: u64,
+    budget: Duration,
+    shared: bool,
+) -> Duration {
+    if spent.0 != u64::MAX && frame < spent.0 {
+        return Duration::ZERO;
+    }
+    if spent.0 == u64::MAX || frame > spent.0 {
+        *spent = (frame, Duration::ZERO);
+    }
+    let left = budget.saturating_sub(spent.1);
+    if shared {
+        spent.1 += left;
+    }
+    left
+}
+
 /// Waits for `p` while frame `frame` has budget left.
 fn wait(p: &Pending, frame: u64) {
     let budget = wait_budget();
@@ -178,14 +199,7 @@ fn wait(p: &Pending, frame: u64) {
     let shared = shared_budget();
     let left = {
         let mut spent = SPENT.lock().unwrap_or_else(|e| e.into_inner());
-        if spent.0 != frame {
-            *spent = (frame, Duration::ZERO);
-        }
-        let left = budget.saturating_sub(spent.1);
-        if shared {
-            spent.1 += left;
-        }
-        left
+        take_budget(&mut spent, frame, budget, shared)
     };
     if left.is_zero() {
         return;
@@ -402,5 +416,29 @@ mod tests {
         assert_eq!(queue.push(&promoted, REQUESTED), None);
         assert!(Arc::ptr_eq(&queue.pop().unwrap(), &earlier));
         assert!(queue.pop().is_none());
+    }
+
+    #[test]
+    fn lagging_frame_does_not_rewind_or_reset_budget() {
+        let budget = Duration::from_millis(500);
+        let mut spent = (u64::MAX, Duration::ZERO);
+
+        // First frame (even frame 0) initializes the budget.
+        assert_eq!(take_budget(&mut spent, 0, budget, true), budget);
+        assert_eq!(spent, (0, budget));
+
+        // Advancing to frame 10 resets the budget once.
+        assert_eq!(take_budget(&mut spent, 10, budget, true), budget);
+        assert_eq!(spent, (10, budget));
+
+        // A lagging thread from frame 9 gets zero budget and must not rewind
+        // `spent.0` (which would otherwise grant frame 10 a second full budget).
+        assert_eq!(take_budget(&mut spent, 9, budget, true), Duration::ZERO);
+        assert_eq!(spent, (10, budget));
+        assert_eq!(take_budget(&mut spent, 10, budget, true), Duration::ZERO);
+
+        // Advancing to frame 11 grants a fresh budget.
+        assert_eq!(take_budget(&mut spent, 11, budget, false), budget);
+        assert_eq!(spent, (11, Duration::ZERO));
     }
 }
