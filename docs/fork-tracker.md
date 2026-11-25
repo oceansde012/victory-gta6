@@ -25,3 +25,4 @@
 | 4 | Тени / RT-освещение (сейчас чёрные) | — | — | план |
 | 5 | Upstream integration, stage 1: fxceless main `8dd30ab` merged; 108 Marvisak/VIctory commits/PRs cherry-picked, GPU-contract work deferred (see `docs/upstream-integration.md`) | `claude/project-thread-2l2dcf` | 2026-11-25: fxceless issue #126 (same 274-hunk trial merge, staged plan); no published merged branch | в работе |
 | 6 | Perf picks round 1: 12 upstream perf/stability PRs + F3 overlay + heap texture budget switches (see `docs/perf-picks.md`) | `claude/project-thread-4f4qka` | 2026-11-25: open PRs of Marvisak (since 11-22) and fxceless searched; tracker gta6-pc-race read | в работе |
+| 7 | Синхронизировать первую запись CPU с тестом слияния буфера на WARP | `codex/synchronize-resident-merge-test` | 2026-11-25: в upstream-watch, PR и issues fxceless и Marvisak исправления не найдено | готово |

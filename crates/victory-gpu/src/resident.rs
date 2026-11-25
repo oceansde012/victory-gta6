@@ -1517,7 +1517,9 @@ mod tests {
         let stop = std::sync::atomic::AtomicBool::new(false);
         let at = base as usize;
         let last = std::thread::scope(|s| {
+            let (first_write, ready) = std::sync::mpsc::channel();
             let cpu = s.spawn(|| {
+                let mut first_write = Some(first_write);
                 let mut k = 0u8;
                 while !stop.load(Ordering::Relaxed) {
                     k = k.wrapping_add(1).max(1);
@@ -1525,16 +1527,23 @@ mod tests {
                         // SAFETY: inside the allocation.
                         unsafe { std::ptr::write_volatile((at as *mut u8).add(w * 4), k) };
                     }
+                    if let Some(signal) = first_write.take() {
+                        let _ = signal.send(());
+                    }
                 }
                 k
             });
-            // SAFETY: an open list of the rig's, after the "shaders"; the
-            // resident lives through it.
-            let ran = rig.run(|list| unsafe {
-                record_merge(list, &pass, &[Merge { resident: &r, ranges: vec![(0, n)], narrow }]);
+            // Compare against a value the writer actually stored, even if WARP
+            // finishes the merge before the CPU thread would have been scheduled.
+            let ran = ready.recv_timeout(std::time::Duration::from_secs(10)).map(|()| {
+                // SAFETY: an open list of the rig's, after the "shaders"; the
+                // resident lives through it.
+                rig.run(|list| unsafe {
+                    record_merge(list, &pass, &[Merge { resident: &r, ranges: vec![(0, n)], narrow }]);
+                })
             });
             stop.store(true, Ordering::Relaxed);
-            ran.unwrap();
+            ran.expect("CPU writer did not finish its first pass").unwrap();
             cpu.join().unwrap()
         });
         let words = words();
