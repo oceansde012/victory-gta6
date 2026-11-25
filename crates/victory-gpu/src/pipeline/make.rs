@@ -460,4 +460,39 @@ mod tests {
         assert_eq!(take_budget(&mut spent, 11, budget, false), budget);
         assert_eq!(spent, (11, Duration::ZERO));
     }
+
+    #[test]
+    fn zero_group_dispatches_do_not_request_a_pipeline() {
+        use crate::object::{S_OK, This, slot};
+
+        let Some(host) = crate::host::host() else {
+            return;
+        };
+        let list = host.new_list().unwrap();
+        // A pending pipeline that cannot translate makes any accidental
+        // demand observable without depending on a shader's build time.
+        let mut title = std::ptr::null();
+        assert_eq!(
+            crate::pipeline::hand_out(
+                Vec::new(),
+                None,
+                &crate::pipeline::PIPELINE_IIDS[0],
+                &mut title,
+            ),
+            S_OK
+        );
+        let pending = &crate::pipeline::pipeline(title).host;
+        let mut state = crate::draw::State::default();
+        state.set_pipeline(title);
+        let zero_demands = [(0, 1, 1), (1, 0, 1), (1, 1, 0)].map(|(x, y, z)| {
+            state.dispatch(&list, x, y, z);
+            pending.used.load(Ordering::Relaxed)
+        });
+        state.dispatch(&list, 1, 1, 1);
+        let nonempty_demand = pending.used.load(Ordering::Relaxed);
+        list.close();
+        slot::<extern "system" fn(This) -> u32>(title, 0x10)(title);
+        assert_eq!(zero_demands, [false; 3]);
+        assert!(nonempty_demand);
+    }
 }

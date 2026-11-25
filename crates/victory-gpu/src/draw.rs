@@ -2201,6 +2201,9 @@ impl State {
 
     /// Runs a dispatch on the host.
     pub(crate) fn dispatch(&mut self, list: &HostList, x: u32, y: u32, z: u32) {
+        if x == 0 || y == 0 || z == 0 {
+            return;
+        }
         // It may write the arguments a window holds clamped.
         self.window = None;
         #[cfg(feature = "diagnostics")]
