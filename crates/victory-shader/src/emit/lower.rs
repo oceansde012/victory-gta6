@@ -6667,6 +6667,43 @@ impl<'a> Lower<'a> {
                     _ => Err("a typed root view"),
                 }
             }
+            Source::Phi { block, args } if sampler && (2..=3).contains(&args.len()) => {
+                let mut words = Vec::with_capacity(args.len());
+                for a in args {
+                    let Source::Constant(w) = a else {
+                        return Err("a descriptor chosen by control flow");
+                    };
+                    let w: [u32; 4] = w
+                        .get(..4)
+                        .and_then(|w| w.try_into().ok())
+                        .ok_or("a sampler constant")?;
+                    words.push(w);
+                }
+                let preds = &self.x.p.blocks[*block].preds;
+                if preds.len() != args.len() {
+                    return Err("a descriptor chosen by control flow");
+                }
+                // The static samplers of the range: both registered now, so
+                // they are consecutive whatever the program used before.
+                let lo = self.samplers.len() as u32;
+                for w in words {
+                    self.samplers.push(w);
+                }
+                if props.0 & 0x8000 != 0 {
+                    for n in lo..lo + args.len() as u32 {
+                        self.s.cmp_samplers |= 1 << n;
+                    }
+                }
+                let mut index = self.s.m.i32(lo);
+                for (k, &pred) in preds.iter().enumerate().skip(1) {
+                    let cond = self.boolean(self.x.st.reach[pred], *block)?;
+                    let n = self.s.m.i32(lo + k as u32);
+                    index = self.s.m.select(self.cur, cond, n, index);
+                }
+                Ok(self
+                    .s
+                    .sampler_range_handle(self.cur, lo, lo + args.len() as u32 - 1, index))
+            }
             Source::Phi { block, args } => {
                 let _ = site;
                 let phi = self.descriptor_phi(*block, args, sampler, 8)?;
