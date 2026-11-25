@@ -100,6 +100,7 @@ mod source_tests {
         "emit/helper_lane_tests.rs",
         "emit/host.rs",
         "emit/intersect_tests.rs",
+        "emit/lower_tests.rs",
         "emit/valu_tests.rs",
         "emit/waterfall_tests.rs",
         "emit/wave64_tests.rs",
