@@ -61,3 +61,26 @@ relay lines), "the card's clock per frame", the residents' line with
 `VICTORY_INPLACE=4` (MB uploaded and merged per frame), picture changes,
 and whether the run ended early. `VICTORY_INPLACE=4` is new upstream: if
 it crashes, note the last lines of the log and `crashes.log`.
+
+## Round 4: lighting vs frame time (2026-11-25)
+
+03e328f against 1644f2b by default: 1.85 fps / 540 ms (card 284 ms)
+against 3.5 fps / 283 ms (card 73 ms); 5 refused pipelines instead of 15;
+and shadowed places are no longer black but lit with a blue fill. The
+suspect is fxceless #799's loose-LDS fallback (on by default): console
+wave64 programs that read and write LDS inside one lane-branch region
+were refused by a 32-lane host (every dispatch dropped) and now run,
+approximately, as two host waves. These look like the lighting computes.
+
+`VICTORY_WAVE_LDS_LOOSE=0` turns it off: the switch between picture
+(lighting, default) and frame time. It changes the translation, so the
+shader cache translates those programs again on the first run with it.
+
+| Run | Build | Environment | Expect if #799 is the cause |
+|---|---|---|---|
+| K | 03e328f (or later) | `VICTORY_WAVE_LDS_LOOSE=0` | ~3.5 fps, card ~73 ms, shadows black again |
+| L | 03e328f, diagnostics build | `VICTORY_GPU_TIMING=1`, 20 s in the world | per-pipeline card times: which programs take the ~210 ms |
+
+L's log names the slowest pipelines by hash (the lines from
+`copystat::command_took`); with those, the expensive programs can be run
+at a lower rate or resolution, or tuned, instead of all or nothing.
