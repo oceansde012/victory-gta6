@@ -25,7 +25,7 @@ victory-shader`. The full Windows suite runs in CI.
 | fxceless #772 | Residents (`VICTORY_INPLACE=4`, opt-in): big title buffers live on the card and the card merges shader writes back into title memory in the same submission; `VICTORY_EARLY_SIGNAL=1` | copy-back (upstream: 75% less copy-back, half the uploads) |
 | fxceless #799 | NVIDIA (wave32) host fixes: CBV clamp, loose-LDS fallback, scalar ops | NVIDIA stability |
 | fxceless #805 | `CardInflight::brought` no longer pins buffers after fallback fetches | memory with `VICTORY_CARD_FETCH_INFLIGHT` |
-| fxceless #802, #803, #804, #806 | raw-copied heap slots synced before draws; raw view checks; absent blocks reused as private memory; constants not an address base | correctness, stability |
+| fxceless #802, #803, #806 | raw-copied heap slots synced before draws; raw view checks; constants not an address base | correctness, stability |
 | fxceless #808 | packed dot products as DXIL dot4AddPacked | shader cost |
 | ours | `VICTORY_TEXTURE_STAGE_MS` default 250 -> 60 | PC run: smoother p95, no late textures |
 
