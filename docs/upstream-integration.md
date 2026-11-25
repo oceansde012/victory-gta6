@@ -256,3 +256,146 @@ upstream #974's wrap past the cursor; CI test).
 - Open fxceless PRs merged clean, each as its own merge: #785 (relay
   `late_met`/`relay_land` race), #786 (relay/card merges write only
   GPU-changed runs), #783 (skip unchanged heap pages, one write-back).
+
+## Stage 3 (2026-11-25): branch `integration/2026-11-25`
+
+Rollback point: PR #7's head before this stage was `9de1ab7` (code as
+`03e328f`); `git reset --hard 9de1ab7` on a local copy returns to it.
+
+Base: the Codex stack (`codex/fix-clzero-loop`, PRs #10 #11 #13 #14) with
+PR #7's head merged in. Backup of that state:
+`backup/2026-11-25-pre-integration` (`deefbbb`). Kept as is: the
+`VICTORY_WAVE_LDS_LOOSE` switch, `VICTORY_TEXTURE_STAGE_MS=60`, Codex's
+fixes.
+
+### Taken (separate commits, `-x` where cherry-picked)
+
+| Commit | Source | What |
+| --- | --- | --- |
+| `1b55c20` | VItoriaBr `8cb509b` | vertex graphics pipelines compiled first |
+| `316b83f` | VItoriaBr `fe0506a` | helper lane `v_readfirstlane` reads its own value |
+| `79801f4` | VItoriaBr `1ac7518` | `Interp::Weighted` for lone `v_interp_p1` halves |
+| `daa5262` | VItoriaBr `18df163` | `calculateLOD` array slice undef |
+| `4faa222` | VItoriaBr `40beb26` (#10) | RDNA2 LDS bounds checks |
+| `b3a5b0c`, `4452a4b`, `7014af1` | VItoriaBr `67bb579`, `2ec2aa2`, `c248547` | immediate sampler range (non-pixel), join-path phi |
+| `14224aa` | VItoriaBr `2b3c339` | quad reads with helper lanes (lines on car paint, glass, skin) |
+| `f8afec2` | fxceless #783 `d695015` + `5e3e18e` | #783's final form, see below |
+| `005b9f1` | fxceless #781 `67efc51` | pooled texture staging buffers |
+| `d826b90` | fxceless #793 `c4d5ca5` | no diagnostic budget atomics/readbacks in the indirect clamp outside diagnostics builds |
+| ~~`cc72b39`~~ | fxceless #787 `04aff73` | reverted: CI crashes in victory-gpu tests (see revert commit) |
+
+### #783 and #786: the write-back conflict
+
+Our base merged #783 in its first form (`b5dee8d`). That form wrote a
+copy back in one call: the gaps between the GPU's runs were filled with
+the title's bytes as read earlier and the whole stretch written after
+the loop, over any title write that landed in between. That undoes
+upstream #2009 and #786 (write only the GPU's runs). The author dropped
+it after review (`d695015`); it did not change the copy-back time.
+`f8afec2` removes it and takes the rest of #783: kept page bytes are
+forgotten when a heap is released, and only records between a page's
+first and last changed byte are walked (upstream: descriptor sync 18.9
+-> 10.5 ms a frame, RTX 3080). Adapted to Codex's registry-held
+`CopiedSlots` (`CopiedSlots::needs`). #785 and #786 were already in.
+
+### Not taken
+
+- VItoriaBr `c0b60a0` (console element order in signatures): breaks
+  `signature_sorts_packed_registers_by_semantic_name_offset` on our base.
+- VItoriaBr #9 `7c19646` (dynamic descriptor wraparound): our base
+  already scans `cursor + n - 1` (with `self.dynamic`), duplicate.
+- VItoriaBr #11 `dcc0305`: test only, needs console formats 189-191
+  that our base lacks.
+- VItoriaBr #7 `5603b45` (indexed view byte stride), #6 `a6a8d39`
+  (`victory warm`): conflicts in 4-5 files, next step.
+- fxceless `f85101b` (submit thread, copy queue): its copy queue clashes
+  with ours, own step.
+- vitutu1/victory-perf: its 9-14 fps come from Series S mode, 50% render
+  scale and stand-in lighting; ideas only.
+
+### Checks (Linux, cross-target)
+
+- `cargo clippy --workspace --all-targets --all-features --target
+  x86_64-pc-windows-msvc -- -D warnings`: clean.
+- `cargo test -p victory-shader --lib`: 198 passed.
+- `cargo test -p xtask`: 6 passed.
+- Not yet run on the title. Release build and fps runs on the PC.
+
+### Regression bisect (1644f2b 3.5 fps -> 03e328f 1.85 fps)
+
+Run K showed `VICTORY_WAVE_LDS_LOOSE=0` does not bring it back (2.1
+fps), so the cause is elsewhere among the six code commits between them
+(`c297f4f` #804 is reverted). Builds, each from `1644f2b`:
+
+- a: `58a7b02` (#802) + `7f0ca9c`; b: `e34702d` + `477fe24` + `cc970bc`
+  (#799) + `4096561`.
+- quarters: a1 `58a7b02`, a2 `7f0ca9c`, b1 `e34702d`+`477fe24`, b2
+  `cc970bc`+`4096561`.
+
+## Other projects, checked 2026-11-25 (afternoon)
+
+- **vitutu1/victory-perf** (GPL-3.0, base fxceless `310c6eb`): 9-14 fps
+  claims are Series S mode + 50% render scale + lighting stand-ins on a
+  4070 SUPER. New today: ports from victory-world-runtime (`1412d43`) and
+  watch/JOURNAL lock work (`4cb867b`). Deep conflicts with our base; ideas.
+- **ZSlayerHQ/victory-world-runtime** (GPL-3.0, `next`): fxceless
+  `310c6eb` + joshuu/victory-amd, "walls fix confirmed on an RTX 5090":
+  multi-view guard (we have it via fxceless `8dd30ab`) and the 9-bit mesh
+  index mask (taken: `b204a79`, Marvisak `c0228d93`).
+- **PastiiJay/klbf-lab** (GPL-3.0, AMD RX 9070 XT + 9800X3D): ~7.3 fps in
+  the cell, ~5 fps native, both with `--console series-s` (1280x720) and
+  AMD FSR. Its "cell walls missing" fix: pipelines waited for while the
+  world loads, textures shown from their first loaded mip, lost placed
+  views refreshed, dispatches over 65,535 groups split (from
+  myokex/victory-amd). Candidates for our see-through walls if `b204a79`
+  is not enough.
+- **"Experimental victory-fork PR at 7.6 fps"**: not found. fxceless #770
+  (validation stack on `f85101b`) is the likely one; its page was not
+  readable today.
+- Trackers (portwatch tracker.json, gta6-pc-race): no updates since
+  2026-11-24 evening.
+
+## Belobug/VIctory-Belobug-AMD (checked 2026-11-25)
+
+GPL-3.0. Base: Marvisak main `8e79c80` (2026-11-24) plus 501 commits of
+its own, not fxceless. One machine: RX 9070 XT 16 GB, 9800X3D, 64 GB;
+3-5 fps in the world. Its README: about 22 GB RAM and "more video memory
+than a 16 GB card has"; not tested on NVIDIA.
+
+- Light in shadow is a **constant stand-in** (`VICTORY_AMBIENT`, 0.6):
+  the ray-traced indirect light does not run there either. Our `03e328f`
+  runs the title's indirect light computes (#799), which is better
+  picture; not taken.
+- Already in ours by other routes: quad reads with helper lanes,
+  `v_readfirstlane` helper lanes, guard over every view of a page.
+- Twice the dynamic descriptor slots (`2aad398`, draws dropped when they
+  ran out): AMD only. On NVIDIA the host heap is capped at 1,000,000 views
+  and our dynamic slots come out of the title's. To check on the PC: does
+  the log say "no free dynamic descriptor slots" where walls vanish?
+- Hoisted indirect clamps (`ccab973`, `918ab03`, `76387c2`: clamps of a run
+  of indirect draws recorded before it, no flicker in mode 7): an idea for
+  our indirect cost (113 ms a frame in run L). 22 conflict hunks on our
+  base; to port by hand, not cherry-pick.
+- Every other commit checked conflicts (ambient chain, root-view reads,
+  shader swap); the two code bases differ too much for picks.
+
+## Picture first (2026-11-25 evening)
+
+Taken into PR #7 (`b65fad7`): Codex's `codex/pr7-voxel-visibility-mask`
+(DexNom `76749ce`), `codex/pr7-empty-dispatch-2556` (Marvisak #2556),
+`codex/stencil-texture-upload`; fxceless #956 (textures picked by index
+read again), #795 (levels on demand keep their tiles); Marvisak #2297
+(texture sampled before an in-list copy uploaded again). fxceless #922 was
+left out: our base already turns blending off on integer targets
+(`VICTORY_FIX_INTBLEND`), and #922 defined the same function twice.
+
+**DexNom/VIctory** (GPL-3.0, `921d8d3`): Marvisak main with
+victory-world-runtime squashed in (`570a941`, 170 files, +49k/-36k) and 11
+commits of its own. It reports 25,742 of 25,758 shaders translating, an
+open world close to retail on an RX 7900 XTX, and experimental RT
+(`victory-play --rt`) at about 1 fps. Its own commits conflict in 4 to 18
+files each on our fxceless base (29 to 58 hunks for the picture ones), so
+porting it piece by piece is not practical. For a correct picture soonest,
+build DexNom as it is on the PC (its `Setup.cmd`, or `cargo build --locked
+--release -p victory --features diagnostics --bins`) and compare it with
+PR #7 at the same spot. It is untested on NVIDIA.

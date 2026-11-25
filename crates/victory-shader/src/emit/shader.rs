@@ -354,6 +354,7 @@ impl Shader {
 
     /// The handle of immediate sampler `n` (a comparison sampler when its
     /// bit in `cmp_samplers` is set).
+    /// A handle to the static sampler at `n`.
     pub fn sampler_handle(&mut self, block: usize, n: u32) -> V {
         let bind = [
             self.m.i32(n),
@@ -376,6 +377,36 @@ impl Shader {
         } else {
             0
         };
+        self.annotate(block, h, 14 | cmp, 0)
+    }
+
+    /// A handle to the static sampler at `lo..=hi` picked by `index`: the
+    /// console compiler chooses between two immediate samplers on a branch,
+    /// and D3D12's static sampler registers can be indexed within one range.
+    pub fn sampler_range_handle(&mut self, block: usize, lo: u32, hi: u32, index: V) -> V {
+        let bind = [
+            self.m.i32(lo),
+            self.m.i32(hi),
+            self.m.i32(SAMPLER_SPACE),
+            self.m.i8(3), // sampler
+        ];
+        let bind = self.m.aggregate(self.t.bind, &bind);
+        // The index comes from a per-lane branch condition.
+        let f = self.m.bool(true);
+        let h = self.op(
+            block,
+            "createHandleFromBinding",
+            Attr::ReadNone,
+            self.t.handle,
+            217,
+            &[bind, index, f],
+        );
+        let mut cmp = 0;
+        for n in lo..=hi {
+            if self.cmp_samplers >> n & 1 != 0 {
+                cmp = 0x8000;
+            }
+        }
         self.annotate(block, h, 14 | cmp, 0)
     }
 

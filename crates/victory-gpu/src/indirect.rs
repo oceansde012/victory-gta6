@@ -75,6 +75,7 @@ void main(uint3 id : SV_DispatchThreadID) {
         draw_counts = uint2(count, instances);
     } else if (kind == 2) {
         uint3 asked = src_args.Load3(src_at);
+#if VICTORY_DIAGNOSTICS
         // Diagnostics, in the budget buffer's words after the mesh ones:
         // the largest x a compute record asked for, and the records that
         // asked for more groups in x than one dispatch runs (they are cut
@@ -87,6 +88,7 @@ void main(uint3 id : SV_DispatchThreadID) {
                 budget.InterlockedAdd(16, 1u, noted);
             }
         }
+#endif
         uint3 g = min(asked, uint3(65535u, 65535u, 65535u));
         // x * y fits 32 bits; the whole count may not.
         if (g.z != 0 && g.x * g.y > GROUPS / g.z) {
@@ -103,11 +105,13 @@ void main(uint3 id : SV_DispatchThreadID) {
         if (ahead && g.x > 65535u) {
             g = uint3(0, 0, 0);
         }
+#if VICTORY_DIAGNOSTICS
         // Diagnostics, in the budget buffer's next words: the largest
         // group count a mesh record asked for, and the groups asked in all.
         uint was;
         budget.InterlockedMax(4, g.x, was);
         budget.InterlockedAdd(8, min(g.x, 1u << 24), was);
+#endif
         g = uint3(min(g.x, 65535u), min(g.y, 1u), min(g.z, 1u));
         cost = g.x * g.y * g.z * 128u;
         groups = g;
@@ -174,14 +178,26 @@ fn make() -> windows::core::Result<Clamp> {
     make_for(device)
 }
 
+fn clamp_source(diagnostics: bool) -> String {
+    format!(
+        "#define VICTORY_DIAGNOSTICS {}\n{SOURCE}",
+        u8::from(diagnostics)
+    )
+}
+
 fn make_for(device: &ID3D12Device) -> windows::core::Result<Clamp> {
+    make_for_with(device, cfg!(feature = "diagnostics"))
+}
+
+fn make_for_with(device: &ID3D12Device, diagnostics: bool) -> windows::core::Result<Clamp> {
+    let source = clamp_source(diagnostics);
     let mut code: Option<ID3DBlob> = None;
     let mut errors: Option<ID3DBlob> = None;
     // SAFETY: the source and names live through the call; out pointers ours.
     let compiled = unsafe {
         D3DCompile(
-            SOURCE.as_ptr().cast(),
-            SOURCE.len(),
+            source.as_ptr().cast(),
+            source.len(),
             s!("clamp"),
             None,
             None,
@@ -291,6 +307,75 @@ pub(crate) fn bound(
     let bytes = validate_layout(spec, src.1, count.map(|(_, off)| off))?;
     let (c, budget, dst) = (clamp()?, list.budget()?, list.indirect_scratch(bytes)?);
     record_clamp(c, &list.list, &dst, budget, src, count, spec).then_some(dst)
+}
+
+/// Whether the clamps of indirect draws are recorded in a list of their
+/// own before the list that draws (`VICTORY_HOIST_CLAMPS=1`), so that a run
+/// of draws is not interleaved with our dispatches and barriers. Off by
+/// default until measured on the PC. Idea and form from
+/// Belobug/VIctory-Belobug-AMD (`ccab973`, `76387c2`; GPL-3.0-or-later):
+/// there it took one scene from 225 to 72 ms of GPU time a frame.
+pub(crate) fn hoisting() -> bool {
+    static ON: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *ON.get_or_init(|| std::env::var_os("VICTORY_HOIST_CLAMPS").is_some_and(|v| v == "1"))
+}
+
+/// As [`bound`], recorded in `clamps`, a list that runs before the one that
+/// executes: the buffer and the offset of the clamped records, readable as
+/// indirect arguments once `clamps` ended ([`HostList::clamp_end`]). The
+/// clamps run one after another (a barrier before each): run side by side,
+/// records past the list's budget were not the same ones from frame to
+/// frame and whole mesh objects flickered (Belobug `76387c2`).
+pub(crate) fn bound_before(
+    clamps: &HostList,
+    (src, src_offset): (&ID3D12Resource, u64),
+    count: Option<(&ID3D12Resource, u64)>,
+    (kind, stride, records): (u32, u32, u32),
+) -> Option<(ID3D12Resource, u64)> {
+    let bytes = validate_layout((kind, stride, records), src_offset, count.map(|(_, off)| off))?;
+    if records == 0 {
+        return None;
+    }
+    let (c, budget) = (clamp()?, clamps.budget()?);
+    // SAFETY: live buffers.
+    let (src_base, count_base) =
+        unsafe { (src.GetGPUVirtualAddress(), count.map(|(b, _)| b.GetGPUVirtualAddress())) };
+    // Addresses the shader's offsets (32 bits) reach, as in `record_clamp_as`.
+    let fits = |offset: u64, len: u64| offset.checked_add(len).is_some_and(|end| end <= u64::from(u32::MAX));
+    let (src_gpu, args_offset) = if fits(src_offset, bytes) {
+        (src_base, src_offset as u32)
+    } else {
+        (src_base.checked_add(src_offset)?, 0)
+    };
+    let (count_gpu, has_count, count_offset) = match (count, count_base) {
+        (Some((_, off)), Some(base)) if fits(off, 4) => (base, 1u32, off as u32),
+        (Some((_, off)), Some(base)) => (base.checked_add(off)?, 1, 0),
+        _ => (src_gpu, 0, 0),
+    };
+    if !src_gpu.is_multiple_of(4) || !count_gpu.is_multiple_of(4) || !budget.is_multiple_of(4) {
+        return None;
+    }
+    let (dst, at) = clamps.clamp_room(bytes)?;
+    // SAFETY: a live buffer.
+    let dst_gpu = unsafe { dst.GetGPUVirtualAddress() } + at;
+    let constants = [kind, stride, records, args_offset, has_count, count_offset];
+    #[cfg(feature = "diagnostics")]
+    crate::copystat::add(crate::copystat::C::IndirectBounded, 1);
+    let l = &clamps.list;
+    // SAFETY: an open list; our root signature and pipeline; live source,
+    // count, destination (writable: `clamp_room`) and budget buffers.
+    unsafe {
+        l.ResourceBarrier(&[uav_barrier()]);
+        l.SetComputeRootSignature(&c.root);
+        l.SetPipelineState(&c.pso);
+        l.SetComputeRoot32BitConstants(0, 6, constants.as_ptr().cast(), 0);
+        l.SetComputeRootShaderResourceView(1, src_gpu);
+        l.SetComputeRootShaderResourceView(2, count_gpu);
+        l.SetComputeRootUnorderedAccessView(3, dst_gpu);
+        l.SetComputeRootUnorderedAccessView(4, budget);
+        l.Dispatch(records.div_ceil(64), 1, 1);
+    }
+    Some((dst, at))
 }
 
 /// Ensures earlier compute writes to indirect argument/count buffers are
@@ -527,7 +612,8 @@ void main() {
                     .ok()?;
                 let fence: ID3D12Fence = device.CreateFence(0, D3D12_FENCE_FLAG_NONE).ok()?;
                 let event = CreateEventW(None, false, false, None).ok()?;
-                let clamp = make_for(&device).expect("clamp shader must compile on WARP");
+                let clamp =
+                    make_for_with(&device, true).expect("clamp shader must compile on WARP");
                 let worker = compile_cs(&device, WORKER_CS).expect("worker shader must compile");
                 Some(Self {
                     device,
@@ -1421,6 +1507,81 @@ void main() {
         assert_eq!(validate_layout((0, 16, 1), 2, None), None);
         assert_eq!(validate_layout((0, 16, 1), 0, Some(2)), None);
         assert_eq!(validate_layout((0, 16, u32::MAX), 0, None), None);
+    }
+
+    #[test]
+    fn warp_release_clamp_skips_diagnostic_atomics_and_keeps_bounds() {
+        let Some(mut warp) = WarpHarness::new() else {
+            return;
+        };
+        let release_clamp =
+            make_for_with(&warp.device, false).expect("non-diagnostic clamp shader must compile");
+
+        const KIND_COMPUTE: u32 = 2;
+        const KIND_MESH: u32 = 10;
+        const STRIDE: u32 = 16;
+
+        let (src_buf, src_ptr, _) = warp.shared_buffer(STRIDE as u64);
+        let (_budget_buf, budget_ptr, budget_gpu) = warp.shared_buffer(256);
+        let (readback_buf, readback_ptr, _) = warp.shared_buffer(STRIDE as u64);
+        let dst_buf = warp.default_uav(STRIDE as u64);
+
+        for (kind, asked, expected, expected_cost) in [
+            (KIND_COMPUTE, [70_000u32, 1, 1, 0xDEAD_BEEF], [65_535, 1, 1, 0xDEAD_BEEF], 65_535 * 64),
+            (KIND_MESH, [519u32, 1, 1, 0xCAFE_1234], [519, 1, 1, 0xCAFE_1234], 519 * 128),
+        ] {
+            // SAFETY: mapped host buffers for one record + 5-word budget block.
+            unsafe {
+                for (w, val) in asked.into_iter().enumerate() {
+                    (src_ptr as *mut u32).add(w).write_volatile(val);
+                }
+                for w in 0..5 {
+                    (budget_ptr as *mut u32).add(w).write_volatile(0);
+                }
+                std::ptr::write_bytes(readback_ptr, 0, STRIDE as usize);
+            }
+
+            assert!(record_clamp_as(
+                &release_clamp,
+                &warp.list,
+                &dst_buf,
+                budget_gpu,
+                (&src_buf, 0),
+                None,
+                (kind, STRIDE, 1),
+                false,
+            ));
+            done_on(&warp.list, &dst_buf);
+            // SAFETY: open list; readback copy of clamped scratch.
+            unsafe {
+                warp.list.ResourceBarrier(&[transition(
+                    &dst_buf,
+                    D3D12_RESOURCE_STATE_COMMON,
+                    D3D12_RESOURCE_STATE_COPY_SOURCE,
+                )]);
+                warp.list.CopyBufferRegion(&readback_buf, 0, &dst_buf, 0, STRIDE as u64);
+                warp.list.ResourceBarrier(&[transition(
+                    &dst_buf,
+                    D3D12_RESOURCE_STATE_COPY_SOURCE,
+                    D3D12_RESOURCE_STATE_COMMON,
+                )]);
+            }
+            warp.submit_and_wait();
+
+            // SAFETY: GPU execution finished; read mapped budget and scratch copyback.
+            let (words, out) = unsafe {
+                let words = [0, 1, 2, 3, 4].map(|w| (budget_ptr as *const u32).add(w).read_volatile());
+                let out = [0, 1, 2, 3].map(|w| (readback_ptr as *const u32).add(w).read_volatile());
+                (words, out)
+            };
+            assert_eq!(out, expected);
+            assert_eq!(words[0], expected_cost, "budget tracking must still run");
+            assert_eq!(
+                &words[1..5],
+                &[0, 0, 0, 0],
+                "non-diagnostic shader must leave diagnostic budget words untouched"
+            );
+        }
     }
 }
 

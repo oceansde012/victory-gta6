@@ -12,8 +12,7 @@
 //!
 //! shortcut: a change detiles the whole texture, not the pages written.
 //! Only textures read through descriptor tables are brought up to date
-//! (directly indexed views are not known per draw); plane 0 is uploaded
-//! (every mip and array slice), depth and stencil planes are not.
+//! (directly indexed views are not known per draw).
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -40,11 +39,13 @@ pub(crate) struct Staging {
     data: *mut u8,
     footprints: Vec<D3D12_PLACED_SUBRESOURCE_FOOTPRINT>,
     rows: Vec<u32>,
-    layout: victory_formats::texture::Layout,
+    layout: victory_formats::texture::Texture,
     /// Mips per array slice.
     mips: u32,
     /// The staging buffer's bytes (counted in `STAGED` while it lives).
     bytes: u64,
+    /// Subresources per plane: all mips of each array slice.
+    subresources_per_plane: u32,
     memory: *const u8,
     last: Mutex<Last>,
     /// Whether the staging buffer was detiled since a submitted list last
@@ -69,6 +70,13 @@ pub(crate) struct Staging {
     /// recorded again about a second later if the card has room by then
     /// ([`upload`]).
     waiting: std::sync::atomic::AtomicU64,
+    /// The buffer's bytes as made (at least `bytes`): what it goes back to
+    /// the pool as ([`POOL`]).
+    capacity: u64,
+    /// Whether the buffer came from the pool and has not been detiled into
+    /// yet: it holds another texture's texels, which a refresh that does
+    /// not detile (a texture all zero, or not there yet) must not upload.
+    stale: std::sync::atomic::AtomicBool,
 }
 
 /// How long a texture whose hash changed is hashed at every check.
@@ -115,8 +123,9 @@ unsafe impl Send for Through {}
 // SAFETY: as above.
 unsafe impl Sync for Through {}
 
-/// The copy buffers of [`alias`], by the placed view's texture.
-static THROUGH: Mutex<Option<HashMap<usize, Arc<Through>>>> = Mutex::new(None);
+/// The copy buffers of [`alias`], keyed by `(placed, source)` so replacing the
+/// underlying written source texture never reuses stale footprints.
+static THROUGH: Mutex<Option<HashMap<(usize, usize), Arc<Through>>>> = Mutex::new(None);
 
 /// Brings `placed`, the texture of a view the title placed in the memory
 /// of `source` in another format (`crate::resource::alias_of`), up to date
@@ -142,7 +151,8 @@ pub(crate) fn alias(list: &HostList, placed: This, source: This) -> bool {
     let through = {
         let mut map = THROUGH.lock().unwrap_or_else(|e| e.into_inner());
         let map = map.get_or_insert_with(HashMap::new);
-        match map.get(&(placed as usize)) {
+        let key = (placed as usize, source as usize);
+        match map.get(&key) {
             Some(through) => through.clone(),
             None => {
                 // SAFETY: live textures.
@@ -220,7 +230,7 @@ pub(crate) fn alias(list: &HostList, placed: This, source: This) -> bool {
                     buffer,
                     parts: of_written.into_iter().zip(of_read).collect(),
                 });
-                map.insert(placed as usize, through.clone());
+                map.insert(key, through.clone());
                 through
             }
         }
@@ -406,7 +416,147 @@ impl Drop for Staging {
         use std::sync::atomic::Ordering::Relaxed;
         STAGED[0].fetch_sub(1, Relaxed);
         STAGED[1].fetch_sub(self.bytes, Relaxed);
+        // The lists that recorded a copy from it held it until they were
+        // reset, after the card ran them: the card is done with it.
+        give_back(self.buffer.clone(), self.data, self.capacity);
     }
+}
+
+/// An upload buffer of a staging buffer let go, mapped, kept for another.
+struct Pooled {
+    buffer: ID3D12Resource,
+    data: *mut u8,
+}
+
+// SAFETY: a buffer no list holds and no thread writes while it is pooled.
+unsafe impl Send for Pooled {}
+
+/// Upload buffers of staging buffers let go, by size class, oldest first
+/// in each, and their bytes.
+///
+/// A staging buffer was an upload buffer made for its texture and released
+/// with it. On the RTX 5070 making and mapping one costs 1.9 ms a megabyte
+/// and releasing it 1.2 more, whatever the heap flags (the system zeroes
+/// the pages), against 0.36 to write one already there (`upload_bench`:
+/// 1,000 buffers, 350 MB). The pass over the heap's textures makes up to
+/// 192 MB of them a frame (576 MB while it catches up), on the thread that
+/// records the frame: most of its 250-750 ms. Kept here, the next texture
+/// of the same size class takes one ([`class`]).
+///
+/// Most staging buffers live a frame (the pass lets go of what it uploaded,
+/// and a texture found changed is staged again), so the buffers given back
+/// last are the likeliest to be asked for: with the pool full, the oldest
+/// of the class holding the most bytes goes to make room. (Refusing the
+/// new one instead left the pool full of sizes no longer asked for: 5 % of
+/// buffers taken from it, 93 % released with it full.)
+struct Pool {
+    free: std::collections::BTreeMap<u64, std::collections::VecDeque<Pooled>>,
+    bytes: u64,
+}
+
+static POOL: Mutex<Pool> = Mutex::new(Pool {
+    free: std::collections::BTreeMap::new(),
+    bytes: 0,
+});
+
+/// The bytes a staging buffer of `size` is made with, so that buffers of
+/// nearby sizes are one class: whole 64 KiB up to 1 MiB (the system gives
+/// no less), then eight steps per power of two (at most an eighth unused).
+fn class(size: u64) -> u64 {
+    const LINE: u64 = 64 << 10;
+    let size = size.max(1);
+    if size <= 1 << 20 {
+        return size.next_multiple_of(LINE);
+    }
+    let step = (1u64 << (63 - size.leading_zeros())) / 8;
+    size.next_multiple_of(step)
+}
+
+/// Since the start: staging buffers made anew, taken from the pool, given
+/// back to it, and released because the pool was full.
+static POOL_COUNTS: [std::sync::atomic::AtomicU64; 4] = [const { std::sync::atomic::AtomicU64::new(0) }; 4];
+
+/// The most bytes the pool keeps: `VICTORY_STAGING_POOL_MB` (512; 0 keeps
+/// none, and every staging buffer is made and released as before).
+fn pool_limit() -> u64 {
+    static LIMIT: std::sync::OnceLock<u64> = std::sync::OnceLock::new();
+    *LIMIT.get_or_init(|| {
+        std::env::var("VICTORY_STAGING_POOL_MB").ok().and_then(|v| v.trim().parse::<u64>().ok()).unwrap_or(512) << 20
+    })
+}
+
+/// An upload buffer of at least `size` bytes, its mapping, its bytes, and
+/// whether it was used before: from the pool, the last given back of the
+/// size's class, else made with the class's bytes.
+fn take(size: u64) -> Option<(ID3D12Resource, *mut u8, u64, bool)> {
+    use std::sync::atomic::Ordering::Relaxed;
+    let capacity = class(size);
+    if pool_limit() > 0 {
+        let mut pool = POOL.lock().unwrap_or_else(|e| e.into_inner());
+        if let Some(list) = pool.free.get_mut(&capacity)
+            && let Some(p) = list.pop_back()
+        {
+            if list.is_empty() {
+                pool.free.remove(&capacity);
+            }
+            pool.bytes -= capacity;
+            POOL_COUNTS[1].fetch_add(1, Relaxed);
+            return Some((p.buffer, p.data, capacity, true));
+        }
+    }
+    let (buffer, data) = host()?.upload_buffer(capacity)?;
+    POOL_COUNTS[0].fetch_add(1, Relaxed);
+    Some((buffer, data, capacity, false))
+}
+
+/// A staging buffer's upload buffer, let go: kept in the pool, the oldest
+/// of the fullest class released while the pool is over its bytes. A
+/// buffer not of a class's size (or bigger than the whole pool) is released.
+fn give_back(buffer: ID3D12Resource, data: *mut u8, capacity: u64) {
+    use std::sync::atomic::Ordering::Relaxed;
+    let limit = pool_limit();
+    if capacity > limit || class(capacity) != capacity {
+        POOL_COUNTS[3].fetch_add(1, Relaxed);
+        return;
+    }
+    let mut released = Vec::new();
+    {
+        let mut pool = POOL.lock().unwrap_or_else(|e| e.into_inner());
+        while pool.bytes + capacity > limit {
+            let Some((&fullest, _)) = pool
+                .free
+                .iter()
+                .max_by_key(|&(&class, list)| class * list.len() as u64)
+            else {
+                break;
+            };
+            let list = pool.free.get_mut(&fullest).expect("the class just found");
+            if let Some(oldest) = list.pop_front() {
+                released.push(oldest);
+            }
+            if list.is_empty() {
+                pool.free.remove(&fullest);
+            }
+            pool.bytes -= fullest;
+        }
+        pool.bytes += capacity;
+        pool.free.entry(capacity).or_default().push_back(Pooled { buffer, data });
+    }
+    POOL_COUNTS[2].fetch_add(1, Relaxed);
+    POOL_COUNTS[3].fetch_add(released.len() as u64, Relaxed);
+    // Released outside the lock: a release costs about 1.2 ms a megabyte.
+    drop(released);
+}
+
+/// For the memory line: staging buffers made, taken from the pool, given
+/// back, released with the pool full; then the pool's buffers and bytes.
+#[cfg(feature = "diagnostics")]
+pub(crate) fn pool_stats() -> [u64; 6] {
+    use std::sync::atomic::Ordering::Relaxed;
+    let pool = POOL.lock().unwrap_or_else(|e| e.into_inner());
+    let kept = pool.free.values().map(|l| l.len() as u64).sum();
+    let [made, taken, given, released] = [0, 1, 2, 3].map(|i| POOL_COUNTS[i].load(Relaxed));
+    [made, taken, given, released, kept, pool.bytes]
 }
 
 /// For the memory line: staging buffers alive, their bytes, and how many
@@ -563,7 +713,7 @@ pub(crate) fn forget(resource: usize) {
     HOST_WRITTEN_AT.lock().unwrap_or_else(|e| e.into_inner()).retain(|_, d| d.5 != resource);
     let mut through = THROUGH.lock().unwrap_or_else(|e| e.into_inner());
     if let Some(through) = through.as_mut() {
-        through.remove(&resource);
+        through.retain(|&(placed, source), _| placed != resource && source != resource);
     }
 }
 
@@ -864,22 +1014,27 @@ impl Staging {
     /// `victory_formats::texture::Layout`.) A texture this cannot tell
     /// the levels of holds them all.
     fn held_levels(&self, [first, limit]: [u64; 2]) -> u32 {
-        let mips = &self.layout.mips;
-        if self.layout.slices != 1 || mips.is_empty() || mips.len() > 32 {
+        // The per-level residency calculation below covers one plane only.
+        if self.layout.planes.len() != 1 || self.layout.planes[0].offset != 0 {
             return u32::MAX;
         }
-        let tail = (self.layout.first_tail_mip as usize).min(mips.len());
+        let layout = &self.layout.planes[0].layout;
+        let mips = &layout.mips;
+        if layout.slices != 1 || mips.is_empty() || mips.len() > 32 {
+            return u32::MAX;
+        }
+        let tail = (layout.first_tail_mip as usize).min(mips.len());
         let there = |from: u64, to: u64| {
             to > from && to <= limit && committed(self.memory.wrapping_add(from as usize), (to - from) as usize)
         };
         let mut held = 0u32;
         for (level, m) in mips.iter().enumerate().take(tail) {
-            let end = if level == 0 { self.layout.slice_size } else { mips[level - 1].offset };
+            let end = if level == 0 { layout.slice_size } else { mips[level - 1].offset };
             if level as u64 >= first && there(m.offset, end) {
                 held |= 1 << level;
             }
         }
-        if tail < mips.len() && there(0, self.layout.alignment.min(self.layout.slice_size)) {
+        if tail < mips.len() && there(0, layout.alignment.min(layout.slice_size)) {
             for level in tail..mips.len() {
                 if level as u64 >= first {
                     held |= 1 << level;
@@ -906,6 +1061,14 @@ impl Staging {
         use std::sync::atomic::Ordering::Relaxed;
         let started = std::time::Instant::now();
         let read = self.refresh_now();
+        // A buffer from the pool that this refresh did not detile into
+        // holds another texture's texels: zeros instead, as a buffer made
+        // anew has.
+        if self.stale.swap(false, Relaxed) {
+            // SAFETY: the mapped staging buffer, `bytes` long; written only
+            // here and in `detile`, both at submission under no other use.
+            unsafe { self.data.write_bytes(0, self.bytes as usize) };
+        }
         let preparing = &crate::host::PREPARING;
         preparing[2].fetch_add(started.elapsed().as_micros() as u64, Relaxed);
         preparing[3].fetch_add(read as u64, Relaxed);
@@ -1102,15 +1265,23 @@ impl Staging {
         if tiled.iter().all(|&b| b == 0) {
             tracing::debug!(
                 memory = ?self.memory,
-                desc = ?self.layout.desc,
+                desc = ?self.layout.planes[0].layout.desc,
                 "a sampled texture's memory is all zero (not streamed yet, or a failed BCPack read)"
             );
         }
         for (i, (footprint, &rows)) in self.footprints.iter().zip(&self.rows).enumerate() {
-            let (mip, slice) = (i as u32 % self.mips, i as u32 / self.mips);
+            // D3D12 orders mips first, then array slices, then planes.
+            let index = i as u32 % self.subresources_per_plane;
+            let (mip, slice) = (index % self.mips, index / self.mips);
+            let plane = &self.layout.planes[i / self.subresources_per_plane as usize];
+            let start = plane.offset as usize;
+            let tiled = &tiled[start..start + plane.layout.size as usize];
             let f = footprint.Footprint;
             let pitch = f.RowPitch as usize;
-            let len = pitch * rows as usize * f.Depth as usize;
+            let Some(len) = subresource_len(footprint.Offset, pitch, rows, f.Depth, self.bytes) else {
+                tracing::warn!(offset = footprint.Offset, total = self.bytes, "texture footprint outside staging buffer");
+                return;
+            };
             // SAFETY: the subresource's part of the mapped staging buffer.
             let linear = unsafe {
                 std::slice::from_raw_parts_mut(self.data.add(footprint.Offset as usize), len)
@@ -1121,14 +1292,22 @@ impl Staging {
                 continue;
             }
             if let Err(e) =
-                self.layout
+                plane.layout
                     .detile(tiled, mip, slice, linear, pitch, pitch * rows as usize)
             {
                 tracing::warn!(?e, mip, slice, "texture not detiled");
                 return;
             }
         }
+        self.stale.store(false, std::sync::atomic::Ordering::Relaxed);
     }
+}
+
+/// Limit a padded footprint to the size returned by GetCopyableFootprints;
+/// the final row need not have a full row pitch of trailing padding.
+fn subresource_len(offset: u64, pitch: usize, rows: u32, depth: u32, total: u64) -> Option<usize> {
+    let remaining = usize::try_from(total.checked_sub(offset)?).ok()?;
+    Some(pitch.saturating_mul(rows as usize).saturating_mul(depth as usize).min(remaining))
 }
 
 /// Lets go of a title texture's staging buffer (lists that recorded an
@@ -1148,37 +1327,92 @@ pub(crate) fn staged_memory(resource: This) -> Option<(u64, u64)> {
     Some((at as u64, len as u64))
 }
 
+/// `VICTORY_HEAP_RECHECK_EVERY=<frames>`: a texture picked by index that
+/// was still unchanged at the last scheduled look (`draw::RECHECK_FRAMES`)
+/// is looked at again every that many frames (0, the default: never).
+pub(crate) fn recheck_every() -> u64 {
+    static EVERY: std::sync::OnceLock<u64> = std::sync::OnceLock::new();
+    *EVERY.get_or_init(|| std::env::var("VICTORY_HEAP_RECHECK_EVERY").ok().and_then(|v| v.parse().ok()).unwrap_or(0))
+}
+
+/// `VICTORY_HEAP_RECHECK_WHOLE_MB=<n>`: [`fingerprint`] reads textures of
+/// up to `n` MiB whole instead of three windows (0, the default: none).
+fn recheck_whole_bytes() -> u64 {
+    static WHOLE: std::sync::OnceLock<u64> = std::sync::OnceLock::new();
+    *WHOLE.get_or_init(|| {
+        std::env::var("VICTORY_HEAP_RECHECK_WHOLE_MB").ok().and_then(|v| v.parse::<u64>().ok()).unwrap_or(0) << 20
+    })
+}
+
+/// The bytes of each of the three windows [`fingerprint`] reads of
+/// memory over three times as large (smaller memory is read whole).
+const FINGERPRINT_WINDOW: usize = 16 << 10;
+
+/// Whether [`fingerprint`] of `len` bytes is split: the whole memory's
+/// hash in its high 32 bits and the three windows' in its low 32, so a
+/// change only between the windows can be told apart ([`windows_same`]).
+pub(crate) fn fingerprint_split(len: u64) -> bool {
+    len as usize > 3 * FINGERPRINT_WINDOW && len <= recheck_whole_bytes()
+}
+
+/// Of two split fingerprints ([`fingerprint_split`]): whether the three
+/// windows were the same, so only the memory between them changed.
+pub(crate) fn windows_same(a: u64, b: u64) -> bool {
+    a as u32 == b as u32
+}
+
 /// A fingerprint of the title memory `[at, at + len)`, never 0: of all of
 /// it up to 48 KiB, else of 16 KiB at its start, its middle and its end
-/// (a texture streams in whole mips; the small ones lie first). Read
-/// through the kernel, so pages not there count as zeros.
+/// (a texture streams in whole mips; the small ones lie first), and of
+/// the whole as well up to `VICTORY_HEAP_RECHECK_WHOLE_MB`
+/// ([`fingerprint_split`]). Read through the kernel, so pages not there
+/// count as zeros.
 pub(crate) fn fingerprint(at: u64, len: u64) -> u64 {
-    const WINDOW: usize = 16 << 10;
+    const WINDOW: usize = FINGERPRINT_WINDOW;
     thread_local! {
         static READ: std::cell::RefCell<Vec<u8>> = const { std::cell::RefCell::new(Vec::new()) };
     }
+    let split = fingerprint_split(len);
     let len = len as usize;
-    let mut hasher = blake3::Hasher::new();
-    READ.with(|read| {
+    let first8 = |hasher: blake3::Hasher| {
+        let mut first = [0u8; 8];
+        first.copy_from_slice(&hasher.finalize().as_bytes()[..8]);
+        u64::from_le_bytes(first)
+    };
+    let (windows, whole) = READ.with(|read| {
         let mut read = read.borrow_mut();
         read.resize(3 * WINDOW, 0);
-        let mut take = |from: usize, bytes: usize| {
+        let mut take = |hasher: &mut blake3::Hasher, from: usize, bytes: usize| {
             read[..bytes].fill(0);
             crate::host::copy_mapped(read.as_mut_ptr(), (at as usize + from) as *const u8, bytes, false);
             hasher.update(&read[..bytes]);
         };
+        let mut windows = blake3::Hasher::new();
         if len <= 3 * WINDOW {
-            take(0, len);
-        } else {
-            take(0, WINDOW);
-            take((len / 2) & !0xfff, WINDOW);
-            take(len - WINDOW, WINDOW);
+            take(&mut windows, 0, len);
+            return (first8(windows), None);
         }
+        take(&mut windows, 0, WINDOW);
+        take(&mut windows, (len / 2) & !0xfff, WINDOW);
+        take(&mut windows, len - WINDOW, WINDOW);
+        if !split {
+            return (first8(windows), None);
+        }
+        // Whole as well: a texture the title draws into piece by piece (a
+        // glyph cache) can change between the three windows.
+        let mut whole = blake3::Hasher::new();
+        let mut from = 0;
+        while from < len {
+            let bytes = (len - from).min(3 * WINDOW);
+            take(&mut whole, from, bytes);
+            from += bytes;
+        }
+        (first8(windows), Some(first8(whole)))
     });
-    let hash = hasher.finalize();
-    let mut first = [0u8; 8];
-    first.copy_from_slice(&hash.as_bytes()[..8]);
-    u64::from_le_bytes(first) | 1
+    match whole {
+        Some(whole) => (whole << 32 | windows & 0xffff_ffff) | 1,
+        None => windows | 1,
+    }
 }
 
 /// Whether a title texture has a staging buffer: a list recorded its
@@ -1402,26 +1636,26 @@ fn staging(resource: This, texture: &ID3D12Resource) -> Option<Arc<Staging>> {
         return Some(s.clone());
     }
     let (memory, desc) = crate::resource::texture_memory(resource)?;
-    let Some(layout) = crate::resource::texture_layout(&desc).map(|t| t.planes[0].layout.clone())
-    else {
+    let Some(layout) = crate::resource::texture_layout(&desc) else {
         once!(
             ?desc,
             "texture contents without a console layout not uploaded"
         );
         return None;
     };
-    if layout.desc.swizzle.xor() {
+    if layout.planes.iter().any(|p| p.layout.desc.swizzle.xor()) {
         once!(?desc, "texture contents in an XOR mode not uploaded");
         return None;
     }
     let host = host()?;
     // SAFETY: a live resource.
     let d = unsafe { texture.GetDesc() };
-    let count = if d.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D {
+    let subresources_per_plane = if d.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D {
         u32::from(d.MipLevels)
     } else {
         u32::from(d.MipLevels) * u32::from(d.DepthOrArraySize)
     };
+    let count = subresources_per_plane * layout.planes.len() as u32;
     let mut footprints = vec![D3D12_PLACED_SUBRESOURCE_FOOTPRINT::default(); count as usize];
     let mut rows = vec![0u32; count as usize];
     let mut total = 0;
@@ -1438,7 +1672,7 @@ fn staging(resource: This, texture: &ID3D12Resource) -> Option<Arc<Staging>> {
             Some(&mut total),
         );
     }
-    let (buffer, data) = host.upload_buffer(total)?;
+    let (buffer, data, capacity, reused) = take(total)?;
     crate::host::name(&buffer, || {
         format!(
             "staging of {resource:?} {}x{}x{} f{}",
@@ -1458,6 +1692,7 @@ fn staging(resource: This, texture: &ID3D12Resource) -> Option<Arc<Staging>> {
         layout,
         mips: u32::from(d.MipLevels),
         bytes: total,
+        subresources_per_plane,
         memory,
         last: Mutex::default(),
         dirty: std::sync::atomic::AtomicBool::new(true),
@@ -1467,9 +1702,75 @@ fn staging(resource: This, texture: &ID3D12Resource) -> Option<Arc<Staging>> {
         detiled: std::sync::atomic::AtomicU32::new(0),
         judged: [const { std::sync::atomic::AtomicU64::new(0) }; 2],
         waiting: std::sync::atomic::AtomicU64::new(0),
+        capacity,
+        stale: std::sync::atomic::AtomicBool::new(reused),
     });
     map.insert(resource as usize, s.clone());
     Some(s)
+}
+
+#[cfg(test)]
+mod pool_tests {
+    use super::{class, give_back, pool_limit, subresource_len, take};
+    use windows::core::Interface;
+
+    #[test]
+    fn subresource_length_respects_the_actual_staging_size() {
+        assert_eq!(subresource_len(0, 256, 4, 1, 784), Some(784));
+        assert_eq!(subresource_len(512, 256, 4, 1, 784), Some(272));
+        assert_eq!(subresource_len(0, 256, 4, 1, 2048), Some(1024));
+        assert_eq!(subresource_len(785, 256, 4, 1, 784), None);
+        assert_eq!(subresource_len(0, usize::MAX, 2, 2, 784), Some(784));
+    }
+
+    /// Classes are whole 64 KiB up to 1 MiB, then eighths of a power of
+    /// two, and hold the size asked.
+    #[test]
+    fn classes_hold_the_size_with_at_most_an_eighth_unused_past_a_megabyte() {
+        assert_eq!(class(1), 64 << 10);
+        assert_eq!(class(64 << 10), 64 << 10);
+        assert_eq!(class((64 << 10) + 1), 128 << 10);
+        assert_eq!(class(1 << 20), 1 << 20);
+        assert_eq!(class((1 << 20) + 1), (1 << 20) + (128 << 10));
+        for size in [(3 << 20) + 7, 37 << 20, (100 << 20) - 1, 1 << 30] {
+            let c = class(size);
+            assert!(c >= size && c - size <= size / 8, "{size} -> {c}");
+            assert_eq!(class(c), c, "a class is its own class");
+        }
+    }
+
+    /// A buffer given back is taken again for a size of its class, and not
+    /// for one of another class.
+    #[test]
+    fn a_buffer_given_back_is_taken_again_for_its_class() {
+        if pool_limit() == 0 {
+            return;
+        }
+        // A size no other test asks for, so that none takes it meanwhile.
+        const SIZE: u64 = (37 << 20) + 12_345;
+        let Some((buffer, data, capacity, reused)) = take(SIZE) else {
+            eprintln!("no device; skipped");
+            return;
+        };
+        assert!(!reused, "nothing of that size was given back");
+        assert_eq!(capacity, class(SIZE));
+        let raw = buffer.as_raw();
+        give_back(buffer, data, capacity);
+        // The next class up, and far smaller: made anew.
+        let (bigger, data_b, cap_b, reused_b) = take(capacity + 1).unwrap();
+        assert!(!reused_b && bigger.as_raw() != raw);
+        let (small, data_s, cap_s, reused_s) = take(SIZE / 2).unwrap();
+        assert!(!reused_s && small.as_raw() != raw);
+        // Another size of its class: that buffer, mapped as it was.
+        let (again, data_a, cap_a, reused_a) = take(capacity - 1).unwrap();
+        assert!(reused_a);
+        assert_eq!((again.as_raw(), data_a, cap_a), (raw, data, capacity));
+        // SAFETY: the mapping of a buffer of `cap_a` bytes.
+        unsafe { data_a.write_bytes(0xa5, cap_a as usize) };
+        for (b, d, c) in [(bigger, data_b, cap_b), (small, data_s, cap_s), (again, data_a, cap_a)] {
+            give_back(b, d, c);
+        }
+    }
 }
 
 #[cfg(test)]
@@ -1613,5 +1914,116 @@ mod title_memory_tests {
                 assert_ne!(VirtualFree(base.cast(), 0, MEM_RELEASE), 0);
             }
         }
+    }
+
+    #[test]
+    fn through_alias_cache_keys_on_source_and_evicts_both_sides_on_forget() {
+        let Some(host) = crate::host::host() else {
+            return;
+        };
+        let list = host.new_list().expect("host list");
+
+        #[repr(C)]
+        struct Props {
+            kind: u32,
+            cpu: u32,
+            pool: u32,
+            creation: u32,
+            visible: u32,
+        }
+        #[repr(C)]
+        struct Desc {
+            dim: u32,
+            align: u64,
+            width: u64,
+            height: u32,
+            depth: u16,
+            mips: u16,
+            format: u32,
+            samples: u32,
+            quality: u32,
+            layout: u32,
+            flags: u32,
+        }
+        let iid = crate::object::guid(
+            0x696442be,
+            0xa72e,
+            0x4059,
+            [0xbc, 0x79, 0x5b, 0x5c, 0x98, 0x04, 0x0f, 0xad],
+        );
+        let props = Props {
+            kind: 1,
+            cpu: 0,
+            pool: 0,
+            creation: 1,
+            visible: 1,
+        };
+        let make_tex = |w: u64, h: u32, format: u32| -> crate::object::This {
+            let desc = Desc {
+                dim: 3, // TEXTURE2D
+                align: 0,
+                width: w,
+                height: h,
+                depth: 1,
+                mips: 1,
+                format,
+                samples: 1,
+                quality: 0,
+                layout: 0,
+                flags: 1, // ALLOW_RENDER_TARGET -> backed by a host texture
+            };
+            let mut out = std::ptr::null();
+            assert_eq!(
+                crate::resource::create_committed(
+                    std::ptr::null(),
+                    (&raw const props).cast(),
+                    0,
+                    (&raw const desc).cast(),
+                    0,
+                    std::ptr::null(),
+                    &iid,
+                    &mut out,
+                ),
+                0
+            );
+            out
+        };
+
+        // 4x4 R8G8B8A8_UNORM (28) aliased against 4x4 R32_UINT (42) succeeds,
+        // while an incompatible 8x8 R32_UINT source must NOT hit the cached
+        // footprints for `placed`.
+        let placed = make_tex(4, 4, 28);
+        let compatible = make_tex(4, 4, 42);
+        let incompatible = make_tex(8, 8, 42);
+
+        assert!(super::alias(&list, placed, compatible));
+        assert!(
+            super::THROUGH
+                .lock()
+                .unwrap()
+                .as_ref()
+                .is_some_and(|m| m.contains_key(&(placed as usize, compatible as usize)))
+        );
+
+        // Switching to an incompatible source must recompute and return false
+        // instead of blindly copying with `compatible`'s cached footprints.
+        assert!(!super::alias(&list, placed, incompatible));
+
+        // Forgetting `compatible` (the source) must also evict `(placed, compatible)`.
+        super::forget(compatible as usize);
+        assert!(
+            super::THROUGH
+                .lock()
+                .unwrap()
+                .as_ref()
+                .is_none_or(|m| !m.contains_key(&(placed as usize, compatible as usize)))
+        );
+
+        list.close();
+        let release =
+            |o: crate::object::This| crate::object::slot::<extern "system" fn(crate::object::This) -> u32>(o, 0x10)(o);
+        assert_eq!(release(placed), 0);
+        assert_eq!(release(compatible), 0);
+        assert_eq!(release(incompatible), 0);
     }
 }

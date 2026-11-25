@@ -120,6 +120,25 @@ enum Command {
     },
     /// Show the resolved configuration and check it.
     Config,
+    /// Probe what this PC's card and Windows allow for title memory in
+    /// place (the in-place design's Stage 0), on a device of its own; no
+    /// title is run. One line per probe.
+    InplaceProbe {
+        /// Size of the first probe's cost measurement, in MB.
+        #[arg(long, default_value_t = 1024)]
+        mb: usize,
+        /// Leave out the probes that lock or commit gigabytes (P1, P2's
+        /// 4 GiB part, P7).
+        #[arg(long)]
+        small: bool,
+        /// Also map a tile into an opened heap (removes this probe's own
+        /// device on the software adapter; runs last).
+        #[arg(long)]
+        tiles: bool,
+        /// With the D3D12 debug layer (its errors are counted per probe).
+        #[arg(long)]
+        debug_layer: bool,
+    },
 }
 
 #[derive(Clone, Copy, ValueEnum)]
@@ -193,6 +212,20 @@ fn main() -> Result<()> {
             Ok(())
         }
         Command::Config => show_config(),
+        Command::InplaceProbe {
+            mb,
+            small,
+            tiles,
+            debug_layer,
+        } => {
+            #[cfg(windows)]
+            for line in victory_gpu::inplace_probe(mb, !small, tiles, debug_layer) {
+                println!("in place probe: {line}");
+            }
+            #[cfg(not(windows))]
+            let _ = (mb, small, tiles, debug_layer);
+            Ok(())
+        }
     }
 }
 

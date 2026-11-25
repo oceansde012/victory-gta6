@@ -76,7 +76,21 @@ pub(crate) struct Shadow {
     /// the title's own bytes and nothing is copied either way. The heap,
     /// and the bytes from the buffer's first byte to `start` (the heap
     /// begins on a 64 KiB line; a title buffer need not).
-    place: Option<(windows::Win32::Graphics::Direct3D12::ID3D12Heap, u64)>,
+    place: Option<(crate::arena::Heap, u64)>,
+    /// In place in a section's arena (view memory): the section. Such a
+    /// window is not let go when the title remaps its pages; it is marked
+    /// (`remapped`) and looked at again when next asked for
+    /// ([`still_good`]).
+    section: Option<usize>,
+    remapped: std::sync::atomic::AtomicBool,
+    /// With `crate::resident` (`VICTORY_INPLACE=4`): not a copy of ours
+    /// either. `buffer` is a resident's buffer in the card's memory, which
+    /// the card alone keeps in step with the title's memory in its arena,
+    /// and the bytes from its first byte to `start`.
+    resident: Option<(Arc<crate::resident::Resident>, u64)>,
+    /// With residents, for a window in place: the last frame it was asked
+    /// for in, and how many frames running ([`hot_window`]).
+    heat: [AtomicU64; 2],
 }
 
 /// What a copy in the card's memory ([`cards`]) has beside the buffer
@@ -1804,6 +1818,69 @@ pub(crate) fn back_line(frames: f64) {
     );
 }
 
+/// For the frame-rate line: where the copies alive now are (T1's census),
+/// title buffers and windows apart, as count and MB by kind: in a
+/// resident, in place in the PC's memory, a copy in the card's memory, a
+/// copy in system memory. Of the buffers in place, those under 64 KiB
+/// apart (what card atomics would cross the bus for). Then the buffers
+/// `VICTORY_INPLACE_MIN_KB` kept as copies since the start.
+pub(crate) fn placement_line() {
+    if crate::inplace::level() < 2 {
+        return;
+    }
+    // [resident, in place, card copy, system copy, in place < 64 KiB] x (count, bytes)
+    let mut census = [[[0u64; 2]; 5]; 2];
+    let add = |at: &mut [[u64; 2]; 5], s: &Shadow| {
+        let kind = if s.resident.is_some() {
+            0
+        } else if s.place.is_some() {
+            1
+        } else if s.card.is_some() {
+            2
+        } else {
+            3
+        };
+        at[kind][0] += 1;
+        at[kind][1] += s.len;
+        if kind == 1 && s.len < 64 << 10 {
+            at[4][0] += 1;
+            at[4][1] += s.len;
+        }
+    };
+    for entry in buffers().values() {
+        if let Some(s) = entry.shadow.as_deref() {
+            add(&mut census[0], s);
+        }
+    }
+    for s in LOOSE.lock().unwrap_or_else(|e| e.into_inner()).values() {
+        add(&mut census[1], s);
+    }
+    let mb = |b: u64| b as f64 / (1 << 20) as f64;
+    let part = |c: &[[u64; 2]; 5]| {
+        format!(
+            "resident {} ({:.1} MB), in place {} ({:.1} MB; under 64 KiB {}, {:.2} MB), card copy {} ({:.1} MB), system copy {} ({:.1} MB)",
+            c[0][0],
+            mb(c[0][1]),
+            c[1][0],
+            mb(c[1][1]),
+            c[4][0],
+            mb(c[4][1]),
+            c[2][0],
+            mb(c[2][1]),
+            c[3][0],
+            mb(c[3][1]),
+        )
+    };
+    tracing::info!(
+        "placement census: title buffers: {}; windows: {}; kept as copies by VICTORY_INPLACE_MIN_KB={} since the start: {} buffers ({:.2} MB)",
+        part(&census[0]),
+        part(&census[1]),
+        crate::inplace::min_bytes() >> 10,
+        crate::inplace::BELOW_MIN[0].load(Ordering::Relaxed),
+        mb(crate::inplace::BELOW_MIN[1].load(Ordering::Relaxed)),
+    );
+}
+
 #[cfg(test)]
 mod wide_tests {
     use super::{Job, PIECE, WIDE_JOB, copy_jobs, find_pieces, wide};
@@ -2113,6 +2190,10 @@ impl Drop for Shadow {
             crate::inplace::gone(self.window, self.len);
             return;
         }
+        if self.resident.is_some() {
+            // Never counted with the copies (`Shadow::resident`).
+            return;
+        }
         LIVE[0].fetch_sub(1, Ordering::Relaxed);
         LIVE[1].fetch_sub(self.len, Ordering::Relaxed);
         if self.kept.get_mut().unwrap_or_else(|e| e.into_inner()).1 {
@@ -2331,6 +2412,7 @@ pub(crate) fn window_use() -> [u64; 8] {
 /// again. Called before a submission starts, by the thread that submits.
 pub(crate) fn let_go_idle() {
     const IDLE_FRAMES: u64 = 4;
+    in_place_upgrade();
     let gone: Vec<Arc<Shadow>> = {
         // Held from the look to the removal: `loose` hands a copy out
         // under the same lock, so none is handed out in between.
@@ -2342,9 +2424,15 @@ pub(crate) fn let_go_idle() {
         let idle: Vec<(u64, u64)> = map
             .iter()
             .filter(|(_, s)| {
+                // A window in a resident shares `R` with it and with every
+                // other buffer in it: nothing tells whether a slot shows
+                // the window, and none needs to (a slot shows `R`, the
+                // next ask finds the same resident; if the resident goes
+                // with its last window, slots showing `R` are made again,
+                // `crate::resident::retargeted`).
                 Arc::strong_count(s) == 1
                     && crate::host::long_ago(s.used.load(Ordering::Relaxed), idle_ms, IDLE_FRAMES)
-                    && crate::host::references(&s.buffer) == 1
+                    && ((s.resident.is_some() && crate::resident::one_owner()) || crate::host::references(&s.buffer) == 1)
             })
             .map(|(key, _)| *key)
             .collect();
@@ -2435,7 +2523,12 @@ impl Shadow {
 
     /// Offset of a title address from the buffer's start.
     pub(crate) fn offset(&self, address: u64) -> u64 {
-        address - self.start + self.place.as_ref().map_or(0, |place| place.1)
+        let bias = match (&self.place, &self.resident) {
+            (Some(place), _) => place.1,
+            (None, Some((_, bias))) => *bias,
+            (None, None) => 0,
+        };
+        address - self.start + bias
     }
 
     /// Title memory `[start, start + len)` in place: `placed` is a buffer
@@ -2451,6 +2544,7 @@ impl Shadow {
         LIVE[1].fetch_sub(len, Ordering::Relaxed);
         *shadow.watched.get_mut() = NOT_WATCHED;
         shadow.window = window;
+        shadow.section = placed.section;
         shadow.place = Some((placed.heap, placed.bias));
         shadow
     }
@@ -2488,7 +2582,71 @@ impl Shadow {
             card: None,
             window: false,
             place: None,
+            section: None,
+            remapped: std::sync::atomic::AtomicBool::new(false),
+            resident: None,
+            heat: [AtomicU64::new(0), AtomicU64::new(0)],
         }
+    }
+
+    /// Title memory `[start, start + len)` in `resident`, `bias` bytes from
+    /// its first byte. Shaped as a copy, as a placement is; nothing is
+    /// copied for it on the CPU ([`Shadow::update`] notes the pages that go
+    /// up, `crate::resident::prepare` sends them).
+    fn resident(resident: Arc<crate::resident::Resident>, bias: u64, start: u64, len: u64) -> Shadow {
+        let mut shadow = Shadow::new(resident.buffer.clone(), start as *mut u8, resident.gpu() + bias, start, len);
+        // Not a copy: not counted with them.
+        LIVE[0].fetch_sub(1, Ordering::Relaxed);
+        LIVE[1].fetch_sub(len, Ordering::Relaxed);
+        shadow.section = resident.section_at(bias).map(|(section, _)| section);
+        shadow.resident = Some((resident, bias));
+        shadow
+    }
+
+    /// A window of title memory `[start, start + len)` in `resident`, in
+    /// the table of windows (tests of retargeting).
+    #[cfg(test)]
+    pub(crate) fn resident_window(resident: Arc<crate::resident::Resident>, start: u64, len: u64) -> Arc<Shadow> {
+        let bias = start - resident.start();
+        let mut window = Shadow::resident(resident, bias, start, len);
+        window.window = true;
+        let window = Arc::new(window);
+        LOOSE.lock().unwrap_or_else(|e| e.into_inner()).insert((start, len), window.clone());
+        window
+    }
+
+    /// Whether the table of windows holds `shadow` (tests).
+    #[cfg(test)]
+    pub(crate) fn in_windows(shadow: &Arc<Shadow>) -> bool {
+        LOOSE.lock().unwrap_or_else(|e| e.into_inner()).values().any(|s| Arc::ptr_eq(s, shadow))
+    }
+
+    /// What kind of host memory it is, in a few words (draw-time probe).
+    pub(crate) fn describe(&self) -> String {
+        let kind = if let Some((r, bias)) = &self.resident {
+            format!("resident {:#x}+{:#x} ({} MB, bias {bias:#x})", r.start(), r.bytes(), r.bytes() >> 20)
+        } else if self.place.is_some() {
+            "in place".to_owned()
+        } else if self.card.is_some() {
+            "card copy".to_owned()
+        } else {
+            "copy in system memory".to_owned()
+        };
+        format!("{kind}, title {:#x}+{:#x}{}", self.start, self.len, if self.window { ", a window" } else { "" })
+    }
+
+    /// The resident it is in (`crate::resident`), if it is.
+    pub(crate) fn in_resident(&self) -> Option<&Arc<crate::resident::Resident>> {
+        self.resident.as_ref().map(|(r, _)| r)
+    }
+
+    /// In view memory in place: the section, and the offset in it of the
+    /// title memory's first byte.
+    fn section_place(&self) -> Option<(usize, u64)> {
+        if let Some((r, bias)) = &self.resident {
+            return r.section_at(*bias);
+        }
+        Some((self.section?, self.place.as_ref()?.1))
     }
 
     /// `[address, address + len)` cut to the buffer, as offsets in the copy.
@@ -2508,16 +2666,48 @@ impl Shadow {
     /// before the submission (a copy per declared range and submission);
     /// a GPU-side dirty mask would save that if big ranges make it slow.
     pub(crate) fn gpu_writes(self: &Arc<Self>, list: &HostList, address: u64, len: u64) {
+        self.gpu_writes_as(list, address, len, WIDTH.get());
+    }
+
+    /// [`Shadow::gpu_writes`] by shaders whose narrowest store through the
+    /// range is `width`.
+    pub(crate) fn gpu_writes_as(self: &Arc<Self>, list: &HostList, address: u64, len: u64, width: crate::pipeline::StoreWidth) {
         // In place the shaders write title memory itself: no snapshot, no
-        // compare, nothing to copy back, and no wait on its account.
+        // compare, nothing to copy back ([`Shadow::writing`] does nothing).
+        // The range is still declared: until the submission has run, title
+        // memory there is not what the title will read, so the flights'
+        // rules (late wait, the relay) must know it (`host::in_place_writes`;
+        // before, nothing was declared and late wait could let a read of it
+        // through).
         // shortcut: another host copy of the same bytes (a title buffer
         // inside this one with a copy of its own, a texture in it) is not
         // told: the card's writes are not seen by write watching.
-        if self.place.is_some() {
-            return;
-        }
         let len = len.min(self.left(address));
-        list.defer_gpu_write(self, address as usize, len as usize);
+        list.defer_gpu_write(self, address as usize, len as usize, width);
+    }
+
+    /// Whether this is title memory in place (`crate::inplace`) or in a
+    /// resident (`crate::resident`), not a copy: what shaders write reaches
+    /// the title's memory by the end of their submission, and nothing is
+    /// copied back on the CPU.
+    pub(crate) fn in_place(&self) -> bool {
+        self.place.is_some() || self.resident.is_some()
+    }
+
+    /// For tests: title memory `[start, start + len)` in place over `placed`.
+    #[cfg(test)]
+    pub(crate) fn test_in_place(placed: crate::inplace::Placed, start: u64, len: u64) -> Arc<Shadow> {
+        crate::inplace::counted(false, len);
+        Arc::new(Shadow::placed(placed, start, len, false))
+    }
+
+    /// For tests: a copy of `[start, start + len)` in `buffer` (nothing
+    /// copied).
+    #[cfg(test)]
+    pub(crate) fn test_copy(buffer: ID3D12Resource, start: u64, len: u64) -> Arc<Shadow> {
+        // SAFETY: a live buffer.
+        let gpu = unsafe { buffer.GetGPUVirtualAddress() };
+        Arc::new(Shadow::new(buffer, std::ptr::null_mut(), gpu, start, len))
     }
 
     /// At submission, after the range's refresh: a submitted list's shaders
@@ -2529,7 +2719,7 @@ impl Shadow {
     /// memory (fresh snapshots cost ~2.3 million page faults per world
     /// frame).
     pub(crate) fn writing(&self, address: usize, len: usize) {
-        if self.place.is_some() {
+        if self.in_place() {
             return;
         }
         let range = (address, address + len);
@@ -2647,7 +2837,7 @@ impl Shadow {
     /// [`Shadow::copy_back`]; `found`, if given, is the pieces of the range
     /// that differ from the snapshot, found beforehand ([`find_all`]).
     pub(crate) fn copy_back_with(&self, address: usize, len: usize, found: Option<Vec<(usize, usize)>>) -> usize {
-        if self.place.is_some() {
+        if self.in_place() {
             return 0;
         }
         let snapshot = self.before.lock().unwrap_or_else(|e| e.into_inner());
@@ -2863,7 +3053,7 @@ impl Shadow {
     /// those of one of them (each once), and a range is done with when the
     /// last submission that declared it is ([`Flights`]).
     pub(crate) fn copy_back_done(&self, ranges: &[(usize, usize)]) {
-        if self.place.is_some() {
+        if self.in_place() {
             return;
         }
         let mut pending = self.pending.lock().unwrap_or_else(|e| e.into_inner());
@@ -3106,6 +3296,14 @@ impl Shadow {
         let (start, end) = (self.start as usize, (self.start + self.len) as usize);
         let (from, to) = (address.max(start), (address + len).min(end));
         if from >= to {
+            return 0;
+        }
+        // In a resident: the pages the title wrote are noted, and go up on
+        // the card before the lists. Whatever flights may be writing:
+        // their merges run on the queue before that upload does.
+        if let Some((resident, _)) = &self.resident {
+            let watched = resident.refresh(from as u64, to as u64);
+            self.watched.store(if watched { 1 } else { NOT_WATCHED }, Ordering::Relaxed);
             return 0;
         }
         let mut busy: Vec<(usize, usize)> = self
@@ -3549,14 +3747,27 @@ pub(crate) fn extent(address: u64) -> Option<(u64, u64)> {
 /// given up: what is in place there (`crate::inplace`) is taken out of the
 /// tables, so that the next ask makes a copy or opens the memory anew, and
 /// goes when no list and no slot holds it any more. Returns how many.
-pub(crate) fn in_place_let_go(at: u64, len: u64) -> u64 {
+///
+/// With `remap` (the title maps pages anew, `inplace::title_memory_freeing`)
+/// what is in place in a section's arena is only marked: the run of pages
+/// it shows is looked at again when it is next asked for, and it stays if
+/// the range is still the same run of the same section ([`still_good`]).
+/// Run inplace3-pool-t3 let 9,755 windows go that way in three minutes.
+pub(crate) fn in_place_let_go(at: u64, len: u64, remap: bool) -> u64 {
     let end = at.saturating_add(len);
     let mut gone: Vec<Arc<Shadow>> = Vec::new();
+    let marked = |s: &Shadow| {
+        let mark = remap && s.section.is_some();
+        if mark {
+            s.remapped.store(true, Ordering::Relaxed);
+        }
+        mark
+    };
     {
         let mut map = LOOSE.lock().unwrap_or_else(|e| e.into_inner());
         let keys: Vec<(u64, u64)> = map
             .range((at.saturating_sub(WINDOW), 0)..(end, 0))
-            .filter(|(key, shadow)| shadow.place.is_some() && key.0 + key.1 > at)
+            .filter(|(key, shadow)| shadow.place.is_some() && key.0 + key.1 > at && !marked(shadow))
             .map(|(key, _)| *key)
             .collect();
         gone.extend(keys.into_iter().filter_map(|key| map.remove(&key)));
@@ -3565,12 +3776,88 @@ pub(crate) fn in_place_let_go(at: u64, len: u64) -> u64 {
         // As `lookup` finds a buffer: among the 256 that start below.
         let mut map = buffers();
         for (_, entry) in map.range_mut(..(end, 0)).rev().take(256) {
-            if entry.end > at && entry.shadow.as_ref().is_some_and(|s| s.place.is_some()) {
+            if entry.end > at && entry.shadow.as_ref().is_some_and(|s| s.place.is_some() && !marked(s)) {
                 gone.extend(entry.shadow.take());
+            }
+        }
+        // Residents over it (`crate::resident`) are big, and may start
+        // further below than the buffers looked at above: every buffer in
+        // one is let go, if one was over it.
+        if crate::resident::forget(at, end, remap) {
+            for entry in map.values_mut() {
+                let over = |s: &Shadow| s.resident.as_ref().is_some_and(|(r, _)| r.overlaps(at, end)) && !marked(s);
+                if entry.shadow.as_deref().is_some_and(over) {
+                    gone.extend(entry.shadow.take());
+                }
             }
         }
     }
     let n = gone.len() as u64;
+    for shadow in gone {
+        crate::host::retire(shadow);
+    }
+    n
+}
+
+/// Since the start: things in place in a section's arena whose pages the
+/// title remapped and that were found the same run again (kept), and that
+/// were not (placed again or copied).
+pub(crate) static REMAPS: [AtomicU64; 2] = [const { AtomicU64::new(0) }; 2];
+
+/// Whether `shadow` may be handed out: anything but a placement over view
+/// memory whose pages were remapped and no longer show the same run of
+/// the same section (looked at once per remapping).
+fn still_good(shadow: &Shadow) -> bool {
+    if !shadow.remapped.load(Ordering::Relaxed) {
+        return true;
+    }
+    let Some((section, offset)) = shadow.section_place() else {
+        return true;
+    };
+    let good = crate::inplace::still_run(shadow.start, shadow.len, section, offset);
+    if good {
+        shadow.remapped.store(false, Ordering::Relaxed);
+    }
+    REMAPS[usize::from(!good)].fetch_add(1, Ordering::Relaxed);
+    good
+}
+
+/// With arenas (`VICTORY_INPLACE=3`): a title buffer whose first use came
+/// before its arena was open got a copy, kept for the run. Once the arena
+/// is open such a copy is let go when nothing holds it (no list, no slot,
+/// no range in the air), as `let_go_idle` lets windows go; the next ask
+/// finds the buffer in place. Not the big ones `cards` puts in the card's
+/// memory (never in place). Returns how many.
+fn in_place_upgrade() -> u64 {
+    if crate::inplace::level() < 3 {
+        return 0;
+    }
+    let big = |len: u64| cards() && len.next_multiple_of(1 << 16) >= card_limits().0;
+    let gone: Vec<Arc<Shadow>> = {
+        let mut map = buffers();
+        let mut gone = Vec::new();
+        for (key, entry) in map.iter_mut() {
+            let len = entry.end - key.0;
+            let Some(s) = &entry.shadow else { continue };
+            if s.in_place()
+                || s.card.is_some()
+                || big(len)
+                || Arc::strong_count(s) != 1
+                || crate::host::references(&s.buffer) != 1
+                || s.writes_pending()
+                || !crate::arena::ready(key.0, len)
+            {
+                continue;
+            }
+            gone.extend(entry.shadow.take());
+        }
+        gone
+    };
+    let n = gone.len() as u64;
+    if n > 0 {
+        let bytes: u64 = gone.iter().map(|s| s.len).sum();
+        crate::host::trail(|| format!("sweep: {n} copies of title buffers let go for their arenas ({} KiB)", bytes >> 10));
+    }
     for shadow in gone {
         crate::host::retire(shadow);
     }
@@ -3620,6 +3907,7 @@ pub(crate) fn find_any(address: u64, len: u64) -> Option<Arc<Shadow>> {
 }
 
 fn lookup(address: u64, len: u64, any: bool) -> Option<Arc<Shadow>> {
+    retarget_tables();
     let end = address.checked_add(len.max(1))?;
     let mut map = buffers();
     let key = map
@@ -3633,6 +3921,9 @@ fn lookup(address: u64, len: u64, any: bool) -> Option<Arc<Shadow>> {
         return loose(address, end, len <= 1, any);
     };
     let entry = map.get_mut(&key)?;
+    if entry.shadow.as_ref().is_some_and(|s| !still_good(s)) {
+        crate::host::retire(entry.shadow.take());
+    }
     if entry.shadow.is_none() {
         let len = entry.end - key.0;
         // Rounded up so that views ending in the buffer's last 256 bytes fit.
@@ -3643,7 +3934,30 @@ fn lookup(address: u64, len: u64, any: bool) -> Option<Arc<Shadow>> {
         // memory. Not the big ones `cards` puts in the card's memory: those
         // are read too often to stay in the PC's.
         let big = cards() && size >= card_limits().0;
-        if !big && let Some(placed) = crate::inplace::place_for(key.0, len, false) {
+        // With residents (`crate::resident`, `VICTORY_INPLACE=4`): a buffer
+        // in a resident's pages is that resident, whatever its size; a big
+        // one whose memory lies in an arena is made one. The buffers in
+        // residents a new one replaces are let go: their next ask finds it.
+        if let Some(found) = crate::resident::find(key.0, len, big) {
+            if !found.replaced.is_empty() {
+                for other in map.values_mut() {
+                    let replaced = |s: &Shadow| s.in_resident().is_some_and(|r| found.replaced.iter().any(|x| Arc::ptr_eq(x, r)));
+                    if other.shadow.as_deref().is_some_and(replaced) {
+                        crate::host::retire(other.shadow.take());
+                    }
+                }
+            }
+            let shadow = Arc::new(Shadow::resident(found.resident, found.bias, key.0, len));
+            map.get_mut(&key)?.shadow = Some(shadow.clone());
+            return Some(shadow);
+        }
+        // Small buffers stay copies below `VICTORY_INPLACE_MIN_KB` (T1).
+        let small = len < crate::inplace::min_bytes();
+        if small && crate::inplace::level() >= 2 {
+            crate::inplace::BELOW_MIN[0].fetch_add(1, Ordering::Relaxed);
+            crate::inplace::BELOW_MIN[1].fetch_add(len, Ordering::Relaxed);
+        }
+        if !big && !small && let Some(placed) = crate::inplace::place_for(key.0, len, false) {
             entry.shadow = Some(Arc::new(Shadow::placed(placed, key.0, len, false)));
             return entry.shadow.clone();
         }
@@ -3705,17 +4019,25 @@ fn lookup(address: u64, len: u64, any: bool) -> Option<Arc<Shadow>> {
 /// [`window`] cuts the windows of asks that give a length on a finer grid.
 const WINDOW: u64 = 4 << 20;
 
-/// The grid the windows of asks with a length are cut on, in bytes: 4 MiB
-/// unless `VICTORY_WINDOW_KB` names a smaller power of two (64 at least).
+/// The grid the windows of asks with a length are cut on by default: 1 MiB.
+const DEFAULT_GRID: u64 = 1 << 20;
+
+/// The grid the windows of asks with a length are cut on, in bytes:
+/// [`DEFAULT_GRID`] unless `VICTORY_WINDOW_KB` names another power of two
+/// from 64 to 4096 (4096 is the old 4 MiB grid).
 /// A window is the PC's memory, all of it, however little of it is read:
 /// 803 windows held 3.3 GB in run 60's gameplay, and all that was ever
 /// asked for in them lay within 1.6 GB. On a grid of 1 MiB or 256 KiB a
 /// window ends nearer to what is read. An ask without a length keeps the
 /// 4 MiB grid whatever is set: a root view reads from its address to its
 /// window's end, and mesh streams bound that way reach megabytes.
-/// shortcut: the default stays 4 MiB until a run with the memory line's
-/// window counts has shown what the finer grids give; the same memory
-/// asked for with different ranges then lies in more than one window.
+///
+/// Measured in the first room on an 8 GB card (diagnostics build, warm
+/// shader cache, 312 s each), 1 MiB with tails against 4 MiB:
+/// windows 2,689 MB against 3,440, the PC's memory shared with the card
+/// 4,364 MB against 5,096, at 1.5 frames a second against 1.7 (windows
+/// are made and let go about seven times as often). The same memory asked
+/// for with different ranges may lie in more than one window.
 fn window() -> u64 {
     static GRID: std::sync::OnceLock<u64> = std::sync::OnceLock::new();
     *GRID.get_or_init(|| {
@@ -3725,11 +4047,11 @@ fn window() -> u64 {
 }
 
 /// The window grid in bytes for a setting in KiB: a power of two from
-/// 64 KiB to 4 MiB, 4 MiB for anything else.
+/// 64 KiB to 4 MiB, [`DEFAULT_GRID`] for anything else.
 fn grid(kb: Option<u64>) -> u64 {
     match kb {
         Some(kb) if kb.is_power_of_two() && (64..=4096).contains(&kb) => kb << 10,
-        _ => WINDOW,
+        _ => DEFAULT_GRID,
     }
 }
 
@@ -3749,16 +4071,16 @@ fn window_of(address: u64, end: u64, grid: u64) -> (u64, u64) {
 /// window is the cell's tail from the ask's step on ([`TAIL_STEP`]); an ask
 /// lower in the cell later makes a longer tail, which every ask from then
 /// on takes, and the shorter one goes when nothing holds it any more.
-/// shortcut: off unless `VICTORY_WINDOW_TAILS=1`. A longer tail is another
-/// host buffer than the shorter one: what was bound to the shorter stays
-/// right only because every list brings up to date the copy it bound
-/// (`draw.rs` keeps a root view's copy with its slot). It pays only
-/// together with `VICTORY_WINDOW_KB` below 4096: on the 4 MiB grid an ask
-/// with a length in the same cell makes the whole cell's window, and the
-/// tail is that.
+/// On by default, with the 1 MiB grid ([`window`]); `VICTORY_WINDOW_TAILS=0`
+/// turns it off. A longer tail is another host buffer than the shorter
+/// one: what was bound to the shorter stays right only because every list
+/// brings up to date the copy it bound (`draw.rs` keeps a root view's copy
+/// with its slot). It pays only together with a grid below 4 MiB: on the
+/// 4 MiB grid an ask with a length in the same cell makes the whole cell's
+/// window, and the tail is that.
 fn tails() -> bool {
     static ON: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
-    *ON.get_or_init(|| std::env::var_os("VICTORY_WINDOW_TAILS").is_some_and(|v| v == "1"))
+    *ON.get_or_init(|| std::env::var_os("VICTORY_WINDOW_TAILS").is_none_or(|v| v != "0"))
 }
 
 /// Tails begin on multiples of this. A longer tail is a new host buffer,
@@ -3831,7 +4153,40 @@ fn longest_tail(windows: impl Iterator<Item = (u64, u64)>, address: u64, end: u6
 /// Copies of title memory outside buffers, by (start, length).
 static LOOSE: Mutex<BTreeMap<(u64, u64), Arc<Shadow>>> = Mutex::new(BTreeMap::new());
 
+/// After a resident is replaced, forgotten or gone (`crate::resident::
+/// retargeted`): what both tables hold of residents no longer registered
+/// is let go, so the next ask finds the one registered now (Stage 2
+/// latency plan, B1). A union made through one table let go of that
+/// table's buffers only; the other's kept the old resident alive, taking
+/// uploads and merges every submission (33-43 such a run, 176 MB of the
+/// 577 MB compared per frame). Takes each table's lock alone: called
+/// before either is taken.
+pub(crate) fn retarget_tables() {
+    static SEEN: AtomicU64 = AtomicU64::new(0);
+    let now = crate::resident::generation();
+    let seen = SEEN.load(Ordering::Acquire);
+    if seen == now || SEEN.compare_exchange(seen, now, Ordering::AcqRel, Ordering::Relaxed).is_err() {
+        return;
+    }
+    let stale = |s: &Shadow| s.in_resident().is_some_and(|r| !crate::resident::registered(r));
+    let mut gone: Vec<Arc<Shadow>> = Vec::new();
+    {
+        let mut map = LOOSE.lock().unwrap_or_else(|e| e.into_inner());
+        let keys: Vec<(u64, u64)> = map.iter().filter(|(_, s)| stale(s)).map(|(k, _)| *k).collect();
+        gone.extend(keys.into_iter().filter_map(|k| map.remove(&k)));
+    }
+    for entry in buffers().values_mut() {
+        if entry.shadow.as_deref().is_some_and(stale) {
+            gone.extend(entry.shadow.take());
+        }
+    }
+    for shadow in gone {
+        crate::host::retire(shadow);
+    }
+}
+
 fn loose(address: u64, end: u64, unsized_ask: bool, any: bool) -> Option<Arc<Shadow>> {
+    retarget_tables();
     let mut map = LOOSE.lock().unwrap_or_else(|e| e.into_inner());
     let (cell, _) = window_of(address, end, WINDOW);
     let named = window_of(address, end, if unsized_ask { WINDOW } else { window() });
@@ -3856,9 +4211,36 @@ fn loose(address: u64, end: u64, unsized_ask: bool, any: bool) -> Option<Arc<Sha
             shadow.unsized_asks.fetch_add(1, Ordering::Relaxed);
         }
     };
+    // A window in place whose pages the title remapped is looked at again.
+    let drop_stale = |map: &mut BTreeMap<(u64, u64), Arc<Shadow>>, key: (u64, u64)| {
+        if map.get(&key).is_some_and(|s| !still_good(s)) {
+            crate::host::retire(map.remove(&key));
+        }
+    };
+    drop_stale(&mut map, (start, len));
     if let Some(shadow) = map.get(&(start, len)) {
         note(shadow);
-        return Some(shadow.clone());
+        return Some(hot_window(&mut map, (start, len)));
+    }
+    // With arenas, over view memory: a 4 MiB window is rarely one run of a
+    // section (the census: 1,948 MB of windows over views have unmapped
+    // pages), the ask itself often is. The window is then that run, in
+    // place in its section's arena; nothing is copied, so windows that
+    // overlap show the same bytes.
+    if crate::inplace::level() >= 3
+        && let Some((run, bytes)) = crate::inplace::run_window(address, end, unsized_ask)
+    {
+        drop_stale(&mut map, (run, bytes));
+        if let Some(shadow) = map.get(&(run, bytes)) {
+            note(shadow);
+            return Some(hot_window(&mut map, (run, bytes)));
+        }
+        if let Some(placed) = crate::inplace::place_for(run, bytes, true) {
+            let shadow = Arc::new(Shadow::placed(placed, run, bytes, true));
+            note(&shadow);
+            map.insert((run, bytes), shadow.clone());
+            return Some(shadow);
+        }
     }
     // In place, if asked for and the window's memory can be opened: the
     // window is the title's own memory, with nothing to copy.
@@ -3981,9 +4363,145 @@ pub(crate) fn exact_line(frames: f64) {
     );
 }
 
+/// The frames running a window in place must be asked for in before it
+/// becomes a resident (`VICTORY_RESIDENT_HOT_FRAMES`, 3; [`hot_window`]).
+fn hot_frames() -> u64 {
+    static FRAMES: std::sync::OnceLock<u64> = std::sync::OnceLock::new();
+    *FRAMES.get_or_init(|| std::env::var("VICTORY_RESIDENT_HOT_FRAMES").ok().and_then(|v| v.trim().parse().ok()).unwrap_or(3).max(1))
+}
+
+/// A run of frames a window was asked for in, after an ask in `frame`
+/// (the last ask was in `last`, the run so far `run` frames): the run, and
+/// whether it reached `hot` with this ask. Frames more than 8 apart start
+/// the run anew.
+fn warmed(last: u64, frame: u64, run: u64, hot: u64) -> (u64, bool) {
+    if frame == last {
+        return (run, false);
+    }
+    let run = if last == 0 || frame > last + 8 { 1 } else { run + 1 };
+    (run, run == hot)
+}
+
+/// With residents (`crate::resident`, `VICTORY_INPLACE=4`), the window in
+/// place at `key` that is being handed out: one that shaders asked for in
+/// [`hot_frames`] frames running, of the size of a buffer that would get a
+/// copy in the card's memory or more, becomes a resident there, once (in
+/// place the card reads it over the bus every frame: run inplace3-pool,
+/// the card's waits 79.5 -> 106.2 ms, the bus 3.5 -> 4.8 GB/s). The window
+/// in place stays for what holds it; the table hands out the resident.
+/// Windows in residents the new one replaces are let go too.
+fn hot_window(map: &mut BTreeMap<(u64, u64), Arc<Shadow>>, key: (u64, u64)) -> Arc<Shadow> {
+    let shadow = map[&key].clone();
+    if !crate::resident::on() || shadow.place.is_none() || !cards() || shadow.len < card_limits().0 {
+        return shadow;
+    }
+    let frame = crate::frame::current();
+    let (run, hot) = warmed(shadow.heat[0].swap(frame, Ordering::Relaxed), frame, shadow.heat[1].load(Ordering::Relaxed), hot_frames());
+    shadow.heat[1].store(run, Ordering::Relaxed);
+    if !hot {
+        return shadow;
+    }
+    let Some(found) = crate::resident::find(shadow.start, shadow.len, true) else {
+        return shadow;
+    };
+    crate::resident::hot_window_made();
+    let gone: Vec<(u64, u64)> =
+        map.iter().filter(|(_, s)| s.in_resident().is_some_and(|r| found.replaced.iter().any(|x| Arc::ptr_eq(x, r)))).map(|(k, _)| *k).collect();
+    for k in gone {
+        crate::host::retire(map.remove(&k));
+    }
+    let mut window = Shadow::resident(found.resident, found.bias, shadow.start, shadow.len);
+    window.window = true;
+    window.used.store(shadow.used.load(Ordering::Relaxed), Ordering::Relaxed);
+    let window = Arc::new(window);
+    // shortcut: slots that show the window in place (the arena's buffer,
+    // which every window in the part shares) go on showing it: their reads
+    // and writes are the title's memory, right but over the bus, and what
+    // they write does not reach `R`.
+    crate::host::retire(map.insert(key, window.clone()));
+    window
+}
+
+#[cfg(test)]
+mod heat_tests {
+    use super::warmed;
+
+    /// A window becomes hot once, in the third frame running it is asked
+    /// for in; asks within a frame count once; a gap of more than 8 frames
+    /// starts the run anew.
+    #[test]
+    fn a_window_is_hot_in_the_third_frame_running() {
+        let mut state = (0u64, 0u64);
+        let mut ask = |frame: u64| {
+            let (run, hot) = warmed(state.0, frame, state.1, 3);
+            state = (frame, run);
+            hot
+        };
+        assert!(!ask(10));
+        assert!(!ask(10), "the same frame");
+        assert!(!ask(11));
+        assert!(ask(13), "within 8 frames: the third");
+        assert!(!ask(14), "once");
+        assert!(!ask(30), "a gap: anew");
+        assert!(!ask(31));
+        assert!(ask(32));
+    }
+}
+
+#[cfg(test)]
+mod remap_tests {
+    use super::*;
+
+    /// A placement over view memory in a section's arena outlives a
+    /// remapping that leaves its range the same run of the same section,
+    /// and not one that does not (counted in [`REMAPS`]).
+    #[test]
+    fn warp_a_placement_in_a_section_outlives_a_remapping_to_the_same_pages() {
+        let Some(device) = crate::inplace::tests::warp() else { return };
+        // SAFETY: the section and view of the test's own.
+        unsafe {
+            use windows_sys::Win32::System::Memory as mem;
+            const K: usize = 64 << 10;
+            let invalid = windows_sys::Win32::Foundation::INVALID_HANDLE_VALUE;
+            let handle = mem::CreateFileMappingW(invalid, std::ptr::null(), mem::PAGE_READWRITE | mem::SEC_COMMIT, 0, (8 * K) as u32, std::ptr::null());
+            assert!(!handle.is_null());
+            // As the arenas open a section: a view of all of it, by its address.
+            let whole = mem::MapViewOfFile(handle, mem::FILE_MAP_WRITE, 0, 0, 8 * K);
+            let heap = crate::inplace::open(&device, crate::inplace::From::Part(whole.Value as usize, 8 * K)).unwrap();
+            let buffer = crate::inplace::place(&device, &heap, 0, 8 * K as u64).unwrap();
+            let gpu = buffer.GetGPUVirtualAddress();
+            // A made-up view address: only the runtime's table is looked at.
+            let at = 0x7_e000_0000usize;
+            let section = handle as usize;
+            crate::inplace::title_memory_view(at, 2 * K, section, 3 * K as u64);
+            let placed = crate::inplace::Placed { buffer, heap: heap.into(), gpu: gpu + 3 * K as u64, bias: 3 * K as u64, section: Some(section) };
+            let shadow = Shadow::test_in_place(placed, at as u64, 2 * K as u64);
+            let before = [REMAPS[0].load(Ordering::Relaxed), REMAPS[1].load(Ordering::Relaxed)];
+            assert!(still_good(&shadow), "not remapped");
+            // Remapped to the same pages: kept.
+            shadow.remapped.store(true, Ordering::Relaxed);
+            crate::inplace::views_gone(at, 2 * K);
+            crate::inplace::title_memory_view(at, K, section, 3 * K as u64);
+            crate::inplace::title_memory_view(at + K, K, section, 4 * K as u64);
+            assert!(still_good(&shadow), "the same run");
+            assert!(!shadow.remapped.load(Ordering::Relaxed));
+            // Remapped elsewhere: not good.
+            shadow.remapped.store(true, Ordering::Relaxed);
+            crate::inplace::views_gone(at, 2 * K);
+            crate::inplace::title_memory_view(at, 2 * K, section, 5 * K as u64);
+            assert!(!still_good(&shadow), "other pages");
+            assert!(REMAPS[0].load(Ordering::Relaxed) > before[0] && REMAPS[1].load(Ordering::Relaxed) > before[1]);
+            crate::inplace::views_gone(at, 2 * K);
+            drop(shadow);
+            mem::UnmapViewOfFile(whole);
+            windows_sys::Win32::Foundation::CloseHandle(handle);
+        }
+    }
+}
+
 #[cfg(test)]
 mod window_tests {
-    use super::{WINDOW, cover, grid, holder, longest_tail, tail_of, window_of};
+    use super::{DEFAULT_GRID, WINDOW, cover, grid, holder, longest_tail, tail_of, window_of};
 
     /// An ask that may take any window takes the longest that holds all of
     /// it, and none that holds only a part.
@@ -4055,16 +4573,16 @@ mod window_tests {
     }
 
     /// The setting takes powers of two from 64 KiB to 4 MiB; anything else
-    /// leaves the grid as it was.
+    /// leaves the grid at its 1 MiB default.
     #[test]
     fn the_grid_is_a_power_of_two_or_the_default() {
-        assert_eq!(grid(None), WINDOW);
+        assert_eq!(grid(None), DEFAULT_GRID);
         assert_eq!(grid(Some(4096)), WINDOW);
         assert_eq!(grid(Some(1024)), 1 << 20);
         assert_eq!(grid(Some(256)), 256 << 10);
         assert_eq!(grid(Some(64)), 64 << 10);
         for bad in [0, 32, 100, 1000, 8192] {
-            assert_eq!(grid(Some(bad)), WINDOW, "{bad}");
+            assert_eq!(grid(Some(bad)), DEFAULT_GRID, "{bad}");
         }
     }
 
@@ -4214,4 +4732,32 @@ pub(crate) fn near(va: u64) -> String {
         ));
     }
     text
+}
+
+thread_local! {
+    /// The narrowest store of the shader whose views are walked now
+    /// (`crate::pipeline::StoreWidth`): what [`Shadow::gpu_writes`] tells
+    /// the merge of a resident. Bytes outside a stage's walk ([`writer`]).
+    static WIDTH: std::cell::Cell<crate::pipeline::StoreWidth> = const { std::cell::Cell::new(crate::pipeline::StoreWidth::Bytes) };
+}
+
+/// While the value lives, writes declared on this thread are by a shader
+/// whose narrowest store is `width`; after, by one not known.
+pub(crate) fn writer(width: crate::pipeline::StoreWidth) -> Writer {
+    WIDTH.set(width);
+    Writer(())
+}
+
+/// The narrowest store of the shader whose views are walked now ([`writer`]).
+pub(crate) fn writer_width() -> crate::pipeline::StoreWidth {
+    WIDTH.get()
+}
+
+/// See [`writer`].
+pub(crate) struct Writer(());
+
+impl Drop for Writer {
+    fn drop(&mut self) {
+        WIDTH.set(crate::pipeline::StoreWidth::Bytes);
+    }
 }

@@ -17,6 +17,7 @@
 
 #[cfg(all(windows, feature = "diagnostics"))]
 mod capture;
+mod cardtime;
 pub mod console;
 #[cfg(all(windows, feature = "diagnostics"))]
 mod copystat;
@@ -32,7 +33,13 @@ mod host;
 #[cfg(windows)]
 mod indirect;
 #[cfg(windows)]
+mod arena;
+#[cfg(windows)]
 mod inplace;
+#[cfg(windows)]
+mod inplace_probes;
+#[cfg(windows)]
+mod resident;
 pub mod list;
 pub mod object;
 pub mod pipeline;
@@ -65,6 +72,10 @@ mod watch;
 pub use host::on_failure;
 #[cfg(windows)]
 pub use inplace::{title_memory_freeing, title_memory_section, title_memory_view};
+#[cfg(windows)]
+pub use inplace_probes::run_alone as inplace_probe;
+#[cfg(windows)]
+pub use arena::{title_memory_committed, title_memory_released, title_memory_section_gone};
 #[cfg(windows)]
 pub use watch::{
     title_memory_reading, title_memory_remapped, title_memory_remapping, title_memory_written,

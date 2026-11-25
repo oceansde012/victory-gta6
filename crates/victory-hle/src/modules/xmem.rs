@@ -176,7 +176,172 @@ pub extern "system" fn XMemVirtualAlloc(
             "XMemVirtualAlloc"
         );
     }
+    if !at.is_null() && base.is_null() && memory_calls() {
+        graphics_regions().insert(at as usize, (size, placeholder));
+    }
+    // Committed graphics memory, for the GPU side's arenas (`victory_gpu`,
+    // `VICTORY_INPLACE=3`: only memory told here is ever opened in place;
+    // it does nothing at other levels).
+    if !at.is_null() && kind & MEM_COMMIT != 0 && !placeholder {
+        victory_gpu::title_memory_committed(at as usize, size);
+    }
     at
+}
+
+// The title's own kernel32 calls on graphics memory (the in-place design's
+// risk R9): a page the GPU side has opened in place cannot be decommitted,
+// released, reset or protected while the heap stands (the call fails with
+// error 87). Stage 0 only counts such calls over memory `XMemVirtualAlloc`
+// gave, so a run says whether the title makes them at all; behaviour is
+// unchanged (each wrapper calls the host's function with the title's
+// arguments). On only with `VICTORY_INPLACE_PROBE` or `VICTORY_INPLACE`
+// (or `VICTORY_MEMORY_CALLS=1`): otherwise the title's imports go to the
+// host as before.
+
+/// Whether the wrappers are installed.
+fn memory_calls() -> bool {
+    static ON: LazyLock<bool> = LazyLock::new(|| {
+        let set = |name: &str| std::env::var(name).is_ok_and(|v| !v.trim().is_empty() && v.trim() != "0");
+        set("VICTORY_INPLACE_PROBE") || set("VICTORY_INPLACE") || set("VICTORY_MEMORY_CALLS")
+    });
+    *ON
+}
+
+/// `XMemVirtualAlloc`'s reservations by address: bytes, and whether a
+/// placeholder (view memory).
+static GRAPHICS_REGIONS: Mutex<BTreeMap<usize, (usize, bool)>> = Mutex::new(BTreeMap::new());
+
+fn graphics_regions() -> MutexGuard<'static, BTreeMap<usize, (usize, bool)>> {
+    GRAPHICS_REGIONS.lock().unwrap_or_else(|e| e.into_inner())
+}
+
+/// The graphics region `[at, at + len)` touches, if any: its base, bytes,
+/// and whether a placeholder.
+fn graphics_region(at: usize, len: usize) -> Option<(usize, usize, bool)> {
+    let regions = graphics_regions();
+    let end = at.saturating_add(len.max(1));
+    regions
+        .range(..end)
+        .next_back()
+        .filter(|(base, (bytes, _))| *base + *bytes > at)
+        .map(|(&base, &(bytes, placeholder))| (base, bytes, placeholder))
+}
+
+/// The bytes from `at` that share its state (an allocation committed whole:
+/// all of it).
+fn region_bytes(at: *const c_void) -> usize {
+    // SAFETY: plain data filled in by the query.
+    let mut info: MEMORY_BASIC_INFORMATION = unsafe { std::mem::zeroed() };
+    // SAFETY: our own process; a valid out pointer of the right size.
+    let n = unsafe { VirtualQueryEx(GetCurrentProcess(), at, &mut info, size_of_val(&info)) };
+    if n == 0 { 0 } else { info.RegionSize }
+}
+
+/// Kinds of call counted: decommit, release, protect, reset.
+const CALL_NAMES: [&str; 4] = ["MEM_DECOMMIT", "MEM_RELEASE", "VirtualProtect", "MEM_RESET"];
+/// Per kind: calls over graphics memory, and of them those that failed.
+static CALLS: [[AtomicUsize; 2]; 4] = [const { [const { AtomicUsize::new(0) }; 2] }; 4];
+
+/// Counts one call of `kind` on `[at, at + len)` if it touches graphics
+/// memory; the first ones and then every power of two are logged.
+fn count_call(kind: usize, at: usize, len: usize, detail: u32, ok: bool) {
+    let Some((base, bytes, placeholder)) = graphics_region(at, len) else {
+        return;
+    };
+    let n = CALLS[kind][0].fetch_add(1, Ordering::Relaxed) + 1;
+    if !ok {
+        CALLS[kind][1].fetch_add(1, Ordering::Relaxed);
+    }
+    if n <= 16 || n.is_power_of_two() {
+        let error = if ok { 0 } else { std::io::Error::last_os_error().raw_os_error().unwrap_or(0) };
+        let counts: Vec<String> = CALL_NAMES
+            .iter()
+            .zip(&CALLS)
+            .map(|(name, c)| format!("{name} {} ({} failed)", c[0].load(Ordering::Relaxed), c[1].load(Ordering::Relaxed)))
+            .collect();
+        tracing::info!(
+            at = format_args!("{at:#x}"),
+            len,
+            detail = format_args!("{detail:#x}"),
+            ok,
+            error,
+            region = format_args!("{base:#x}+{bytes:#x}"),
+            placeholder,
+            "the title's {} on graphics memory (R9: counted, not changed); so far: {}",
+            CALL_NAMES[kind],
+            counts.join(", ")
+        );
+    }
+}
+
+pub(crate) use calls::calls_module;
+
+// In a module of their own: the names are the host's, which this file
+// imports.
+mod calls {
+use super::*;
+
+pub extern "system" fn VirtualFree(at: *mut c_void, size: usize, kind: u32) -> BOOL {
+    let region = graphics_region(at as usize, size);
+    let len = match (kind & MEM_RELEASE != 0, region) {
+        (true, Some((_, bytes, _))) => bytes,
+        _ => size,
+    };
+    // What the GPU side has in place there lets the pages go first
+    // (`VICTORY_INPLACE=3`; nothing at other levels).
+    if region.is_some() {
+        victory_gpu::title_memory_released(at as usize, len);
+    }
+    // SAFETY: the title's own arguments.
+    let ok = unsafe { windows_sys::Win32::System::Memory::VirtualFree(at, size, kind) };
+    count_call(if kind & MEM_RELEASE != 0 { 1 } else { 0 }, at as usize, len, kind, ok != 0);
+    if ok != 0 && kind & MEM_RELEASE != 0 && size == 0 {
+        graphics_regions().remove(&(at as usize));
+    }
+    ok
+}
+
+pub extern "system" fn VirtualProtect(at: *const c_void, size: usize, protect: u32, old: *mut u32) -> BOOL {
+    // Another protection than read-write fails on locked pages (probe R9).
+    if protect != PAGE_READWRITE && graphics_region(at as usize, size).is_some() {
+        victory_gpu::title_memory_released(at as usize, size);
+    }
+    // SAFETY: the title's own arguments.
+    let ok = unsafe { windows_sys::Win32::System::Memory::VirtualProtect(at, size, protect, old) };
+    count_call(2, at as usize, size, protect, ok != 0);
+    ok
+}
+
+pub extern "system" fn VirtualAlloc(at: *const c_void, size: usize, kind: u32, protect: u32) -> *mut c_void {
+    // SAFETY: the title's own arguments.
+    let out = unsafe { VirtualAlloc_host(at, size, kind, protect) };
+    // MEM_RESET (0x80000) and MEM_RESET_UNDO (0x1000000).
+    if kind & (0x8_0000 | 0x100_0000) != 0 && !at.is_null() {
+        count_call(3, at as usize, size, kind, !out.is_null());
+    }
+    // A commit of the title's own in graphics memory (`XMemVirtualAlloc`
+    // reserved it): the GPU side's arenas are told, as for an
+    // `XMemVirtualAlloc` commit.
+    if kind & MEM_COMMIT != 0 && !out.is_null() && !at.is_null() && graphics_region(out as usize, size).is_some_and(|r| !r.2) {
+        victory_gpu::title_memory_committed(out as usize, size);
+    }
+    out
+}
+
+/// The host's `VirtualAlloc`, named apart from our wrapper.
+unsafe fn VirtualAlloc_host(at: *const c_void, size: usize, kind: u32, protect: u32) -> *mut c_void {
+    // SAFETY: the caller's arguments.
+    unsafe { windows_sys::Win32::System::Memory::VirtualAlloc(at, size, kind, protect) }
+}
+
+/// The kernel32 wrappers of R9, when [`memory_calls`] is on.
+pub(crate) fn calls_module() -> Option<HleModule> {
+    memory_calls().then(|| HleModule {
+        name: "xmem-calls",
+        dlls: &["kernel32.dll", "kernelbase.dll", "api-ms-win-core-memory-*"],
+        exports: vec![hle_export!(VirtualFree), hle_export!(VirtualProtect), hle_export!(VirtualAlloc)],
+    })
+}
 }
 
 /// `MEMORY_BASIC_INFORMATION` (the console's first 0x30 bytes are the
@@ -333,6 +498,15 @@ pub extern "system" fn XMemFreeDefault(address: *mut c_void, attributes: u64) {
     // whole reservation, or a header-prefixed block.
     unsafe {
         if attributes & ALLOC_32BIT != 0 {
+            // What the GPU side has in place there goes first (its pages
+            // cannot be released while a heap is open on them).
+            // (Only with the switches that install the wrappers: off,
+            // nothing is in place and nothing is asked.)
+            if memory_calls() {
+                let len = graphics_region(address as usize, 1).map_or_else(|| region_bytes(address), |r| r.1);
+                victory_gpu::title_memory_released(address as usize, len);
+                graphics_regions().remove(&(address as usize));
+            }
             VirtualFree(address, 0, MEM_RELEASE);
             return;
         }
@@ -357,7 +531,9 @@ pub extern "system" fn XMemIsToolsMemAvailable() -> BOOL {
 
 const PAGE: usize = 64 << 10;
 
-struct Section(HANDLE);
+/// A section of physical pages: its handle, and whether made committed
+/// (its views need no commit of their own).
+struct Section(HANDLE, bool);
 
 // SAFETY: a section handle may be used from any thread.
 unsafe impl Send for Section {}
@@ -366,9 +542,69 @@ unsafe impl Sync for Section {}
 
 impl Drop for Section {
     fn drop(&mut self) {
+        // The GPU side's heap on it, if any, goes when what is in place in
+        // it does.
+        victory_gpu::title_memory_section_gone(self.0 as usize);
         // SAFETY: our handle; views keep the section alive on their own.
         unsafe { CloseHandle(self.0) };
     }
+}
+
+/// `VICTORY_INPLACE_POOL=1`: the page pool's sections are made committed
+/// (`SEC_COMMIT`) while the system's commit has room for them and 4 GiB
+/// more (else reserved, as before), and cut into sections of
+/// [`pool_section_bytes`]. Only a committed section can be opened as a
+/// GPU heap (the in-place design's Stage 4; probe P7 on the card: 6 GiB
+/// committed costs 6,156 MB of commit and nothing until touched in RAM),
+/// and only one below 4 GiB (probe P1: 4095 MiB opens, 6 GiB is refused).
+fn pool_committed() -> bool {
+    static ON: LazyLock<bool> =
+        LazyLock::new(|| std::env::var_os("VICTORY_INPLACE_POOL").is_some_and(|v| v == "1"));
+    *ON
+}
+
+/// The bytes of one section of the pool with [`pool_committed`]
+/// (`VICTORY_POOL_SECTION_MB`, 1024; 64 to 4095).
+fn pool_section_bytes() -> usize {
+    static BYTES: LazyLock<usize> = LazyLock::new(|| {
+        std::env::var("VICTORY_POOL_SECTION_MB")
+            .ok()
+            .and_then(|v| v.trim().parse::<usize>().ok())
+            .unwrap_or(1024)
+            .clamp(64, 4095)
+            * MIB
+    });
+    *BYTES
+}
+
+/// Whether the system's commit has room for `bytes` more and 4 GiB besides.
+fn commit_headroom(bytes: usize) -> bool {
+    let mut info = PERFORMANCE_INFORMATION {
+        cb: size_of::<PERFORMANCE_INFORMATION>() as u32,
+        ..Default::default()
+    };
+    // SAFETY: a sized structure filled in by the call.
+    if unsafe { K32GetPerformanceInfo(&mut info, info.cb) } == 0 {
+        return false;
+    }
+    let free = info.CommitLimit.saturating_sub(info.CommitTotal) * info.PageSize;
+    free > bytes + 4 * 1024 * MIB
+}
+
+/// A pagefile-backed section of `size` bytes, committed or reserved.
+fn new_section(size: usize, committed: bool) -> Option<HANDLE> {
+    // SAFETY: plain section creation.
+    let handle = unsafe {
+        CreateFileMappingW(
+            INVALID_HANDLE_VALUE,
+            std::ptr::null(),
+            PAGE_READWRITE | if committed { SEC_COMMIT } else { SEC_RESERVE },
+            (size as u64 >> 32) as u32,
+            size as u32,
+            std::ptr::null(),
+        )
+    };
+    (!handle.is_null()).then_some(handle)
 }
 
 /// Where a page lives, or what a view starts with: a section and a page
@@ -429,44 +665,52 @@ pub extern "system" fn XMemAllocatePhysicalPages(
     // A pagefile-backed section of `size` bytes, its pages committed when
     // first mapped or written (`commit`): the title asks for 6.1
     // GiB at once, which a busy host often cannot commit (error 1450).
-    // SAFETY: plain section creation.
-    let handle = unsafe {
-        CreateFileMappingW(
-            INVALID_HANDLE_VALUE,
-            std::ptr::null(),
-            // Under Wine a committed section is a sparse file, free until
-            // touched, and committing a reserved one page by page costs a
-            // wineserver request each that scans every range committed so
-            // far: commit it whole there.
-            PAGE_READWRITE | if on_wine() { SEC_COMMIT } else { SEC_RESERVE },
-            (size as u64 >> 32) as u32,
-            size as u32,
-            std::ptr::null(),
-        )
+    // Under Wine a committed section is a sparse file, free until touched,
+    // and committing a reserved one page by page costs a wineserver
+    // request each that scans every range committed so far: commit it
+    // whole there. With `VICTORY_INPLACE_POOL=1`: committed sections of
+    // `pool_section_bytes` each, while the commit has room.
+    let (committed, chunk) = if pool_committed() {
+        let room = commit_headroom(size);
+        if !room {
+            tracing::warn!(mb = size >> 20, "VICTORY_INPLACE_POOL: no commit room for the pool; its sections stay reserved");
+        }
+        (room || on_wine(), pool_section_bytes() / PAGE * PAGE)
+    } else {
+        (on_wine(), size)
     };
-    if handle.is_null() {
-        let error = std::io::Error::last_os_error();
-        tracing::warn!(n, %error, "XMemAllocatePhysicalPages failed");
-        // SAFETY: checked non-null.
-        unsafe { count.write(0) };
-        return 0;
+    let mut sections: Vec<Arc<Section>> = Vec::new();
+    let mut made = 0;
+    while made < size {
+        let bytes = chunk.min(size - made);
+        let Some(handle) = new_section(bytes, committed) else {
+            let error = std::io::Error::last_os_error();
+            tracing::warn!(n, %error, "XMemAllocatePhysicalPages failed");
+            // SAFETY: checked non-null.
+            unsafe { count.write(0) };
+            return 0;
+        };
+        // For the GPU side: only a committed section can be opened as a
+        // host heap.
+        victory_gpu::title_memory_section(handle as usize, bytes as u64, committed);
+        sections.push(Arc::new(Section(handle, committed)));
+        made += bytes;
     }
     tracing::debug!(
         n,
         flags = format_args!("{flags:#x}"),
+        sections = sections.len(),
+        committed,
         "XMemAllocatePhysicalPages"
     );
-    // For the GPU side's in-place census: only a committed section can be
-    // opened as a host heap.
-    victory_gpu::title_memory_section(handle as usize, size as u64, on_wine());
-    let section = Arc::new(Section(handle));
+    let per = chunk / PAGE;
     let mut physical = physical();
     let first = physical.next_page;
     physical.next_page += n * FRAMES;
     for index in 0..n {
         let slice = Slice {
-            section: section.clone(),
-            index,
+            section: sections[index / per].clone(),
+            index: index % per,
         };
         let number = first + index * FRAMES;
         physical.pages.insert(number, slice);
@@ -520,7 +764,7 @@ impl View {
             return None;
         }
         let view = View { at, len };
-        commit(at.Value as usize, len).then_some(view)
+        commit(at.Value as usize, len, slice.section.1).then_some(view)
     }
 
     fn bytes(&mut self) -> &mut [u8] {
@@ -879,7 +1123,7 @@ fn map(physical: &mut Physical, base: usize, len: usize, slice: Slice) -> bool {
         );
         return false;
     }
-    if !commit(base, len) {
+    if !commit(base, len, slice.section.1) {
         // SAFETY: the view just mapped, back to a placeholder.
         unsafe { UnmapViewOfFile2(GetCurrentProcess(), view, MEM_PRESERVE_PLACEHOLDER) };
         return false;
@@ -895,9 +1139,10 @@ fn map(physical: &mut Physical, base: usize, len: usize, slice: Slice) -> bool {
     true
 }
 
-/// Commits the section pages a view shows (once per page, whichever view).
-fn commit(base: usize, len: usize) -> bool {
-    if on_wine() {
+/// Commits the section pages a view shows (once per page, whichever view);
+/// nothing for a section made committed (`committed`).
+fn commit(base: usize, len: usize, committed: bool) -> bool {
+    if on_wine() || committed {
         return true; // sections are committed whole there
     }
     // SAFETY: `[base, base + len)` is a view of a reserved section.
@@ -1145,6 +1390,32 @@ pub(crate) fn module() -> HleModule {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// R9's wrappers count the title's calls on graphics memory only, and
+    /// do what the host's functions do.
+    #[test]
+    fn memory_calls_on_graphics_memory_are_counted() {
+        // SAFETY: an allocation of the test's own.
+        unsafe {
+            let at = VirtualAlloc(std::ptr::null(), 4 * PAGE, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE) as usize;
+            let other = VirtualAlloc(std::ptr::null(), PAGE, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE) as usize;
+            assert!(at != 0 && other != 0);
+            graphics_regions().insert(at, (4 * PAGE, false));
+            let before: Vec<usize> = CALLS.iter().map(|c| c[0].load(Ordering::Relaxed)).collect();
+            let mut old = 0;
+            assert_ne!(calls::VirtualProtect((at + PAGE) as *const c_void, PAGE, PAGE_NOACCESS, &mut old), 0);
+            assert_eq!(old, PAGE_READWRITE);
+            assert_ne!(calls::VirtualProtect(other as *const c_void, PAGE, PAGE_NOACCESS, &mut old), 0);
+            assert!(!calls::VirtualAlloc((at + 2 * PAGE) as *const c_void, PAGE, 0x8_0000, PAGE_READWRITE).is_null());
+            assert_ne!(calls::VirtualFree((at + 3 * PAGE) as *mut c_void, PAGE, 0x4000), 0);
+            assert_ne!(calls::VirtualFree(at as *mut c_void, 0, MEM_RELEASE), 0);
+            let after: Vec<usize> = CALLS.iter().map(|c| c[0].load(Ordering::Relaxed)).collect();
+            // Decommit, release, protect (one of two), reset.
+            assert_eq!(after.iter().zip(&before).map(|(a, b)| a - b).collect::<Vec<_>>(), [1, 1, 1, 1]);
+            assert!(graphics_region(at, PAGE).is_none(), "released: forgotten");
+            VirtualFree(other as *mut c_void, 0, MEM_RELEASE);
+        }
+    }
 
     fn query(address: *const c_void) -> BasicInformation {
         // SAFETY: plain data; zero is a valid value.

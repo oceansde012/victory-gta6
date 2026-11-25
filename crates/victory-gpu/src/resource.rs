@@ -1990,6 +1990,12 @@ impl HostTexture {
 impl Drop for HostTexture {
     fn drop(&mut self) {
         use std::sync::atomic::Ordering::Relaxed;
+        // A texture with levels on demand: its tiles are in heaps of ours,
+        // not in the texture, so they stay given until nothing names the
+        // texture any more (`crate::tiles::let_go`).
+        if let Some(tiled) = self.tiled.take() {
+            crate::tiles::let_go(self.texture.clone(), tiled);
+        }
         HOST_TEXTURES[0].fetch_sub(1, Relaxed);
         HOST_TEXTURES[1].fetch_sub(self.bytes, Relaxed);
         if self.filled {
@@ -4100,4 +4106,179 @@ float4 lit() : SV_Target { return 1.0; }
         assert_eq!(slot::<Release>(heap, 0x10)(heap), 1);
         assert_eq!(slot::<Release>(placed, 0x10)(placed), 0);
     }
+    #[cfg(windows)]
+    #[test]
+    fn copy_resource_uploads_depth_and_stencil_from_guest_memory() {
+        use windows::Win32::Graphics::Direct3D12::*;
+        use windows::Win32::Graphics::Dxgi::Common::DXGI_SAMPLE_DESC;
+
+        let Some(host) = crate::host::host() else {
+            return;
+        };
+        let null = std::ptr::null();
+        let desc = texture(2, 2, 19, 1); // R32G8X24_TYPELESS, sampled or copied
+        let make = || {
+            let mut out = null;
+            assert_eq!(
+                create_committed(
+                    null,
+                    &PROPERTIES,
+                    0,
+                    &desc,
+                    0,
+                    null.cast(),
+                    &RESOURCE_IIDS[0],
+                    &mut out
+                ),
+                S_OK
+            );
+            out
+        };
+        let (src, dst) = (make(), make());
+        let layout = texture_layout(&desc).unwrap();
+        let depth = [0.125f32, 0.375, 0.625, 0.875];
+        let depth_bytes = depth.map(f32::to_le_bytes).concat();
+        let stencil = [7u8, 11, 13, 17];
+        // SAFETY: src owns at least layout.size bytes of guest backing.
+        let tiled =
+            unsafe { std::slice::from_raw_parts_mut(resource(src).data(), layout.size as usize) };
+        for (plane, bytes, pitch) in [
+            (&layout.planes[0], depth_bytes.as_slice(), 8),
+            (&layout.planes[1], stencil.as_slice(), 2),
+        ] {
+            let start = plane.offset as usize;
+            plane
+                .layout
+                .tile(&mut tiled[start..], 0, 0, bytes, pitch, pitch * 2)
+                .unwrap();
+        }
+
+        let allocator_iid = guid(
+            0x6102dee4,
+            0xaf59,
+            0x4b09,
+            [0xb9, 0x99, 0xb4, 0x4d, 0x73, 0xf0, 0x9b, 0x24],
+        );
+        let list_iid = guid(
+            0x5b160d0f,
+            0xac1b,
+            0x4185,
+            [0x8b, 0xa8, 0xb3, 0xae, 0x42, 0xa5, 0xa4, 0x55],
+        );
+        let (mut allocator, mut list) = (null, null);
+        assert_eq!(
+            crate::list::create_allocator(null, 0, &allocator_iid, &mut allocator),
+            S_OK
+        );
+        assert_eq!(
+            crate::list::create_list(null, 0, 0, allocator, null, &list_iid, &mut list),
+            S_OK
+        );
+        slot::<extern "system" fn(This, This, This)>(list, 0x88)(list, dst, src);
+        assert_eq!(
+            slot::<extern "system" fn(This) -> HRESULT>(list, 0x48)(list),
+            S_OK
+        );
+        host.execute(&[crate::list::host_list(list).unwrap()]);
+
+        let image = host_resource(dst).unwrap();
+        let mut footprints = [D3D12_PLACED_SUBRESOURCE_FOOTPRINT::default(); 2];
+        let mut sizes = [0; 2];
+        let mut total = 0;
+        // SAFETY: image is live and the arrays hold two subresources.
+        unsafe {
+            host.device.GetCopyableFootprints(
+                &image.GetDesc(),
+                0,
+                2,
+                0,
+                Some(footprints.as_mut_ptr()),
+                None,
+                Some(sizes.as_mut_ptr()),
+                Some(&mut total),
+            )
+        };
+        assert_eq!(sizes, [8, 2]);
+        let readback_desc = D3D12_RESOURCE_DESC {
+            Dimension: D3D12_RESOURCE_DIMENSION_BUFFER,
+            Width: total,
+            Height: 1,
+            DepthOrArraySize: 1,
+            MipLevels: 1,
+            SampleDesc: DXGI_SAMPLE_DESC {
+                Count: 1,
+                Quality: 0,
+            },
+            Layout: D3D12_TEXTURE_LAYOUT_ROW_MAJOR,
+            ..Default::default()
+        };
+        let mut readback: Option<ID3D12Resource> = None;
+        let back = host.new_list().unwrap();
+        let (_, before) = host_transition(dst, 0x800).unwrap();
+        // SAFETY: live resources, matching footprints, and an open list.
+        unsafe {
+            host.device
+                .CreateCommittedResource(
+                    &D3D12_HEAP_PROPERTIES {
+                        Type: D3D12_HEAP_TYPE_READBACK,
+                        ..Default::default()
+                    },
+                    D3D12_HEAP_FLAG_NONE,
+                    &readback_desc,
+                    D3D12_RESOURCE_STATE_COPY_DEST,
+                    None,
+                    &mut readback,
+                )
+                .unwrap();
+            back.list.ResourceBarrier(&[crate::host::transition(
+                image,
+                D3D12_RESOURCE_STATES(before as i32),
+                D3D12_RESOURCE_STATE_COPY_SOURCE,
+            )]);
+            for (index, footprint) in footprints.into_iter().enumerate() {
+                let from = D3D12_TEXTURE_COPY_LOCATION {
+                    pResource: std::mem::transmute_copy(image),
+                    Type: D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
+                    Anonymous: D3D12_TEXTURE_COPY_LOCATION_0 {
+                        SubresourceIndex: index as u32,
+                    },
+                };
+                let to = D3D12_TEXTURE_COPY_LOCATION {
+                    pResource: std::mem::transmute_copy(readback.as_ref().unwrap()),
+                    Type: D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT,
+                    Anonymous: D3D12_TEXTURE_COPY_LOCATION_0 {
+                        PlacedFootprint: footprint,
+                    },
+                };
+                back.list.CopyTextureRegion(&to, 0, 0, 0, &from, None);
+            }
+        }
+        back.close();
+        host.execute(&[&back]);
+        let readback = readback.unwrap();
+        let mut data = std::ptr::null_mut();
+        // SAFETY: execute waited for the copy and the mapped buffer holds total bytes.
+        let read = unsafe {
+            readback.Map(0, None, Some(&mut data)).unwrap();
+            std::slice::from_raw_parts(data.cast::<u8>(), total as usize)
+        };
+        let [actual_depth, actual_stencil] = [0, 1].map(|plane| {
+            let footprint = footprints[plane];
+            let offset = footprint.Offset as usize;
+            let pitch = footprint.Footprint.RowPitch as usize;
+            let size = sizes[plane] as usize;
+            [
+                &read[offset..offset + size],
+                &read[offset + pitch..offset + pitch + size],
+            ]
+            .concat()
+        });
+        for object in [list, allocator, src, dst] {
+            slot::<extern "system" fn(This) -> u32>(object, 0x10)(object);
+        }
+        assert_eq!(actual_depth, depth_bytes, "depth plane");
+        assert_eq!(actual_stencil, stencil, "stencil plane");
+    }
+
+
 }

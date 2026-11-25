@@ -123,20 +123,25 @@ const VIEWS_KIND: u32 = 0;
 const SAMPLERS: u32 = 1;
 const SHADER_VISIBLE: u32 = 1;
 
-/// Shader-visible heaps by address range, for mirroring descriptor writes:
-/// start, end, heap.
+/// Mirroring raw copies already holds the registry lock to keep each heap
+/// alive. Store its fingerprints here so a scan needs no per-slot lock.
 #[cfg(windows)]
-static SHADER_HEAPS: std::sync::Mutex<Vec<(u64, u64, usize)>> = std::sync::Mutex::new(Vec::new());
+struct ShaderHeap {
+    range: std::ops::Range<u64>,
+    at: usize,
+    copied: host::CopiedSlots,
+}
+
+#[cfg(windows)]
+static SHADER_HEAPS: std::sync::Mutex<Vec<ShaderHeap>> = std::sync::Mutex::new(Vec::new());
 
 /// The shader-visible heap holding `handle`, and the descriptor's index.
 #[cfg(windows)]
 fn shader_slot<'a>(handle: u64) -> Option<(&'a Heap, u32)> {
     let heaps = SHADER_HEAPS.lock().unwrap_or_else(|e| e.into_inner());
-    let &(_, _, at) = heaps
-        .iter()
-        .find(|&&(start, end, _)| (start..end).contains(&handle))?;
+    let entry = heaps.iter().find(|entry| entry.range.contains(&handle))?;
     // SAFETY: registered heaps are live (removed when dropped).
-    let heap = unsafe { &*(at as *const Heap) };
+    let heap = unsafe { &*(entry.at as *const Heap) };
     Some((heap, heap.index(handle)?))
 }
 
@@ -146,15 +151,12 @@ fn shader_slot<'a>(handle: u64) -> Option<(&'a Heap, u32)> {
 #[cfg(windows)]
 fn mirror(handle: u64) {
     let heaps = SHADER_HEAPS.lock().unwrap_or_else(|e| e.into_inner());
-    let Some(&(_, _, at)) = heaps
-        .iter()
-        .find(|&&(start, end, _)| (start..end).contains(&handle))
-    else {
+    let Some(entry) = heaps.iter().find(|entry| entry.range.contains(&handle)) else {
         return;
     };
     // SAFETY: registered heaps stay alive until `Heap::drop`, which takes
     // the `SHADER_HEAPS` lock we hold here.
-    let heap = unsafe { &*(at as *const Heap) };
+    let heap = unsafe { &*(entry.at as *const Heap) };
     let Some(index) = heap.index(handle) else {
         return;
     };
@@ -175,6 +177,12 @@ fn mirror(handle: u64) {
 /// its 1,024 to 2,048 records is skipped: that walk, not the read, was most
 /// of the cost (300,000 to 485,000 records looked at a frame, of which
 /// 12,000 to 20,000 were new).
+///
+/// Keyed by the page's address alone, so a heap's pages go with it
+/// ([`Heap`]'s `Drop`): a heap placed where a released one was, holding the
+/// same bytes, would otherwise skip the sync its own host heap (new, and
+/// empty) needs. 64 KiB a page, 4,096 of them at most (256 MB): a world
+/// frame's 300,000 to 485,000 records are 150 to 475 of those pages.
 #[cfg(windows)]
 fn seen_pages() -> &'static std::sync::Mutex<std::collections::HashMap<usize, Vec<u8>>> {
     static SEEN: std::sync::OnceLock<std::sync::Mutex<std::collections::HashMap<usize, Vec<u8>>>> =
@@ -199,12 +207,14 @@ pub(crate) fn sync_heaps() {
         return;
     }
     let started = std::time::Instant::now();
-    let (mut pages, mut looked, mut mirrored) = (0u64, 0u64, 0u64);
+    let (mut pages, mut looked, mut mirrored, mut tabled) = (0u64, 0u64, 0u64, 0u64);
     let mut page_bytes: Vec<u8> = Vec::new();
-    let heaps = SHADER_HEAPS.lock().unwrap_or_else(|e| e.into_inner());
-    for &(start, end, at) in heaps.iter() {
+    let mut straddle = [0u8; 32];
+    let mut heaps = SHADER_HEAPS.lock().unwrap_or_else(|e| e.into_inner());
+    for entry in heaps.iter_mut() {
+        let (start, end) = (entry.range.start, entry.range.end);
         // SAFETY: registered heaps are live (removed when dropped).
-        let heap = unsafe { &*(at as *const Heap) };
+        let heap = unsafe { &*(entry.at as *const Heap) };
         let (Some(Some(host)), Some(written), Some(step)) =
             (heap.host.get(), &heap.written, increment(heap.desc.kind))
         else {
@@ -230,32 +240,90 @@ pub(crate) fn sync_heaps() {
                     // whole page first: 64 KiB against the copy last read is
                     // a few microseconds, and the slot walk it saves is
                     // hundreds.
-                    {
+                    // What the page held when it was last read, to say which
+                    // of its records moved. The kernel marks a page written
+                    // whether or not the bytes changed, and the title keeps
+                    // thousands of records in these pages.
+                    let (moved_from, moved_to) = {
                         let mut seen = seen_pages().lock().unwrap_or_else(|e| e.into_inner());
-                        if seen.get(&from).is_some_and(|old| old.as_slice() == page_bytes.as_slice()) {
-                            page += crate::watch::PAGE;
-                            continue;
-                        }
+                        let held = seen.remove(&from);
+                        // The bytes that differ, and so the records that can
+                        // have changed: a ring of records in one page usually
+                        // moves a handful of them. Records outside that span
+                        // are the ones last mirrored, unless nothing was
+                        // mirrored there yet.
+                        let moved = match &held {
+                            Some(old) if old.as_slice() == page_bytes.as_slice() => {
+                                seen.insert(from, held.unwrap_or_default());
+                                page += crate::watch::PAGE;
+                                continue;
+                            }
+                            Some(old) => difference(old, &page_bytes).unwrap_or((0, page_bytes.len())),
+                            None => (0, page_bytes.len()),
+                        };
                         if seen.len() >= 4096 {
                             seen.clear();
                         }
-                        seen.insert(from, page_bytes.clone());
+                        // The page's bytes kept for the next pass, in the
+                        // memory the last copy held: a clone a page would
+                        // allocate 64 KiB for every page that changed (250 of
+                        // them a frame, on the machine that measured this).
+                        let mut store = held.unwrap_or_default();
+                        store.clear();
+                        store.extend_from_slice(&page_bytes);
+                        seen.insert(from, store);
+                        moved
+                    };
+                    let mut slots = changed_slots(
+                        from + moved_from,
+                        from + moved_to,
+                        start as usize,
+                        step,
+                        mirrored_count,
+                    )
+                    .collect::<Vec<u64>>();
+                    if moved_from != 0 || moved_to != page_bytes.len() {
+                        let all = changed_slots(from, to, start as usize, step, mirrored_count);
+                        for index in all {
+                            if !slots.contains(&index) && entry.copied.needs(index as u32) {
+                                slots.push(index);
+                            }
+                        }
+                        slots.sort_unstable();
                     }
-                    let slots = changed_slots(from, to, start as usize, step, mirrored_count);
+                    let step_len = step as usize;
                     for index in slots {
                         let handle = start + index * step;
-                        // A record that straddles the range's ends is left
-                        // to the range that holds its first byte.
-                        let Some(at) = (handle as usize).checked_sub(from) else {
-                            continue;
-                        };
-                        let Some(record) = page_bytes.get(at..at + step as usize) else {
-                            continue;
+                        let record = match (handle as usize)
+                            .checked_sub(from)
+                            .and_then(|at| page_bytes.get(at..at + step_len))
+                        {
+                            Some(record) => record,
+                            None => {
+                                // A record straddling a 64 KiB page boundary (either
+                                // at `from` or `to`) is read whole through the kernel.
+                                if handle + step > end || step_len > straddle.len() {
+                                    continue;
+                                }
+                                if !crate::host::read_into(
+                                    handle as *const u8,
+                                    &mut straddle[..step_len],
+                                ) {
+                                    continue;
+                                }
+                                &straddle[..step_len]
+                            }
                         };
                         looked += 1;
                         // Only a record that is not the one last seen there
                         // (`HostHeap::mirror_copied`).
-                        if host.mirror_copied(index as u32, handle, record) {
+                        if host.mirror_copied(
+                            index as u32,
+                            handle,
+                            record,
+                            &mut entry.copied,
+                            &mut tabled,
+                        ) {
                             mirrored += 1;
                         }
                     }
@@ -265,22 +333,26 @@ pub(crate) fn sync_heaps() {
         }
     }
     drop(heaps);
-    for (count, n) in SYNCED.iter().zip([pages, looked, mirrored, started.elapsed().as_micros() as u64]) {
+    let micros = started.elapsed().as_micros() as u64;
+    for (count, n) in SYNCED.iter().zip([pages, looked, mirrored, micros, tabled]) {
         count.fetch_add(n, Relaxed);
     }
 }
 
 /// Since the last frame line, of [`sync_heaps`]: changed pages of placed
 /// shader-visible heaps looked at, slots on them, slots whose record was
-/// not the one last seen (mirrored), and the microseconds it took.
+/// not the one last seen (mirrored), the microseconds it took, and slots
+/// left to draws that read them through tables.
 #[cfg(windows)]
-pub(crate) static SYNCED: [std::sync::atomic::AtomicU64; 4] = [const { std::sync::atomic::AtomicU64::new(0) }; 4];
+static SYNCED: [std::sync::atomic::AtomicU64; 5] =
+    [const { std::sync::atomic::AtomicU64::new(0) }; 5];
 
 /// With the frame line: what [`sync_heaps`] did per frame over `frames`.
 /// Nothing while no heap page changed.
 #[cfg(windows)]
 pub(crate) fn sync_line(frames: f64) {
-    let [pages, looked, mirrored, micros] = [0, 1, 2, 3].map(|i| SYNCED[i].swap(0, std::sync::atomic::Ordering::Relaxed));
+    let [pages, looked, mirrored, micros, tabled] =
+        SYNCED.each_ref().map(|c| c.swap(0, std::sync::atomic::Ordering::Relaxed));
     if pages == 0 {
         return;
     }
@@ -290,9 +362,21 @@ pub(crate) fn sync_line(frames: f64) {
         pages as f64 / frames,
         looked as f64 / frames,
         mirrored as f64 / frames,
-        host::COPIED_TABLED.swap(0, std::sync::atomic::Ordering::Relaxed) as f64 / frames,
+        tabled as f64 / frames,
         micros as f64 / 1000.0 / frames
     );
+}
+
+/// The first and last bytes that differ between two copies of a page, as a
+/// range whose end is exclusive: `None` when they are the same.
+#[cfg(windows)]
+fn difference(old: &[u8], now: &[u8]) -> Option<(usize, usize)> {
+    if old.len() != now.len() {
+        return Some((0, now.len()));
+    }
+    let first = old.iter().zip(now).position(|(a, b)| a != b)?;
+    let last = old.iter().zip(now).rposition(|(a, b)| a != b)?;
+    Some((first, last + 1))
 }
 
 /// Title descriptor slots in a changed byte range that have host counterparts.
@@ -317,7 +401,7 @@ fn changed_slots(
 #[cfg(windows)]
 pub(crate) fn release_dynamic(heap: usize, first: u32, n: u32) {
     let heaps = SHADER_HEAPS.lock().unwrap_or_else(|e| e.into_inner());
-    if heaps.iter().any(|&(_, _, h)| h == heap)
+    if heaps.iter().any(|entry| entry.at == heap)
         // SAFETY: registered heaps are live (removed when dropped).
         && let Some(Some(host)) = unsafe { &*(heap as *const Heap) }.host.get()
     {
@@ -330,7 +414,18 @@ impl Drop for Heap {
     fn drop(&mut self) {
         let at = std::ptr::from_ref::<Heap>(self) as usize;
         let mut heaps = SHADER_HEAPS.lock().unwrap_or_else(|e| e.into_inner());
-        heaps.retain(|&(_, _, h)| h != at);
+        // The pages this heap's address range held are no longer the ones a
+        // heap placed there next holds: with its bytes kept, a heap that
+        // looks the same would skip a sync its host heap (new, and empty)
+        // needs. Taken before the range is removed, while it is still known.
+        if let Some(entry) = heaps.iter().find(|entry| entry.at == at) {
+            let (start, end) = (entry.range.start as usize, entry.range.end as usize);
+            seen_pages()
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .retain(|&page, _| page < start || page >= end);
+        }
+        heaps.retain(|entry| entry.at != at);
     }
 }
 
@@ -1141,7 +1236,11 @@ pub(crate) extern "system" fn create_heap(
     if visible {
         let at = std::ptr::from_ref::<Heap>(&heap) as usize;
         let mut heaps = SHADER_HEAPS.lock().unwrap_or_else(|e| e.into_inner());
-        heaps.push((start, start + size, at));
+        heaps.push(ShaderHeap {
+            range: start..start + size,
+            at,
+            copied: Default::default(),
+        });
     }
     #[cfg(not(windows))]
     let _ = visible;
@@ -1292,6 +1391,135 @@ mod tests {
             };
             assert!(!host.made(5));
             sync_heaps();
+            assert!(host.made(5));
+        }
+        slot::<extern "system" fn(This) -> u32>(h, 0x10)(h);
+        // SAFETY: this allocation belongs to the test.
+        unsafe { VirtualFree(memory, 0, MEM_RELEASE) };
+    }
+
+    /// A descriptor record straddling a 64 KiB page boundary in an unaligned
+    /// placed heap must be mirrored instead of skipped by both pages.
+    #[cfg(windows)]
+    #[test]
+    fn straddling_record_across_page_boundary_is_mirrored_on_sync() {
+        use windows_sys::Win32::System::Memory::{
+            MEM_COMMIT, MEM_RELEASE, MEM_RESERVE, PAGE_READWRITE, VirtualAlloc, VirtualFree,
+        };
+        const MEM_WRITE_WATCH: u32 = 0x20_0000;
+        let memory = unsafe {
+            VirtualAlloc(
+                std::ptr::null(),
+                2 * crate::watch::PAGE,
+                MEM_RESERVE | MEM_COMMIT | MEM_WRITE_WATCH,
+                PAGE_READWRITE,
+            )
+        };
+        assert!(!memory.is_null());
+        // Place 4096 16-byte sampler slots starting 8 bytes into page 0 so slot
+        // 4095 spans [memory + PAGE - 8, memory + PAGE + 8).
+        let start = memory as u64 + 8;
+        let desc = HeapDesc {
+            kind: SAMPLERS,
+            count: 4096,
+            flags: SHADER_VISIBLE,
+            nodes: 1,
+        };
+        let placement = Placement {
+            address: start,
+            size: 4096 * 16,
+        };
+        let mut h: This = std::ptr::null();
+        assert_eq!(create(desc, placement, &mut h), S_OK);
+        if let Some(host) = heap(h).host() {
+            let mut elsewhere = [0u64; 2];
+            let source = elsewhere.as_mut_ptr() as u64;
+            let sampler = [21, 3, 3, 3, 0, 1, 0, 0, 0, 0, 0, 0x7f7f_ffff, 0];
+            create_sampler(std::ptr::null(), &sampler, source);
+            let slot_addr = (start + 4095 * 16) as *mut u8;
+            // SAFETY: slot 4095 lies inside our 2-page allocation.
+            unsafe { std::ptr::copy_nonoverlapping(source as *const u8, slot_addr, 16) };
+            assert!(!host.made(4095));
+            sync_heaps();
+            assert!(
+                host.made(4095),
+                "straddling record across 64 KiB page boundary must be mirrored"
+            );
+        }
+        slot::<extern "system" fn(This) -> u32>(h, 0x10)(h);
+        // SAFETY: this allocation belongs to the test.
+        unsafe { VirtualFree(memory, 0, MEM_RELEASE) };
+    }
+
+    /// Raw-byte-copied buffer views are queued into `buffer_changes()` by
+    /// `sync_heaps()` and must be materialized before submission (as
+    /// `State::heap_buffers` does after syncing).
+    #[cfg(windows)]
+    #[test]
+    fn raw_copied_buffer_view_is_queued_by_sync_heaps_and_made_for_draw() {
+        use windows_sys::Win32::System::Memory::{
+            MEM_COMMIT, MEM_RELEASE, MEM_RESERVE, PAGE_READWRITE, VirtualAlloc, VirtualFree,
+        };
+        const MEM_WRITE_WATCH: u32 = 0x20_0000;
+        let memory = unsafe {
+            VirtualAlloc(
+                std::ptr::null(),
+                crate::watch::PAGE,
+                MEM_RESERVE | MEM_COMMIT | MEM_WRITE_WATCH,
+                PAGE_READWRITE,
+            )
+        };
+        assert!(!memory.is_null());
+        let mut buf_data = vec![0u8; 256];
+        let buf_addr = buf_data.as_mut_ptr() as u64;
+        let desc = HeapDesc {
+            kind: 0, // CBV/SRV/UAV
+            count: 64,
+            flags: SHADER_VISIBLE,
+            nodes: 1,
+        };
+        let placement = Placement {
+            address: memory as u64,
+            size: 64 * 32,
+        };
+        let mut h: This = std::ptr::null();
+        assert_eq!(create(desc, placement, &mut h), S_OK);
+        if let Some(host) = heap(h).host() {
+            // Build a valid placed raw buffer SRV in scratch memory, then raw-copy its bytes.
+            let mut resource = [0u32; 14];
+            resource[0] = 1; // BUFFER
+            resource[4] = 256; // width low
+            resource[8] = 1; // depth_or_array = 1, mips = 1 (packed in [8]/[9])
+            let mut srv_desc = [0u32; 16];
+            srv_desc[0] = 39; // DXGI_FORMAT_R32_TYPELESS
+            srv_desc[1] = 1; // D3D12_SRV_DIMENSION_BUFFER
+            srv_desc[2] = 5768; // D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING
+            srv_desc[6] = 64; // NumElements (64 dwords = 256 bytes)
+            srv_desc[8] = 1; // D3D12_BUFFER_SRV_FLAG_RAW
+            srv_desc[10] = buf_addr as u32;
+            srv_desc[11] = (buf_addr >> 32) as u32;
+            let mut elsewhere = [0u64; 4];
+            let source = elsewhere.as_mut_ptr() as u64;
+            create_placed_srv(std::ptr::null(), &resource, &srv_desc, source);
+            // SAFETY: slot 5 and source both hold 32 descriptor bytes.
+            unsafe {
+                std::ptr::copy_nonoverlapping(
+                    source as *const u8,
+                    memory.cast::<u8>().add(5 * 32),
+                    32,
+                );
+            }
+            sync_heaps();
+            assert!(
+                host.buffer_changes().contains(&5),
+                "sync_heaps must queue raw-copied buffer view for heap_buffers"
+            );
+            assert!(
+                !host.made(5),
+                "sync_heaps leaves buffer view deferred until for_draw=true"
+            );
+            let handle = heap(h).handle(5).unwrap();
+            assert!(host.mirror(5, handle, true).is_some());
             assert!(host.made(5));
         }
         slot::<extern "system" fn(This) -> u32>(h, 0x10)(h);

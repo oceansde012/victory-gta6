@@ -126,6 +126,30 @@ pub(crate) struct Translated {
     /// Whether the shader's code can store to buffer memory ([`stores`]);
     /// true when its code is not known.
     pub(crate) stores: bool,
+    /// The narrowest buffer store its code has ([`store_width`]).
+    pub(crate) width: StoreWidth,
+    /// Of its code: buffer stores, of them narrower than a dword, buffer
+    /// atomics, image atomics (draw-time probe).
+    pub(crate) store_counts: [u32; 4],
+}
+
+/// The narrowest store to buffer memory a shader's code has: what the
+/// merge of a resident may assume of a dword the shader changed
+/// (`crate::resident`). With whole dwords only, a dword that differs was
+/// stored whole by the card and goes back whole; with narrower stores, or
+/// typed ones whose width the view's format sets, or code not known, only
+/// its changed bytes go back (atomics, slow over the bus). Ordered from
+/// wide to narrow: the shaders of a range together have the narrowest.
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, Default)]
+pub(crate) enum StoreWidth {
+    /// Whole dwords (or wider) only, or no buffer stores.
+    Dwords,
+    /// Typed buffer stores (`buffer_store_format*`, `tbuffer_store*`):
+    /// as wide as the view's format, maybe less than a dword.
+    Typed,
+    /// Byte or 16-bit stores, or code not known.
+    #[default]
+    Bytes,
 }
 
 #[cfg(windows)]
@@ -184,6 +208,8 @@ fn translate(container: &[u8]) -> Result<Translated, String> {
     };
     let host = crate::shader_cache::host_shader(container)?;
     let stores = programs.is_empty() || programs.iter().any(stores);
+    let store_counts = programs.iter().map(store_counts).fold([0; 4], |a, b| std::array::from_fn(|i| a[i] + b[i]));
+    let width = if programs.is_empty() { StoreWidth::Bytes } else { programs.iter().map(store_width).max().unwrap_or_default() };
     let used = programs
         .into_iter()
         .find(|p| {
@@ -194,7 +220,7 @@ fn translate(container: &[u8]) -> Result<Translated, String> {
         })
         .map(|p| p.used)
         .unwrap_or_default();
-    Ok(Translated { host, used, stores })
+    Ok(Translated { host, used, stores, width, store_counts })
 }
 
 /// The compute pipelines of the console's ray-tracing structure builder
@@ -339,6 +365,110 @@ fn stores(program: &victory_shader::NativeProgram) -> bool {
             _ => false,
         }
     })
+}
+
+/// The narrowest buffer store of a console program ([`StoreWidth`]), by
+/// the instructions [`stores`] counts: a store whose name says byte or
+/// short (`_d16_hi` forms too) is [`StoreWidth::Bytes`], a typed store
+/// (`format` in its name) [`StoreWidth::Typed`]; atomics are dwords or
+/// wider. Code not all known is [`StoreWidth::Bytes`].
+#[cfg(windows)]
+fn store_width(program: &victory_shader::NativeProgram) -> StoreWidth {
+    use victory_shader::gfx10::decode;
+    let Ok(code) = decode(&program.code) else {
+        return StoreWidth::Bytes;
+    };
+    widest_store(code.iter().map(|i| (i.encoding, i.name())))
+}
+
+/// [`Translated::store_counts`] of one program.
+#[cfg(windows)]
+fn store_counts(program: &victory_shader::NativeProgram) -> [u32; 4] {
+    use victory_shader::gfx10::{Encoding, decode};
+    let mut n = [0; 4];
+    let Ok(code) = decode(&program.code) else {
+        return n;
+    };
+    for i in &code {
+        let Some(name) = i.name() else { continue };
+        match i.encoding {
+            Encoding::Mubuf | Encoding::Mtbuf | Encoding::Global | Encoding::Flat if !name.contains("scratch") => {
+                if name.contains("atomic") {
+                    n[2] += 1;
+                } else if name.contains("store") {
+                    n[0] += 1;
+                    if name.contains("byte") || name.contains("short") {
+                        n[1] += 1;
+                    }
+                }
+            }
+            Encoding::Mimg if name.contains("atomic") => n[3] += 1,
+            _ => {}
+        }
+    }
+    n
+}
+
+/// [`store_width`] over (encoding, name) of each instruction.
+#[cfg(windows)]
+fn widest_store<'a>(code: impl Iterator<Item = (victory_shader::gfx10::Encoding, Option<&'a str>)>) -> StoreWidth {
+    use victory_shader::gfx10::Encoding;
+    let mut width = StoreWidth::Dwords;
+    for (encoding, name) in code {
+        match encoding {
+            Encoding::Mubuf | Encoding::Mtbuf | Encoding::Smem | Encoding::Flat | Encoding::Global => {
+                let Some(n) = name else {
+                    return StoreWidth::Bytes;
+                };
+                if !n.contains("store") || n.contains("scratch") {
+                    continue;
+                }
+                if n.contains("byte") || n.contains("short") {
+                    return StoreWidth::Bytes;
+                }
+                if n.contains("format") || encoding == Encoding::Mtbuf {
+                    width = width.max(StoreWidth::Typed);
+                }
+            }
+            Encoding::Sop1 if name.is_none_or(|n| matches!(n, "s_setpc_b64" | "s_swappc_b64")) => return StoreWidth::Bytes,
+            _ => {}
+        }
+    }
+    width
+}
+
+#[cfg(all(test, windows))]
+mod width_tests {
+    use super::{StoreWidth, widest_store};
+    use victory_shader::gfx10::Encoding;
+
+    /// Dword stores and atomics leave a shader's width at whole dwords; a
+    /// typed store makes it typed, a byte or short store (or one not
+    /// known, or an indirect jump) bytes; loads and scratch stores do not
+    /// count.
+    #[test]
+    fn a_shaders_narrowest_store_decides_its_width() {
+        let w = |code: &[(Encoding, Option<&'static str>)]| widest_store(code.iter().copied());
+        assert_eq!(w(&[]), StoreWidth::Dwords);
+        assert_eq!(
+            w(&[
+                (Encoding::Mubuf, Some("buffer_store_dword")),
+                (Encoding::Global, Some("global_store_dwordx4")),
+                (Encoding::Mubuf, Some("buffer_atomic_add")),
+                (Encoding::Mubuf, Some("buffer_load_ubyte")),
+                (Encoding::Mubuf, Some("buffer_store_byte_scratch")),
+                (Encoding::Sop1, Some("s_mov_b32")),
+            ]),
+            StoreWidth::Dwords
+        );
+        assert_eq!(w(&[(Encoding::Mubuf, Some("buffer_store_format_xyzw")), (Encoding::Mubuf, Some("buffer_store_dword"))]), StoreWidth::Typed);
+        assert_eq!(w(&[(Encoding::Mtbuf, Some("tbuffer_store_format_x"))]), StoreWidth::Typed);
+        assert_eq!(w(&[(Encoding::Mubuf, Some("buffer_store_format_x")), (Encoding::Mubuf, Some("buffer_store_byte"))]), StoreWidth::Bytes);
+        assert_eq!(w(&[(Encoding::Global, Some("global_store_short_d16_hi"))]), StoreWidth::Bytes);
+        assert_eq!(w(&[(Encoding::Flat, Some("flat_store_byte"))]), StoreWidth::Bytes);
+        assert_eq!(w(&[(Encoding::Mubuf, None)]), StoreWidth::Bytes);
+        assert_eq!(w(&[(Encoding::Sop1, Some("s_setpc_b64"))]), StoreWidth::Bytes);
+    }
 }
 
 #[repr(C)]

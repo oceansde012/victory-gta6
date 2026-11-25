@@ -315,18 +315,19 @@ const BIG: usize = 32 << 20;
 
 /// A block of [`BIG`] bytes or more was made at `at`, or released there.
 fn big(at: *mut u8, size: usize, made: bool) {
+    use std::sync::atomic::Ordering::{Acquire, Release};
     if size < BIG {
         return;
     }
     for (place, bytes) in BIG_AT.iter().zip(&BIG_BYTES) {
         if made {
-            if place.compare_exchange(0, at as usize, Relaxed, Relaxed).is_ok() {
-                bytes.store(size as u64, Relaxed);
+            if place.compare_exchange(0, at as usize, Acquire, Relaxed).is_ok() {
+                bytes.store(size as u64, Release);
                 return;
             }
-        } else if place.load(Relaxed) == at as usize {
+        } else if place.load(Acquire) == at as usize {
             bytes.store(0, Relaxed);
-            place.store(0, Relaxed);
+            place.store(0, Release);
             return;
         }
     }
@@ -334,7 +335,8 @@ fn big(at: *mut u8, size: usize, made: bool) {
 
 /// The sizes of our own big blocks alive, largest first, in MB.
 fn big_blocks() -> String {
-    let mut sizes: Vec<u64> = BIG_BYTES.iter().map(|b| b.load(Relaxed)).filter(|&b| b != 0).collect();
+    use std::sync::atomic::Ordering::Acquire;
+    let mut sizes: Vec<u64> = BIG_BYTES.iter().map(|b| b.load(Acquire)).filter(|&b| b != 0).collect();
     sizes.sort_unstable_by(|a, b| b.cmp(a));
     let text: Vec<String> = sizes.iter().map(|b| format!("{:.2}", *b as f64 / (1 << 20) as f64)).collect();
     if text.is_empty() { "none".into() } else { text.join(", ") }
@@ -375,13 +377,17 @@ unsafe impl std::alloc::GlobalAlloc for Counting {
     }
 
     unsafe fn realloc(&self, at: *mut u8, layout: std::alloc::Layout, size: usize) -> *mut u8 {
+        // Unregister `at` before `System.realloc` can free it and let another
+        // thread reuse that virtual address.
+        big(at, layout.size(), false);
         // SAFETY: the caller's contract, passed on.
         let moved = unsafe { std::alloc::System.realloc(at, layout, size) };
         if !moved.is_null() {
             own(layout.size(), false);
             own(size, true);
-            big(at, layout.size(), false);
             big(moved, size, true);
+        } else {
+            big(at, layout.size(), true);
         }
         moved
     }
@@ -442,6 +448,38 @@ mod own_tests {
         assert!(super::big_blocks().contains("48.00"));
         drop(block);
         assert!(!listed(at));
+    }
+
+    /// Reallocating a big block updates its tracked address and size cleanly,
+    /// including growing across `BIG` and shrinking below `BIG`.
+    #[test]
+    fn big_block_realloc_tracks_new_address_and_size() {
+        use std::sync::atomic::Ordering::Acquire;
+        let listed = |at: usize, size: usize| {
+            super::BIG_AT
+                .iter()
+                .zip(&super::BIG_BYTES)
+                .any(|(place, bytes)| place.load(Acquire) == at && bytes.load(Acquire) == size as u64)
+        };
+        let mut block = Vec::<u8>::with_capacity(34 << 20);
+        let first_at = block.as_ptr() as usize;
+        let first_cap = block.capacity();
+        assert!(listed(first_at, first_cap));
+
+        block.reserve_exact(40 << 20);
+        let second_at = block.as_ptr() as usize;
+        let second_cap = block.capacity();
+        assert!(listed(second_at, second_cap));
+        if second_at != first_at {
+            assert!(!listed(first_at, first_cap));
+        }
+
+        block.clear();
+        block.shrink_to(1 << 20);
+        let small_at = block.as_ptr() as usize;
+        assert!(!listed(second_at, second_cap));
+        assert!(!listed(small_at, block.capacity()));
+        drop(block);
     }
 
     /// A big block shows in the counters while it lives (other tests
@@ -714,6 +752,16 @@ fn log_memory() {
             WALKING.store(false, Relaxed);
         }
     }
+    let pool = crate::texture::pool_stats();
+    tracing::info!(
+        "staging buffers since the start: {} made, {} taken from the pool, {} given back to it, {} released with it full; the pool now: {} buffers {:.0} MB (VICTORY_STAGING_POOL_MB)",
+        pool[0],
+        pool[1],
+        pool[2],
+        pool[3],
+        pool[4],
+        mb(pool[5])
+    );
     let kept = crate::pipeline::kept();
     tracing::info!(
         "memory kept beside the lines below: {} shader containers {:.0} MB, {} translations \
@@ -1262,7 +1310,10 @@ pub(crate) fn log(frames: f64) {
             text.join(", ")
         );
     }
-    for (what, (n, us, longest)) in by.into_iter().take(40) {
+    // `VICTORY_GPU_TIMING_TOP`: how many (40).
+    static TOP: std::sync::OnceLock<usize> = std::sync::OnceLock::new();
+    let top = *TOP.get_or_init(|| std::env::var("VICTORY_GPU_TIMING_TOP").ok().and_then(|v| v.parse().ok()).unwrap_or(40));
+    for (what, (n, us, longest)) in by.into_iter().take(top) {
         tracing::info!(
             "  the card's time by command (timing run): {:.2} ms a frame in {:.1} commands a frame, the longest {:.2} ms: {what}",
             us as f64 / 1e3 / frames,
