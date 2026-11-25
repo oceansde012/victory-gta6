@@ -256,3 +256,75 @@ upstream #974's wrap past the cursor; CI test).
 - Open fxceless PRs merged clean, each as its own merge: #785 (relay
   `late_met`/`relay_land` race), #786 (relay/card merges write only
   GPU-changed runs), #783 (skip unchanged heap pages, one write-back).
+
+## Stage 3 (2026-11-25): branch `integration/2026-11-25`
+
+Base: the Codex stack (`codex/fix-clzero-loop`, PRs #10 #11 #13 #14) with
+PR #7's head merged in. Backup of that state:
+`backup/2026-11-25-pre-integration` (`deefbbb`). Kept as is: the
+`VICTORY_WAVE_LDS_LOOSE` switch, `VICTORY_TEXTURE_STAGE_MS=60`, Codex's
+fixes.
+
+### Taken (separate commits, `-x` where cherry-picked)
+
+| Commit | Source | What |
+| --- | --- | --- |
+| `1b55c20` | VItoriaBr `8cb509b` | vertex graphics pipelines compiled first |
+| `316b83f` | VItoriaBr `fe0506a` | helper lane `v_readfirstlane` reads its own value |
+| `79801f4` | VItoriaBr `1ac7518` | `Interp::Weighted` for lone `v_interp_p1` halves |
+| `daa5262` | VItoriaBr `18df163` | `calculateLOD` array slice undef |
+| `4faa222` | VItoriaBr `40beb26` (#10) | RDNA2 LDS bounds checks |
+| `b3a5b0c`, `4452a4b`, `7014af1` | VItoriaBr `67bb579`, `2ec2aa2`, `c248547` | immediate sampler range (non-pixel), join-path phi |
+| `14224aa` | VItoriaBr `2b3c339` | quad reads with helper lanes (lines on car paint, glass, skin) |
+| `f8afec2` | fxceless #783 `d695015` + `5e3e18e` | #783's final form, see below |
+| `005b9f1` | fxceless #781 `67efc51` | pooled texture staging buffers |
+| `d826b90` | fxceless #793 `c4d5ca5` | no diagnostic budget atomics/readbacks in the indirect clamp outside diagnostics builds |
+| `cc72b39` | fxceless #787 `04aff73` | split duplicate resource transitions across `ResourceBarrier` calls |
+
+### #783 and #786: the write-back conflict
+
+Our base merged #783 in its first form (`b5dee8d`). That form wrote a
+copy back in one call: the gaps between the GPU's runs were filled with
+the title's bytes as read earlier and the whole stretch written after
+the loop, over any title write that landed in between. That undoes
+upstream #2009 and #786 (write only the GPU's runs). The author dropped
+it after review (`d695015`); it did not change the copy-back time.
+`f8afec2` removes it and takes the rest of #783: kept page bytes are
+forgotten when a heap is released, and only records between a page's
+first and last changed byte are walked (upstream: descriptor sync 18.9
+-> 10.5 ms a frame, RTX 3080). Adapted to Codex's registry-held
+`CopiedSlots` (`CopiedSlots::needs`). #785 and #786 were already in.
+
+### Not taken
+
+- VItoriaBr `c0b60a0` (console element order in signatures): breaks
+  `signature_sorts_packed_registers_by_semantic_name_offset` on our base.
+- VItoriaBr #9 `7c19646` (dynamic descriptor wraparound): our base
+  already scans `cursor + n - 1` (with `self.dynamic`), duplicate.
+- VItoriaBr #11 `dcc0305`: test only, needs console formats 189-191
+  that our base lacks.
+- VItoriaBr #7 `5603b45` (indexed view byte stride), #6 `a6a8d39`
+  (`victory warm`): conflicts in 4-5 files, next step.
+- fxceless `f85101b` (submit thread, copy queue): its copy queue clashes
+  with ours, own step.
+- vitutu1/victory-perf: its 9-14 fps come from Series S mode, 50% render
+  scale and stand-in lighting; ideas only.
+
+### Checks (Linux, cross-target)
+
+- `cargo clippy --workspace --all-targets --all-features --target
+  x86_64-pc-windows-msvc -- -D warnings`: clean.
+- `cargo test -p victory-shader --lib`: 198 passed.
+- `cargo test -p xtask`: 6 passed.
+- Not yet run on the title. Release build and fps runs on the PC.
+
+### Regression bisect (1644f2b 3.5 fps -> 03e328f 1.85 fps)
+
+Run K showed `VICTORY_WAVE_LDS_LOOSE=0` does not bring it back (2.1
+fps), so the cause is elsewhere among the six code commits between them
+(`c297f4f` #804 is reverted). Builds, each from `1644f2b`:
+
+- a: `58a7b02` (#802) + `7f0ca9c`; b: `e34702d` + `477fe24` + `cc970bc`
+  (#799) + `4096561`.
+- quarters: a1 `58a7b02`, a2 `7f0ca9c`, b1 `e34702d`+`477fe24`, b2
+  `cc970bc`+`4096561`.
