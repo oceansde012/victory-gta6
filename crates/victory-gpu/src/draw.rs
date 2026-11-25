@@ -222,9 +222,9 @@ pub(crate) struct State {
     /// Graphics, compute.
     host_roots: [usize; 2],
     host_heaps: [usize; 2],
-    /// Tables made afresh in this list: (table, slot count, contents) → first
-    /// dynamic slot.
-    fresh_tables: std::collections::HashMap<(u64, u32, u64), u32>,
+    /// Tables made afresh in this list: (table, slot count, contents) →
+    /// (first dynamic slot, whether any slot is a CBV backed by this list's scratch).
+    fresh_tables: std::collections::HashMap<(u64, u32, u64), (u32, bool)>,
     /// The dynamic slots the list holds: title heap, first, count; given
     /// back when the list has run, is reset or released.
     dynamic: Vec<(usize, u32, u32)>,
@@ -722,6 +722,12 @@ impl State {
         self.host_pipeline = 0;
         self.host_roots = [0; 2];
         self.host_heaps = [0; 2];
+        // Cached tables containing CBVs reference the previous part's
+        // `HostList::scratch` upload memory and only registered `defer_fill`
+        // on that part, which resets once it finishes — evict them so the
+        // continuing part allocates its own scratch and refreshes constants.
+        // `self.dynamic` stays intact until the final part's state drops.
+        self.fresh_tables.retain(|_, &mut (_, has_cbv)| !has_cbv);
         if self.topology_set {
             self.set_topology(list, self.topology);
         }
@@ -2590,7 +2596,7 @@ impl State {
                 }
                 (table, n, h.finish())
             };
-            if let Some(&first) = self.fresh_tables.get(&key) {
+            if let Some(&(first, _)) = self.fresh_tables.get(&key) {
                 for u in entries.iter().filter(|u| u.kind != ResourceType::Cbv) {
                     let handle = table + u64::from(u.table_offset_dwords) * 4;
                     if let Some(view) = crate::descriptor::view(handle) {
@@ -2617,7 +2623,6 @@ impl State {
                 made.push((slot, u32::MAX));
                 continue;
             };
-            self.fresh_tables.insert(key, first);
             self.dynamic
                 .push((std::ptr::from_ref(heap) as usize, first, n));
             // The title's own slots of this table: what the draw reads of
@@ -2625,6 +2630,7 @@ impl State {
             let title_first = heap.index(table).filter(|first| first + n <= host.count());
             // The whole range: a shader may index past the entries its
             // used-resource list names (descriptor arrays).
+            let mut has_cbv = false;
             for k in 0..n {
                 let index = first + k;
                 let used = entries.iter().find(|u| u.table_offset_dwords / 8 == k);
@@ -2647,6 +2653,7 @@ impl State {
                             shadow.refresh(list, address, u64::from(aligned_size));
                             host.constant_at(index, shadow.gpu(address), size);
                         } else {
+                            has_cbv = true;
                             let Some((gpu, to)) = list.scratch(u64::from(size)) else {
                                 host.make_null(index);
                                 continue;
@@ -2685,6 +2692,7 @@ impl State {
                     }
                 }
             }
+            self.fresh_tables.insert(key, (first, has_cbv));
             made.push((slot, first * 32));
         }
         made
@@ -3489,5 +3497,47 @@ pub(crate) fn depth_bounds(list: &HostList, min: f32, max: f32) {
     {
         // SAFETY: an open list on a device that supports depth bounds.
         unsafe { l1.OMSetDepthBounds(min, max) };
+    }
+}
+
+#[cfg(test)]
+mod replay_tests {
+    use super::State;
+
+    #[test]
+    fn replay_evicts_cbv_fresh_tables_while_keeping_non_cbv_and_dynamic_slots() {
+        let Some(host) = crate::host::host() else {
+            return;
+        };
+        let list = host.new_list().expect("host list");
+        let mut state = State::default();
+        let cbv_key = (0x1000, 4, 0xAAAA);
+        let srv_key = (0x2000, 4, 0xBBBB);
+        state.fresh_tables.insert(cbv_key, (10, true));
+        state.fresh_tables.insert(srv_key, (14, false));
+        // Pretend dynamic slots belong to Part 1 (cleared before Drop so
+        // `Drop` does not call `release_dynamic` on a fake heap pointer).
+        state.dynamic.push((0xDEAD, 10, 4));
+        state.dynamic.push((0xDEAD, 14, 4));
+
+        state.replay(&list);
+
+        assert!(
+            !state.fresh_tables.contains_key(&cbv_key),
+            "CBV-backed fresh_tables entry must be evicted on cut/replay"
+        );
+        assert_eq!(
+            state.fresh_tables.get(&srv_key),
+            Some(&(14, false)),
+            "non-CBV fresh_tables entry may stay cached across replay"
+        );
+        assert_eq!(
+            state.dynamic.len(),
+            2,
+            "Part 1 dynamic slots must stay retained until final state drop"
+        );
+
+        state.dynamic.clear();
+        list.close();
     }
 }
