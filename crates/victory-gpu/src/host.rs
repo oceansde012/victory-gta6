@@ -111,6 +111,60 @@ pub(crate) fn long_ago(moment: u64, ms: u64, frames: u64) -> bool {
     (now >> 32).saturating_sub(moment >> 32) >= frames && tenths * 100 >= ms
 }
 
+/// Available physical RAM on the host in bytes, from `GlobalMemoryStatusEx`.
+pub(crate) fn available_physical_ram() -> Option<u64> {
+    use windows_sys::Win32::System::SystemInformation::{GlobalMemoryStatusEx, MEMORYSTATUSEX};
+    // SAFETY: plain data the call fills in.
+    let mut m: MEMORYSTATUSEX = unsafe { std::mem::zeroed() };
+    m.dwLength = std::mem::size_of::<MEMORYSTATUSEX>() as u32;
+    // SAFETY: a sized structure.
+    let ok = unsafe { GlobalMemoryStatusEx(&mut m) } != 0;
+    ok.then_some(m.ullAvailPhys)
+}
+
+/// Effective idle timeout (in milliseconds) for VRAM-backed host textures,
+/// scaled down under VRAM pressure. Never returns less than 1,000 ms so
+/// handles not yet recorded into a list or slot remain protected.
+pub(crate) fn vram_idle_ms(video_memory: Option<[u64; 4]>) -> u64 {
+    const NORMAL_MS: u64 = 5_000;
+    const MODERATE_MS: u64 = 2_500;
+    const HIGH_MS: u64 = 1_000;
+    let Some([budget, used, ..]) = video_memory else {
+        return NORMAL_MS;
+    };
+    if budget == 0 {
+        return NORMAL_MS;
+    }
+    let used_pct = (u128::from(used) * 100) / u128::from(budget);
+    if used_pct >= 85 {
+        HIGH_MS
+    } else if used_pct >= 75 {
+        MODERATE_MS
+    } else {
+        NORMAL_MS
+    }
+}
+
+/// Effective idle timeout (in milliseconds) for system-RAM caches (staging
+/// buffers, loose shadows, and the mapped pipeline library), scaled down
+/// when free physical RAM is low. Never returns less than 2,000 ms.
+pub(crate) fn ram_idle_ms(avail_phys: Option<u64>) -> u64 {
+    const GIB: u64 = 1024 * 1024 * 1024;
+    const NORMAL_MS: u64 = 10_000;
+    const MODERATE_MS: u64 = 5_000;
+    const HIGH_MS: u64 = 2_000;
+    let Some(avail) = avail_phys else {
+        return NORMAL_MS;
+    };
+    if avail < 2 * GIB {
+        HIGH_MS
+    } else if avail < 4 * GIB {
+        MODERATE_MS
+    } else {
+        NORMAL_MS
+    }
+}
+
 /// How many references are held on a host object (its COM count): ours
 /// all, since the host's views and commands hold none. A buffer or texture
 /// with one is held by its owner alone: no descriptor slot keeps it
@@ -642,7 +696,7 @@ fn create() -> windows::core::Result<Host> {
 
 /// DXGI may return hardware for `EnumWarpAdapter` (notably under Proton).
 /// Reject it before creating a device in diagnostics' software-only mode.
-fn warp_adapter() -> windows::core::Result<IDXGIAdapter> {
+pub(crate) fn warp_adapter() -> windows::core::Result<IDXGIAdapter> {
     // SAFETY: plain DXGI adapter queries.
     unsafe {
         let factory: IDXGIFactory4 = CreateDXGIFactory2(DXGI_CREATE_FACTORY_FLAGS(0))?;
@@ -1969,7 +2023,10 @@ pub(crate) fn relay() -> bool {
 /// both wait for everything.
 fn relay_exact() -> bool {
     static ON: OnceLock<bool> = OnceLock::new();
-    *ON.get_or_init(|| relay() && std::env::var_os("VICTORY_RELAY").is_some_and(|v| v == "2"))
+    // Stage 2 unless `VICTORY_RELAY=1` asks for the first one (the default
+    // since the walls of the first room were found drawn in every run with
+    // this set and in fewer than half without it).
+    *ON.get_or_init(|| relay() && std::env::var_os("VICTORY_RELAY").is_none_or(|v| v == "2"))
 }
 
 /// Told when something joins [`LINE`], for the thread that lands flights
@@ -2059,7 +2116,10 @@ mod relay_tests {
 }
 
 /// The most host lists in the air before the flights are settled
-/// (`VICTORY_LATE_WAIT_LISTS`, 128; 32 settled the flights three times a
+/// (`VICTORY_LATE_WAIT_LISTS`, 256; `=128` is the value before: with the
+/// relay it stopped the submitting thread twice a frame for 92-103 ms in
+/// all while the card stood idle 64-113 ms a frame, runs 158, 159 and 162;
+/// 32 settled the flights three times a
 /// frame in run 92 and 64 still 1.3-1.7 times in run 99, with 12,919 tables
 /// asked and none refused; watch "tables asked, N refused"): their dynamic
 /// descriptor slots, upload
@@ -2068,7 +2128,7 @@ mod relay_tests {
 fn late_most() -> usize {
     static MOST: OnceLock<usize> = OnceLock::new();
     *MOST.get_or_init(|| {
-        std::env::var("VICTORY_LATE_WAIT_LISTS").ok().and_then(|v| v.trim().parse().ok()).unwrap_or(128).max(1)
+        std::env::var("VICTORY_LATE_WAIT_LISTS").ok().and_then(|v| v.trim().parse().ok()).unwrap_or(256).max(1)
     })
 }
 
@@ -2829,6 +2889,20 @@ fn declared_writes(runs: &[&HostList]) -> Vec<Declared> {
     back
 }
 
+/// The walls trace (`VICTORY_WALLS_TRACE=1` or `2`; off by default): log
+/// lines that say what the title's CPU was given while it decided whether
+/// the camera is in a room. The values of the small read-backs
+/// ([`read_backs`]), the frame's main pass by scissor rectangle with its
+/// culling dispatches (`draw.rs`, `walls_census`), the shader-written
+/// buffers merged into title memory (`shadow.rs`, `walls_merged`), host
+/// copies found stale after their refresh (`shadow.rs`; only with
+/// `VICTORY_REFRESH_CHECK=1` as well: it costs about 100 ms a frame), and, in the
+/// runtime, the read requests that fail (with 2: every request).
+pub(crate) fn walls_trace() -> bool {
+    static ON: OnceLock<bool> = OnceLock::new();
+    *ON.get_or_init(|| std::env::var_os("VICTORY_WALLS_TRACE").is_some_and(|v| v == "1" || v == "2"))
+}
+
 /// After `list` has run: the texels its read-backs copied into host
 /// buffers of ours go to the title's memory (`HostList::defer_read_back`).
 ///
@@ -2847,6 +2921,19 @@ fn read_backs(list: &HostList) {
                 let from = data.cast::<u8>().cast_const();
                 for line in 0..*rows {
                     std::ptr::copy_nonoverlapping(from.add(line * row.next_multiple_of(256)), (*at as *mut u8).add(line * pitch), *row);
+                }
+                // The walls trace: what the title is handed (one row of at
+                // most 24 values: its 5x1 and 1x1 float targets).
+                if walls_trace() && *rows == 1 && *row <= 96 {
+                    let mut values = [0f32; 24];
+                    std::ptr::copy_nonoverlapping(from, values.as_mut_ptr().cast::<u8>(), *row & !3);
+                    tracing::info!(
+                        frame = crate::frame::current(),
+                        to = format_args!("{:#x}", *at),
+                        bytes = *row,
+                        values = ?&values[..*row / 4],
+                        "walls trace: a read-back lands in title memory"
+                    );
                 }
                 buffer.Unmap(0, None);
             }
@@ -3609,7 +3696,9 @@ impl Host {
             // SAFETY: the mapping of the fetched bytes, `total` of them;
             // the copy into it has run.
             let gpu = unsafe { std::slice::from_raw_parts((data + *at as usize) as *const u8, hi - lo) };
-            written += shadow.card_merge_relay(*lo, gpu, after, &mut title);
+            let merged = shadow.card_merge_relay(*lo, gpu, after, &mut title);
+            shadow.walls_merged(gpu.len(), merged);
+            written += merged;
         }
         COPY_BACK[1].fetch_add(written as u64, Ordering::Relaxed);
         // Sends up to `after` are of no use to any later merge.
@@ -3838,7 +3927,9 @@ impl Host {
                                 // the copy into it has run, and the caller
                                 // waits for this job.
                                 let gpu = unsafe { std::slice::from_raw_parts((fetched + at as usize) as *const u8, hi - lo) };
-                                counts[i].fetch_add(shadow.card_merge(lo, gpu, &mut title), Ordering::Relaxed);
+                                let merged = shadow.card_merge(lo, gpu, &mut title);
+                                shadow.walls_merged(gpu.len(), merged);
+                                counts[i].fetch_add(merged, Ordering::Relaxed);
                             }
                         }) as Box<dyn FnOnce() + Send>
                     })
@@ -3853,7 +3944,9 @@ impl Host {
                     // SAFETY: the mapping of the fetched bytes, `total` of
                     // them; the copy into it has run.
                     let gpu = unsafe { std::slice::from_raw_parts((*data + at as usize) as *const u8, hi - lo) };
-                    written[i] += plan.ranges[i].shadow.card_merge(lo, gpu, &mut title);
+                    let merged = plan.ranges[i].shadow.card_merge(lo, gpu, &mut title);
+                    plan.ranges[i].shadow.walls_merged(gpu.len(), merged);
+                    written[i] += merged;
                 }
             }
         }
@@ -5896,6 +5989,13 @@ fn for_pieces(start: usize, len: usize, step: usize, mut f: impl FnMut(usize, us
 }
 
 impl Host {
+    /// The queue everything of ours runs on, for a call that must go to it
+    /// in order with the lists (`crate::tiles`: a texture's levels are
+    /// given memory ahead of the list that uploads them).
+    pub(crate) fn queue(&self) -> &ID3D12CommandQueue {
+        &self.queue
+    }
+
     /// A buffer in the upload heap, mapped for writing.
     /// A buffer of `size` bytes the card writes and we read (a read back),
     /// in the state copies into it need.
@@ -6153,6 +6253,7 @@ impl Meter {
                 "placed texture views: {} writes of another view of the texture a slot showed (it kept the old view until the new was made)",
                 crate::descriptor::host::KEPT_VIEWS.load(Ordering::Relaxed)
             );
+            crate::tiles::status();
             {
                 let [queued, due, away, partly, oldest] =
                     [0, 1, 2, 3, 4].map(|i| crate::draw::HEAP_TEXTURES_QUEUE[i].load(Ordering::Relaxed));
@@ -6174,6 +6275,19 @@ impl Meter {
                     crate::descriptor::host::STALE[2].load(Ordering::Relaxed),
                     crate::descriptor::host::STALE[3].load(Ordering::Relaxed),
                     crate::descriptor::host::STALE[4].load(Ordering::Relaxed)
+                );
+            }
+            {
+                let mode = crate::watch::page_writes();
+                let [writes, bytes, guarded, plain] = [0, 1, 2, 3].map(|i| crate::watch::WRITTEN[i].load(Ordering::Relaxed));
+                let [kept, dropped, slots, uploaded] =
+                    [0, 1, 2, 3].map(|i| crate::descriptor::host::PAGE_WRITES[i].load(Ordering::Relaxed));
+                tracing::info!(
+                    "writes behind the guards, since the start: {writes} DirectStorage writes into physical pages at addresses the                      title had mapped ({} MB); {guarded} guarded 64 KiB blocks of host copies lay under them ({}); {plain} reads to                      plain addresses finished ({}); {kept} ranges under texture views kept for the texture pass ({dropped} dropped);                      {slots} slots of placed textures held their bytes, {uploaded} of them uploaded before the write ({})                      (VICTORY_PAGE_WRITES: unset counts, 1 acts, guards, slots, all)",
+                    bytes >> 20,
+                    if mode & 1 != 0 { "opened, taken again" } else { "left as they were" },
+                    if mode & 4 != 0 { "told as well" } else { "counted only" },
+                    if mode & 2 != 0 { "made due again" } else { "left as they were" }
                 );
             }
             #[cfg(feature = "diagnostics")]
@@ -6309,7 +6423,17 @@ impl Host {
                     .ResizeBuffers(BUFFERS, width, height, format, DXGI_SWAP_CHAIN_FLAG(0))
             };
             match resized {
-                Ok(()) => (p.width, p.height, p.format) = (width, height, format),
+                Ok(()) => {
+                    (p.width, p.height, p.format) = (width, height, format);
+                    tracing::info!(
+                        width,
+                        height,
+                        format = format.0,
+                        frame,
+                        "the swap chain's buffers were made again for another size or format"
+                    );
+                    self.log_video_memory("right after the swap chain's buffers were made again");
+                }
                 Err(e) => {
                     tracing::warn!(error = %e, width, height, "swap chain not resized");
                     return None;
@@ -6403,6 +6527,7 @@ impl Host {
             Some(hwnd) => hwnd,
             None => window(width, height)?,
         };
+        self.log_video_memory("right before the swap chain is made");
         // SAFETY: plain object creation for our window.
         unsafe {
             let factory: IDXGIFactory2 = CreateDXGIFactory2(DXGI_CREATE_FACTORY_FLAGS(0))?;
@@ -6425,6 +6550,7 @@ impl Host {
             let copy = self.new_list()?;
             copy.close();
             tracing::info!(width, height, format = format.0, "presenting to a window");
+            self.log_video_memory("right after the swap chain is made");
             Ok(Presenter {
                 swap_chain,
                 width,
@@ -6504,7 +6630,69 @@ impl Host {
                 .QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_NON_LOCAL, &mut shared)
                 .ok()?;
         }
+        // The card's budget moved by 256 MB or more since the last look:
+        // said at once, with what was in use at the last look, so the log
+        // has the moment. (It fell from 11,242 MB to some 10,300 MB with
+        // the first world frame in runs 179 to 185, and the memory line,
+        // seconds later, was the first to show it. We reserve nothing
+        // and make the swap chain once, at the start.)
+        static LAST: [std::sync::atomic::AtomicU64; 3] = [const { std::sync::atomic::AtomicU64::new(0) }; 3];
+        let now = [own.Budget, own.CurrentUsage, shared.CurrentUsage];
+        let last = [0, 1, 2].map(|i| LAST[i].swap(now[i], Ordering::Relaxed));
+        if last[0] != 0 && last[0].abs_diff(own.Budget) >= (256u64 << 20) {
+            tracing::info!(
+                "the system changed the budget of the card's memory from {} MB to {} MB (frame {}); at the last look {} MB of the card's and {} MB of the PC's shared memory were in use",
+                last[0] >> 20,
+                own.Budget >> 20,
+                crate::frame::current(),
+                last[1] >> 20,
+                last[2] >> 20
+            );
+            self.log_video_memory("right after that change");
+        }
         Some([own.Budget, own.CurrentUsage, shared.Budget, shared.CurrentUsage])
+    }
+
+    /// Both of the system's memory groups for this process, in bytes: for
+    /// the card's own memory and then for the PC's memory shared with the
+    /// card, the budget, the use, what could still be reserved and what
+    /// is reserved (the layer reserves none).
+    pub(crate) fn video_memory_groups(&self) -> Option<[[u64; 4]; 2]> {
+        let adapter = self.adapter.as_ref()?;
+        let mut own = DXGI_QUERY_VIDEO_MEMORY_INFO::default();
+        let mut shared = DXGI_QUERY_VIDEO_MEMORY_INFO::default();
+        // SAFETY: plain queries that fill our structures.
+        unsafe {
+            adapter
+                .QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &mut own)
+                .ok()?;
+            adapter
+                .QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_NON_LOCAL, &mut shared)
+                .ok()?;
+        }
+        let all = |m: &DXGI_QUERY_VIDEO_MEMORY_INFO| {
+            [m.Budget, m.CurrentUsage, m.AvailableForReservation, m.CurrentReservation]
+        };
+        Some([all(&own), all(&shared)])
+    }
+
+    /// Logs [`Self::video_memory_groups`], with `when` it is said.
+    pub(crate) fn log_video_memory(&self, when: &str) {
+        let Some([own, shared]) = self.video_memory_groups() else {
+            return;
+        };
+        tracing::info!(
+            "video memory as the system counts it, {}: the card's own: budget {} MB, in use {} MB, {} MB could still be reserved, {} MB reserved; the PC's shared with the card: budget {} MB, in use {} MB, {} MB could still be reserved, {} MB reserved (the layer reserves none)",
+            when,
+            own[0] >> 20,
+            own[1] >> 20,
+            own[2] >> 20,
+            own[3] >> 20,
+            shared[0] >> 20,
+            shared[1] >> 20,
+            shared[2] >> 20,
+            shared[3] >> 20
+        );
     }
 
     /// A buffer in system memory that the CPU maps (write-back, so reading
@@ -6890,5 +7078,41 @@ mod batch {   // Batch::texture_due lives here; `mod tests` is already taken at 
             SIZE >> 20,
             before.as_secs_f64() / after.as_secs_f64()
         );
+    }
+
+    #[test]
+    fn vram_idle_ms_scales_with_pressure() {
+        use super::vram_idle_ms;
+        let gib = 1024 * 1024 * 1024;
+        // Normal (< 75%)
+        assert_eq!(vram_idle_ms(Some([10 * gib, 0, 0, 0])), 5_000);
+        assert_eq!(vram_idle_ms(Some([10 * gib, 7 * gib, 0, 0])), 5_000);
+        assert_eq!(vram_idle_ms(Some([100, 74, 0, 0])), 5_000);
+        // Moderate (75%..85%)
+        assert_eq!(vram_idle_ms(Some([100, 75, 0, 0])), 2_500);
+        assert_eq!(vram_idle_ms(Some([100, 84, 0, 0])), 2_500);
+        // High (>= 85%, including over-budget)
+        assert_eq!(vram_idle_ms(Some([100, 85, 0, 0])), 1_000);
+        assert_eq!(vram_idle_ms(Some([10 * gib, 12 * gib, 0, 0])), 1_000);
+        // Missing or zero budget falls back to normal
+        assert_eq!(vram_idle_ms(None), 5_000);
+        assert_eq!(vram_idle_ms(Some([0, 100, 0, 0])), 5_000);
+    }
+
+    #[test]
+    fn ram_idle_ms_scales_with_pressure() {
+        use super::ram_idle_ms;
+        let gib = 1024 * 1024 * 1024;
+        // Normal (>= 4 GiB)
+        assert_eq!(ram_idle_ms(Some(8 * gib)), 10_000);
+        assert_eq!(ram_idle_ms(Some(4 * gib)), 10_000);
+        // Moderate (2 GiB..4 GiB)
+        assert_eq!(ram_idle_ms(Some(4 * gib - 1)), 5_000);
+        assert_eq!(ram_idle_ms(Some(2 * gib)), 5_000);
+        // High (< 2 GiB)
+        assert_eq!(ram_idle_ms(Some(2 * gib - 1)), 2_000);
+        assert_eq!(ram_idle_ms(Some(0)), 2_000);
+        // Missing falls back to normal
+        assert_eq!(ram_idle_ms(None), 10_000);
     }
 }
