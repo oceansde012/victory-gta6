@@ -115,8 +115,9 @@ unsafe impl Send for Through {}
 // SAFETY: as above.
 unsafe impl Sync for Through {}
 
-/// The copy buffers of [`alias`], by the placed view's texture.
-static THROUGH: Mutex<Option<HashMap<usize, Arc<Through>>>> = Mutex::new(None);
+/// The copy buffers of [`alias`], keyed by `(placed, source)` so replacing the
+/// underlying written source texture never reuses stale footprints.
+static THROUGH: Mutex<Option<HashMap<(usize, usize), Arc<Through>>>> = Mutex::new(None);
 
 /// Brings `placed`, the texture of a view the title placed in the memory
 /// of `source` in another format (`crate::resource::alias_of`), up to date
@@ -142,7 +143,8 @@ pub(crate) fn alias(list: &HostList, placed: This, source: This) -> bool {
     let through = {
         let mut map = THROUGH.lock().unwrap_or_else(|e| e.into_inner());
         let map = map.get_or_insert_with(HashMap::new);
-        match map.get(&(placed as usize)) {
+        let key = (placed as usize, source as usize);
+        match map.get(&key) {
             Some(through) => through.clone(),
             None => {
                 // SAFETY: live textures.
@@ -220,7 +222,7 @@ pub(crate) fn alias(list: &HostList, placed: This, source: This) -> bool {
                     buffer,
                     parts: of_written.into_iter().zip(of_read).collect(),
                 });
-                map.insert(placed as usize, through.clone());
+                map.insert(key, through.clone());
                 through
             }
         }
@@ -563,7 +565,7 @@ pub(crate) fn forget(resource: usize) {
     HOST_WRITTEN_AT.lock().unwrap_or_else(|e| e.into_inner()).retain(|_, d| d.5 != resource);
     let mut through = THROUGH.lock().unwrap_or_else(|e| e.into_inner());
     if let Some(through) = through.as_mut() {
-        through.remove(&resource);
+        through.retain(|&(placed, source), _| placed != resource && source != resource);
     }
 }
 
@@ -1613,5 +1615,116 @@ mod title_memory_tests {
                 assert_ne!(VirtualFree(base.cast(), 0, MEM_RELEASE), 0);
             }
         }
+    }
+
+    #[test]
+    fn through_alias_cache_keys_on_source_and_evicts_both_sides_on_forget() {
+        let Some(host) = crate::host::host() else {
+            return;
+        };
+        let list = host.new_list().expect("host list");
+
+        #[repr(C)]
+        struct Props {
+            kind: u32,
+            cpu: u32,
+            pool: u32,
+            creation: u32,
+            visible: u32,
+        }
+        #[repr(C)]
+        struct Desc {
+            dim: u32,
+            align: u64,
+            width: u64,
+            height: u32,
+            depth: u16,
+            mips: u16,
+            format: u32,
+            samples: u32,
+            quality: u32,
+            layout: u32,
+            flags: u32,
+        }
+        let iid = crate::object::guid(
+            0x696442be,
+            0xa72e,
+            0x4059,
+            [0xbc, 0x79, 0x5b, 0x5c, 0x98, 0x04, 0x0f, 0xad],
+        );
+        let props = Props {
+            kind: 1,
+            cpu: 0,
+            pool: 0,
+            creation: 1,
+            visible: 1,
+        };
+        let make_tex = |w: u64, h: u32, format: u32| -> crate::object::This {
+            let desc = Desc {
+                dim: 3, // TEXTURE2D
+                align: 0,
+                width: w,
+                height: h,
+                depth: 1,
+                mips: 1,
+                format,
+                samples: 1,
+                quality: 0,
+                layout: 0,
+                flags: 1, // ALLOW_RENDER_TARGET -> backed by a host texture
+            };
+            let mut out = std::ptr::null();
+            assert_eq!(
+                crate::resource::create_committed(
+                    std::ptr::null(),
+                    (&raw const props).cast(),
+                    0,
+                    (&raw const desc).cast(),
+                    0,
+                    std::ptr::null(),
+                    &iid,
+                    &mut out,
+                ),
+                0
+            );
+            out
+        };
+
+        // 4x4 R8G8B8A8_UNORM (28) aliased against 4x4 R32_UINT (42) succeeds,
+        // while an incompatible 8x8 R32_UINT source must NOT hit the cached
+        // footprints for `placed`.
+        let placed = make_tex(4, 4, 28);
+        let compatible = make_tex(4, 4, 42);
+        let incompatible = make_tex(8, 8, 42);
+
+        assert!(super::alias(&list, placed, compatible));
+        assert!(
+            super::THROUGH
+                .lock()
+                .unwrap()
+                .as_ref()
+                .is_some_and(|m| m.contains_key(&(placed as usize, compatible as usize)))
+        );
+
+        // Switching to an incompatible source must recompute and return false
+        // instead of blindly copying with `compatible`'s cached footprints.
+        assert!(!super::alias(&list, placed, incompatible));
+
+        // Forgetting `compatible` (the source) must also evict `(placed, compatible)`.
+        super::forget(compatible as usize);
+        assert!(
+            super::THROUGH
+                .lock()
+                .unwrap()
+                .as_ref()
+                .is_none_or(|m| !m.contains_key(&(placed as usize, compatible as usize)))
+        );
+
+        list.close();
+        let release =
+            |o: crate::object::This| crate::object::slot::<extern "system" fn(crate::object::This) -> u32>(o, 0x10)(o);
+        assert_eq!(release(placed), 0);
+        assert_eq!(release(compatible), 0);
+        assert_eq!(release(incompatible), 0);
     }
 }
