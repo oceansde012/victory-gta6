@@ -84,3 +84,21 @@ shader cache translates those programs again on the first run with it.
 L's log names the slowest pipelines by hash (the lines from
 `copystat::command_took`); with those, the expensive programs can be run
 at a lower rate or resolution, or tuned, instead of all or nothing.
+
+K result: about 2.1 fps, so #799 is not the cause. The bisect of the six
+code commits between `1644f2b` and `03e328f` is in
+`docs/upstream-integration.md`. `03e328f` is the picture baseline.
+
+## Round 5: hoisted indirect clamps, walls, Series S (2026-11-25)
+
+Build: PR #7 head (after `315577a`), at the same spot as earlier runs.
+
+| Run | Environment | Look for |
+|---|---|---|
+| M | defaults | walls (candidate fix `b204a79`), fps vs `03e328f` |
+| N | `VICTORY_HOIST_CLAMPS=1` | GPU ms a frame (L: 232, indirect 113), flicker of mesh objects, fps |
+| O | `VICTORY_HOIST_CLAMPS=1`, `VICTORY_GPU_TIMING=1` (diagnostics build) | does indirect drop from 113 ms? |
+| P | `--console series-s` | fps and picture (klbf-lab and victory-perf measure this way) |
+
+In M, search the log for "no free dynamic descriptor slots" and dropped
+draws near walls that vanish.
