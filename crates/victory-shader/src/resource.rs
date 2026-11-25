@@ -654,11 +654,21 @@ impl<'a> Tracer<'a> {
         };
         if let Some(reg) = self.inputs[v.0 as usize] {
             return match self.param_of(reg) {
-                Some((_, 0)) => Sum {
-                    base: Some(v),
-                    offset: 0,
-                    dynamic: None,
-                },
+                Some((param, 0))
+                    if matches!(
+                        self.layout[param].root,
+                        RootType::Table
+                            | RootType::ResourceHeap
+                            | RootType::SamplerHeap
+                            | RootType::Descriptor
+                    ) =>
+                {
+                    Sum {
+                        base: Some(v),
+                        offset: 0,
+                        dynamic: None,
+                    }
+                }
                 _ => dynamic,
             };
         }
@@ -1061,8 +1071,12 @@ impl<'a> Tracer<'a> {
         let Some(v) = dynamic else {
             return "a constant address";
         };
-        if self.inputs[v.0 as usize].is_some() {
-            return "an address in an SGPR that is no root parameter";
+        if let Some(reg) = self.inputs[v.0 as usize] {
+            return if self.param_of(reg).is_some() {
+                "an address from a root parameter that is no address"
+            } else {
+                "an address in an SGPR that is no root parameter"
+            };
         }
         if self
             .leaves(v)
@@ -2532,6 +2546,56 @@ pub(crate) mod tests {
         );
         let nonconstant = track_words(&code, &[param(Table, 6, 1), table], HwStage::Ms);
         assert!(nonconstant.root_indexed_views.is_empty());
+    }
+
+    #[test]
+    fn root_constant_dword0_is_dynamic_offset_not_address_base() {
+        // 1. Compute shader indexing a root descriptor (s[0:1]) by root constant dword 0 (s2):
+        // must resolve to param 0 with `dynamic = Some(s2)` rather than falling back to MEMORY.
+        let cs_code = [
+            0x8004_0200, // s_add_u32 s4, s0, s2
+            0x8205_8001, // s_addc_u32 s5, s1, 0
+            0xF400_0182,
+            0xFA00_0000, // s_load_dword s6, s[4:5], 0
+            S_ENDPGM,
+        ];
+        let cs = track_words(
+            &cs_code,
+            &[param(Descriptor, 0, 2), param(Constants, 2, 1)],
+            HwStage::Cs,
+        );
+        let const0 = cs.params.iter().find(|p| p.1 == 1 && p.2 == 0).unwrap().0;
+        assert_eq!(
+            cs.scalar[0].1.param, 0,
+            "must keep root descriptor param 0, not MEMORY"
+        );
+        assert_eq!(cs.scalar[0].1.dynamic, Some(const0));
+
+        // 2. Unshifted root constant dword 0 (s14) passed directly as SMEM soffset
+        // into a root table (s[18:19]): must not fail with "an offset from a root parameter".
+        let ms_code = [
+            0xBE93_0380, // s_mov_b32 s19, 0
+            0xF408_0209,
+            0x1C00_0000, // s_load_dwordx4 s[8:11], s[18:19], s14
+            0xE000_2000,
+            0x8002_0400, // buffer_load_format_x v4, v0, s[8:11], 0 idxen
+            S_ENDPGM,
+        ];
+        let table = RootParam {
+            slot: 7,
+            ..param(Table, 10, 1)
+        };
+        let indexed = track_words(&ms_code, &[param(Constants, 6, 1), table], HwStage::Ms);
+        assert_eq!(
+            indexed.root_indexed_views,
+            [RootIndexedView {
+                table_slot: 7,
+                constant_slot: 0,
+                constant_dword: 0,
+                byte_offset: 0,
+                shift: 0,
+            }]
+        );
     }
 
     #[test]
