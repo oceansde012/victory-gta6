@@ -221,8 +221,33 @@ fn min_stride(kind: u32) -> Option<u32> {
     }
 }
 
+/// Parses `VICTORY_INDIRECT_CLAMP`: enabled by default; explicit `"0"`,
+/// `"false"`, `"no"`, or `"off"` (ASCII case-insensitive) bypasses the
+/// argument-clamp compute pass so `ExecuteIndirect` reads the title's
+/// argument buffer directly.
+pub(crate) fn parse_clamp_enabled(value: Option<&std::ffi::OsStr>) -> bool {
+    let Some(value) = value else {
+        return true;
+    };
+    let Some(text) = value.to_str() else {
+        return true;
+    };
+    let trimmed = text.trim();
+    !(trimmed == "0"
+        || trimmed.eq_ignore_ascii_case("false")
+        || trimmed.eq_ignore_ascii_case("no")
+        || trimmed.eq_ignore_ascii_case("off"))
+}
+
+/// Whether indirect arguments are copied and clamped by our compute shader
+/// before `ExecuteIndirect` (`VICTORY_INDIRECT_CLAMP=0` disables it).
+pub(crate) fn clamp_enabled() -> bool {
+    static ON: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *ON.get_or_init(|| parse_clamp_enabled(std::env::var_os("VICTORY_INDIRECT_CLAMP").as_deref()))
+}
+
 /// Validates record alignment and returns the scratch byte size `stride * records`.
-fn validate_layout(
+pub(crate) fn validate_layout(
     (kind, stride, records): (u32, u32, u32),
     src_offset: u64,
     count_offset: Option<u64>,
@@ -253,6 +278,14 @@ pub(crate) fn bound(
     let bytes = validate_layout(spec, src.1, count.map(|(_, off)| off))?;
     let (c, budget, dst) = (clamp()?, list.budget()?, list.indirect_scratch(bytes)?);
     record_clamp(c, &list.list, &dst, budget, src, count, spec).then_some(dst)
+}
+
+/// Ensures earlier compute writes to indirect argument/count buffers are
+/// visible before a direct (unclamped) `ExecuteIndirect`, without running
+/// the clamp compute shader or invalidating compute pipeline state.
+pub(crate) fn wait_direct(list: &HostList) {
+    // SAFETY: an open command list; global UAV barrier has no resource hazards.
+    unsafe { list.list.ResourceBarrier(&[uav_barrier()]) };
 }
 
 /// [`bound`] for a window of records clamped ahead of the draws that will
@@ -1245,5 +1278,33 @@ void main() {
         list.close();
         host.execute(&[&list]);
         list.reset();
+    }
+
+    #[test]
+    fn parse_clamp_enabled_defaults_on_and_respects_explicit_disable() {
+        use std::ffi::OsStr;
+        assert!(parse_clamp_enabled(None));
+        for on in ["", "1", " 1 ", "true", "TRUE", "yes", "on"] {
+            assert!(
+                parse_clamp_enabled(Some(OsStr::new(on))),
+                "{on:?} must keep indirect clamp enabled"
+            );
+        }
+        for off in ["0", " 0 ", "false", "FALSE", "no", "NO", "off", "OFF"] {
+            assert!(
+                !parse_clamp_enabled(Some(OsStr::new(off))),
+                "{off:?} must disable indirect clamp"
+            );
+        }
+    }
+
+    #[test]
+    fn validate_layout_rejects_misaligned_or_overflowing_direct_arguments() {
+        assert_eq!(validate_layout((0, 16, 4), 0, None), Some(64));
+        assert_eq!(validate_layout((10, 12, 8), 16, Some(4)), Some(96));
+        assert_eq!(validate_layout((0, 12, 1), 0, None), None);
+        assert_eq!(validate_layout((0, 16, 1), 2, None), None);
+        assert_eq!(validate_layout((0, 16, 1), 0, Some(2)), None);
+        assert_eq!(validate_layout((0, 16, u32::MAX), 0, None), None);
     }
 }
