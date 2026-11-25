@@ -12,8 +12,7 @@
 //!
 //! shortcut: a change detiles the whole texture, not the pages written.
 //! Only textures read through descriptor tables are brought up to date
-//! (directly indexed views are not known per draw); plane 0 is uploaded
-//! (every mip and array slice), depth and stencil planes are not.
+//! (directly indexed views are not known per draw).
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -40,11 +39,13 @@ pub(crate) struct Staging {
     data: *mut u8,
     footprints: Vec<D3D12_PLACED_SUBRESOURCE_FOOTPRINT>,
     rows: Vec<u32>,
-    layout: victory_formats::texture::Layout,
+    layout: victory_formats::texture::Texture,
     /// Mips per array slice.
     mips: u32,
     /// The staging buffer's bytes (counted in `STAGED` while it lives).
     bytes: u64,
+    /// Subresources per plane: all mips of each array slice.
+    subresources_per_plane: u32,
     memory: *const u8,
     last: Mutex<Last>,
     /// Whether the staging buffer was detiled since a submitted list last
@@ -1013,22 +1014,27 @@ impl Staging {
     /// `victory_formats::texture::Layout`.) A texture this cannot tell
     /// the levels of holds them all.
     fn held_levels(&self, [first, limit]: [u64; 2]) -> u32 {
-        let mips = &self.layout.mips;
-        if self.layout.slices != 1 || mips.is_empty() || mips.len() > 32 {
+        // The per-level residency calculation below covers one plane only.
+        if self.layout.planes.len() != 1 || self.layout.planes[0].offset != 0 {
             return u32::MAX;
         }
-        let tail = (self.layout.first_tail_mip as usize).min(mips.len());
+        let layout = &self.layout.planes[0].layout;
+        let mips = &layout.mips;
+        if layout.slices != 1 || mips.is_empty() || mips.len() > 32 {
+            return u32::MAX;
+        }
+        let tail = (layout.first_tail_mip as usize).min(mips.len());
         let there = |from: u64, to: u64| {
             to > from && to <= limit && committed(self.memory.wrapping_add(from as usize), (to - from) as usize)
         };
         let mut held = 0u32;
         for (level, m) in mips.iter().enumerate().take(tail) {
-            let end = if level == 0 { self.layout.slice_size } else { mips[level - 1].offset };
+            let end = if level == 0 { layout.slice_size } else { mips[level - 1].offset };
             if level as u64 >= first && there(m.offset, end) {
                 held |= 1 << level;
             }
         }
-        if tail < mips.len() && there(0, self.layout.alignment.min(self.layout.slice_size)) {
+        if tail < mips.len() && there(0, layout.alignment.min(layout.slice_size)) {
             for level in tail..mips.len() {
                 if level as u64 >= first {
                     held |= 1 << level;
@@ -1259,15 +1265,23 @@ impl Staging {
         if tiled.iter().all(|&b| b == 0) {
             tracing::debug!(
                 memory = ?self.memory,
-                desc = ?self.layout.desc,
+                desc = ?self.layout.planes[0].layout.desc,
                 "a sampled texture's memory is all zero (not streamed yet, or a failed BCPack read)"
             );
         }
         for (i, (footprint, &rows)) in self.footprints.iter().zip(&self.rows).enumerate() {
-            let (mip, slice) = (i as u32 % self.mips, i as u32 / self.mips);
+            // D3D12 orders mips first, then array slices, then planes.
+            let index = i as u32 % self.subresources_per_plane;
+            let (mip, slice) = (index % self.mips, index / self.mips);
+            let plane = &self.layout.planes[i / self.subresources_per_plane as usize];
+            let start = plane.offset as usize;
+            let tiled = &tiled[start..start + plane.layout.size as usize];
             let f = footprint.Footprint;
             let pitch = f.RowPitch as usize;
-            let len = pitch * rows as usize * f.Depth as usize;
+            let Some(len) = subresource_len(footprint.Offset, pitch, rows, f.Depth, self.bytes) else {
+                tracing::warn!(offset = footprint.Offset, total = self.bytes, "texture footprint outside staging buffer");
+                return;
+            };
             // SAFETY: the subresource's part of the mapped staging buffer.
             let linear = unsafe {
                 std::slice::from_raw_parts_mut(self.data.add(footprint.Offset as usize), len)
@@ -1278,7 +1292,7 @@ impl Staging {
                 continue;
             }
             if let Err(e) =
-                self.layout
+                plane.layout
                     .detile(tiled, mip, slice, linear, pitch, pitch * rows as usize)
             {
                 tracing::warn!(?e, mip, slice, "texture not detiled");
@@ -1287,6 +1301,13 @@ impl Staging {
         }
         self.stale.store(false, std::sync::atomic::Ordering::Relaxed);
     }
+}
+
+/// Limit a padded footprint to the size returned by GetCopyableFootprints;
+/// the final row need not have a full row pitch of trailing padding.
+fn subresource_len(offset: u64, pitch: usize, rows: u32, depth: u32, total: u64) -> Option<usize> {
+    let remaining = usize::try_from(total.checked_sub(offset)?).ok()?;
+    Some(pitch.saturating_mul(rows as usize).saturating_mul(depth as usize).min(remaining))
 }
 
 /// Lets go of a title texture's staging buffer (lists that recorded an
@@ -1560,26 +1581,26 @@ fn staging(resource: This, texture: &ID3D12Resource) -> Option<Arc<Staging>> {
         return Some(s.clone());
     }
     let (memory, desc) = crate::resource::texture_memory(resource)?;
-    let Some(layout) = crate::resource::texture_layout(&desc).map(|t| t.planes[0].layout.clone())
-    else {
+    let Some(layout) = crate::resource::texture_layout(&desc) else {
         once!(
             ?desc,
             "texture contents without a console layout not uploaded"
         );
         return None;
     };
-    if layout.desc.swizzle.xor() {
+    if layout.planes.iter().any(|p| p.layout.desc.swizzle.xor()) {
         once!(?desc, "texture contents in an XOR mode not uploaded");
         return None;
     }
     let host = host()?;
     // SAFETY: a live resource.
     let d = unsafe { texture.GetDesc() };
-    let count = if d.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D {
+    let subresources_per_plane = if d.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D {
         u32::from(d.MipLevels)
     } else {
         u32::from(d.MipLevels) * u32::from(d.DepthOrArraySize)
     };
+    let count = subresources_per_plane * layout.planes.len() as u32;
     let mut footprints = vec![D3D12_PLACED_SUBRESOURCE_FOOTPRINT::default(); count as usize];
     let mut rows = vec![0u32; count as usize];
     let mut total = 0;
@@ -1616,6 +1637,7 @@ fn staging(resource: This, texture: &ID3D12Resource) -> Option<Arc<Staging>> {
         layout,
         mips: u32::from(d.MipLevels),
         bytes: total,
+        subresources_per_plane,
         memory,
         last: Mutex::default(),
         dirty: std::sync::atomic::AtomicBool::new(true),
@@ -1634,8 +1656,17 @@ fn staging(resource: This, texture: &ID3D12Resource) -> Option<Arc<Staging>> {
 
 #[cfg(test)]
 mod pool_tests {
-    use super::{class, give_back, pool_limit, take};
+    use super::{class, give_back, pool_limit, subresource_len, take};
     use windows::core::Interface;
+
+    #[test]
+    fn subresource_length_respects_the_actual_staging_size() {
+        assert_eq!(subresource_len(0, 256, 4, 1, 784), Some(784));
+        assert_eq!(subresource_len(512, 256, 4, 1, 784), Some(272));
+        assert_eq!(subresource_len(0, 256, 4, 1, 2048), Some(1024));
+        assert_eq!(subresource_len(785, 256, 4, 1, 784), None);
+        assert_eq!(subresource_len(0, usize::MAX, 2, 2, 784), Some(784));
+    }
 
     /// Classes are whole 64 KiB up to 1 MiB, then eighths of a power of
     /// two, and hold the size asked.
