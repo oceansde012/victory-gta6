@@ -1832,7 +1832,7 @@ impl HostHeap {
         let Some(host) = host() else { return };
         let desc = D3D12_CONSTANT_BUFFER_VIEW_DESC {
             BufferLocation: gpu,
-            SizeInBytes: size.next_multiple_of(256),
+            SizeInBytes: cbv_size(size),
         };
         // SAFETY: a slot of our heap; the memory is the caller's.
         unsafe {
@@ -2839,7 +2839,7 @@ fn make(view: &View, at: D3D12_CPU_DESCRIPTOR_HANDLE) -> Option<Kept> {
             }
             let desc = D3D12_CONSTANT_BUFFER_VIEW_DESC {
                 BufferLocation: gpu,
-                SizeInBytes: size.next_multiple_of(256),
+                SizeInBytes: cbv_size(size),
             };
             // SAFETY: a slot of our heap; the range lies in the host copy.
             unsafe { device.CreateConstantBufferView(Some(&desc), at) };
@@ -3890,4 +3890,14 @@ mod own_copy_tests {
             None
         );
     }
+}
+
+/// Largest constant buffer view D3D12 takes (4096 16-byte elements). A
+/// title view past it (a shader only reads its first 64 KiB) made an
+/// invalid view that removed NVIDIA's device (0x887A0001).
+const MAX_CBV_BYTES: u32 = 65_536;
+
+/// The host size of a constant buffer view of `size` bytes.
+fn cbv_size(size: u32) -> u32 {
+    size.next_multiple_of(256).min(MAX_CBV_BYTES)
 }
