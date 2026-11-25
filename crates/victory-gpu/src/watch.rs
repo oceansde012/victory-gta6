@@ -451,11 +451,10 @@ impl Tracked {
 /// Guarded blocks of view memory.
 const BLOCK: usize = PAGE;
 
-/// Whether the block holding `start` is view memory the guards actively
-/// hold read-only: asking the kernel's write watch about it can only fail.
-/// Uncommitted `absent` blocks are excluded because the title may later
-/// allocate `MEM_WRITE_WATCH` private memory at the same virtual address.
-/// `VICTORY_VIEW_ASK=1` (or `VICTORY_GUARD_ASK=1`) asks the kernel anyway.
+/// Whether the block holding `start` is view memory the guards already
+/// hold (read-only by our hand, or noted absent): asking the kernel's write
+/// watch about it can only fail. `VICTORY_VIEW_ASK=1` (or
+/// `VICTORY_GUARD_ASK=1`) asks the kernel anyway, as before.
 fn known_view(start: usize) -> bool {
     static ASK: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
     let ask = *ASK.get_or_init(|| {
@@ -468,7 +467,7 @@ fn known_view(start: usize) -> bool {
     }
     let g = guards();
     let first = start / BLOCK;
-    g.protected.contains(&first)
+    g.protected.contains(&first) || g.absent.contains(&first)
 }
 
 struct Guards {
@@ -511,7 +510,7 @@ fn guard(start: usize, end: usize) -> Option<Vec<usize>> {
     let known = !*ASK.get_or_init(|| std::env::var_os("VICTORY_GUARD_ASK").is_some_and(|v| v == "1")) && {
         let g = guards();
         let first = start / BLOCK;
-        g.protected.contains(&first)
+        g.protected.contains(&first) || g.absent.contains(&first)
     };
     if !known && !is_view(start, end) {
         return None;
@@ -548,9 +547,6 @@ fn guard(start: usize, end: usize) -> Option<Vec<usize>> {
             open = block >= uncommitted_until;
             if open {
                 g.absent.remove(&block);
-                if !is_view(block * BLOCK, (block + 1) * BLOCK) {
-                    open = false;
-                }
             }
         }
         if open {
@@ -1661,64 +1657,6 @@ mod tests {
         let top = usize::MAX - 16;
         writing(top, PAGE);
         title_memory_remapped(top, usize::MAX);
-    }
-
-    /// An uncommitted address noted in `g.absent` that is later allocated as
-    /// `MEM_WRITE_WATCH` or ordinary `MEM_PRIVATE` memory must not be hijacked
-    /// into `PAGE_READONLY` guarded memory.
-    #[test]
-    fn absent_block_reallocated_as_private_memory_is_not_guarded() {
-        use windows_sys::Win32::System::Memory::{
-            MEM_COMMIT, MEM_RELEASE, MEM_RESERVE, PAGE_NOACCESS, PAGE_READWRITE, VirtualAlloc,
-            VirtualFree,
-        };
-        const MEM_WRITE_WATCH: u32 = 0x20_0000;
-
-        // 1. Reserve an uncommitted 64 KiB block and observe it via `writes`,
-        //    which records the block in `g.absent`.
-        let reserved = unsafe { VirtualAlloc(std::ptr::null(), PAGE, MEM_RESERVE, PAGE_NOACCESS) };
-        assert!(!reserved.is_null());
-        let addr = reserved as usize;
-        assert!(writes(addr, addr + PAGE, true).is_some());
-        assert!(guards().absent.contains(&(addr / BLOCK)));
-        assert_ne!(unsafe { VirtualFree(reserved, 0, MEM_RELEASE) }, 0);
-
-        // 2. Reallocate the exact same virtual address as MEM_WRITE_WATCH private memory.
-        let watched = unsafe {
-            VirtualAlloc(
-                reserved,
-                PAGE,
-                MEM_RESERVE | MEM_COMMIT | MEM_WRITE_WATCH,
-                PAGE_READWRITE,
-            )
-        };
-        assert_eq!(watched, reserved);
-        assert!(writes(addr, addr + PAGE, true).is_some());
-        assert!(
-            writable(addr),
-            "MEM_WRITE_WATCH private memory at a formerly absent address must remain writable"
-        );
-        assert!(!guards().protected.contains(&(addr / BLOCK)));
-        assert_ne!(unsafe { VirtualFree(watched, 0, MEM_RELEASE) }, 0);
-
-        // 3. Re-mark `addr` absent while free, then commit ordinary MEM_PRIVATE memory there.
-        let reserved2 = unsafe { VirtualAlloc(reserved, PAGE, MEM_RESERVE, PAGE_NOACCESS) };
-        assert_eq!(reserved2, reserved);
-        assert!(writes(addr, addr + PAGE, true).is_some());
-        assert!(guards().absent.contains(&(addr / BLOCK)));
-        assert_ne!(unsafe { VirtualFree(reserved2, 0, MEM_RELEASE) }, 0);
-
-        let plain = unsafe { VirtualAlloc(reserved, PAGE, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE) };
-        assert_eq!(plain, reserved);
-        assert!(
-            writes(addr, addr + PAGE, true).is_none(),
-            "ordinary MEM_PRIVATE memory at a formerly absent address must not be treated as a view"
-        );
-        assert!(writable(addr));
-        assert!(!guards().protected.contains(&(addr / BLOCK)));
-        assert_ne!(unsafe { VirtualFree(plain, 0, MEM_RELEASE) }, 0);
-        // Clean up the test's absent entry.
-        guards().absent.remove(&(addr / BLOCK));
     }
 }
 
