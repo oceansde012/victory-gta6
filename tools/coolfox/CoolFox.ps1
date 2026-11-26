@@ -25,7 +25,7 @@ if ($Rebuild -or !(Test-Path $exe)) {
     Push-Location $src
     try {
         git pull --ff-only
-        cargo build --release --locked -p victory 2>&1 | Tee-Object (Join-Path $logs 'build.log')
+        cmd /c "cargo build --release --locked -p victory 2>&1" | Tee-Object (Join-Path $logs 'build.log')
         if ($LASTEXITCODE) { throw "cargo build failed, see $logs\build.log" }
     } finally { Pop-Location }
 }
@@ -44,10 +44,10 @@ Write-Host "Game: $GameDir"
 
 # 3. Save: copy the newest title folder (saves + storage) from our builds' data dirs
 if ($FreshSave -or !(Test-Path $data)) {
-    $cands = @("$env:LOCALAPPDATA\victory\data", "$env:LOCALAPPDATA\DexNom Runtime") |
+    $cands = @('B:\victory-data', "$env:LOCALAPPDATA\victory\data", "$env:LOCALAPPDATA\DexNom Runtime") |
         Where-Object { Test-Path $_ } |
-        ForEach-Object { Get-ChildItem $_ -Recurse -Depth 3 -Directory -Filter saves -ErrorAction SilentlyContinue } |
-        Sort-Object LastWriteTime -Descending
+        ForEach-Object { Get-ChildItem $_ -Recurse -Depth 4 -Directory -Filter saves -ErrorAction SilentlyContinue } |
+        Sort-Object { (Get-ChildItem $_.FullName -Recurse -File | Sort-Object LastWriteTime -Descending | Select-Object -First 1).LastWriteTime } -Descending
     if ($cands) {
         $title = $cands[0].Parent          # <data>\<TITLEID>
         $dest  = Join-Path $data $title.Name
