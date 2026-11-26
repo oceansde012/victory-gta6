@@ -10,36 +10,50 @@ param(
     [switch] $NoLaunch,
     # A second checkout to run instead of src (e.g. B:\cool_fox\picks for the
     # vlad/picks branch), built into its own target dir, with its own cache.
+    [ValidatePattern('^[a-zA-Z0-9][a-zA-Z0-9_-]*$')]
     [string] $Variant
 )
 $ErrorActionPreference = 'Stop'
-$src  = Join-Path $Root 'src'
+$Root = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Root)
+$src = Join-Path $Root 'src'
 $cacheName = 'cache-coolfox'
+$buildLogName = 'build.log'
 if ($Variant) {
-    $vsrc = Join-Path $Root $Variant
-    $vexe = Join-Path $src "target-$Variant\release\victory.exe"
-    if (!(Test-Path $vexe)) { throw "Build $Variant first: CARGO_TARGET_DIR=$src\target-$Variant cargo build --release --locked -p victory in $vsrc" }
-    New-Item -ItemType Directory -Force (Join-Path $vsrc 'target\release') | Out-Null
-    Copy-Item $vexe (Join-Path $vsrc 'target\release\victory.exe') -Force
+    if ($Variant -in 'src', 'data', 'logs') { throw "Reserved variant name: $Variant" }
+    $src = Join-Path $Root $Variant
     $cacheName = "cache-coolfox-$Variant"
+    $buildLogName = "build-$Variant.log"
 }
 $data = Join-Path $Root 'data'
 $logs = Join-Path $Root 'logs'
 New-Item -ItemType Directory -Force $Root, $logs | Out-Null
 
 # 1. Source + build
-if (!(Test-Path "$src\.git")) {
+if (!(Test-Path -LiteralPath (Join-Path $src '.git'))) {
+    if ($Variant) { throw "Variant checkout not found: $src" }
     git clone https://github.com/oceansde012/cool_fox $src
     if ($LASTEXITCODE) { throw 'git clone failed' }
 }
-$exe = Join-Path $src 'target\release\victory.exe'
-if ($Rebuild -or !(Test-Path $exe)) {
+$target = Join-Path $src 'target'
+$exe = Join-Path $target 'release\victory.exe'
+if ($Rebuild -or !(Test-Path -LiteralPath $exe -PathType Leaf)) {
+    $buildLog = Join-Path $logs $buildLogName
+    $previousTarget = $env:CARGO_TARGET_DIR
     Push-Location $src
     try {
-        git pull --ff-only
-        cmd /c "cargo build --release --locked -p victory 2>&1" | Tee-Object (Join-Path $logs 'build.log')
-        if ($LASTEXITCODE) { throw "cargo build failed, see $logs\build.log" }
-    } finally { Pop-Location }
+        # A variant may be pinned to a detached commit.
+        if (!$Variant) {
+            git pull --ff-only
+            if ($LASTEXITCODE) { throw "git pull --ff-only failed in $src" }
+        }
+        $env:CARGO_TARGET_DIR = $target
+        cmd /c "cargo build --release --locked -p victory 2>&1" | Tee-Object -FilePath $buildLog
+        if ($LASTEXITCODE) { throw "cargo build failed, see $buildLog" }
+        if (!(Test-Path -LiteralPath $exe -PathType Leaf)) { throw "Build did not produce $exe. See $buildLog" }
+    } finally {
+        $env:CARGO_TARGET_DIR = $previousTarget
+        Pop-Location
+    }
 }
 
 # 2. Game folder (env > remembered > search B:)
@@ -104,7 +118,7 @@ if ($commitGB -lt 44) {
     Write-Host "Commit limit $commitGB GB: UPLOAD_AHEAD=$env:VICTORY_UPLOAD_AHEAD TEXTURE_BUDGET_MB=$env:VICTORY_TEXTURE_BUDGET_MB PIPELINE_WORKERS=$env:VICTORY_PIPELINE_WORKERS"
 }
 $stamp = Get-Date -f yyyyMMdd-HHmmss
-Push-Location $(if ($Variant) { Join-Path $Root $Variant } else { $src })
+Push-Location $src
 try {
     cmd /c "Play-VIctory.cmd pareto-residency 2>&1" | Tee-Object (Join-Path $logs "run-$Variant$stamp.log")
 } finally { Pop-Location }
