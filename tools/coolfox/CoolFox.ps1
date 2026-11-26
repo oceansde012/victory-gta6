@@ -7,10 +7,22 @@ param(
     [string] $GameDir = $env:VICTORY_GAME_DIR,
     [switch] $Rebuild,
     [switch] $FreshSave,     # re-copy the save from our builds
-    [switch] $NoLaunch
+    [switch] $NoLaunch,
+    # A second checkout to run instead of src (e.g. B:\cool_fox\picks for the
+    # vlad/picks branch), built into its own target dir, with its own cache.
+    [string] $Variant
 )
 $ErrorActionPreference = 'Stop'
 $src  = Join-Path $Root 'src'
+$cacheName = 'cache-coolfox'
+if ($Variant) {
+    $vsrc = Join-Path $Root $Variant
+    $vexe = Join-Path $src "target-$Variant\release\victory.exe"
+    if (!(Test-Path $vexe)) { throw "Build $Variant first: CARGO_TARGET_DIR=$src\target-$Variant cargo build --release --locked -p victory in $vsrc" }
+    New-Item -ItemType Directory -Force (Join-Path $vsrc 'target\release') | Out-Null
+    Copy-Item $vexe (Join-Path $vsrc 'target\release\victory.exe') -Force
+    $cacheName = "cache-coolfox-$Variant"
+}
 $data = Join-Path $Root 'data'
 $logs = Join-Path $Root 'logs'
 New-Item -ItemType Directory -Force $Root, $logs | Out-Null
@@ -78,7 +90,7 @@ if ($NoLaunch) { Write-Host 'Ready.'; return }
 # 5. Launch with the fork's own launcher (its pareto-residency env), our dirs
 $env:VICTORY_GAME_DIR  = $GameDir
 $env:VICTORY_DATA_DIR  = $data
-$env:VICTORY_CACHE_DIR = "$env:LOCALAPPDATA\VIctory\cache-coolfox"
+$env:VICTORY_CACHE_DIR = "$env:LOCALAPPDATA\VIctory\$cacheName"
 # Low commit limit (RAM + pagefile < 44 GB): 2026-11-26 run died with
 # E_OUTOFMEMORY at 36 GB limit (4 GB pagefile), victory.exe at 21 GB commit,
 # 13 GB RAM still free. Trim host-side texture staging unless set by hand.
@@ -92,7 +104,7 @@ if ($commitGB -lt 44) {
     Write-Host "Commit limit $commitGB GB: UPLOAD_AHEAD=$env:VICTORY_UPLOAD_AHEAD TEXTURE_BUDGET_MB=$env:VICTORY_TEXTURE_BUDGET_MB PIPELINE_WORKERS=$env:VICTORY_PIPELINE_WORKERS"
 }
 $stamp = Get-Date -f yyyyMMdd-HHmmss
-Push-Location $src
+Push-Location $(if ($Variant) { Join-Path $Root $Variant } else { $src })
 try {
-    cmd /c "Play-VIctory.cmd pareto-residency 2>&1" | Tee-Object (Join-Path $logs "run-$stamp.log")
+    cmd /c "Play-VIctory.cmd pareto-residency 2>&1" | Tee-Object (Join-Path $logs "run-$Variant$stamp.log")
 } finally { Pop-Location }
