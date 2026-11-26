@@ -86,7 +86,10 @@ $commitGB = [math]::Round((Get-CimInstance Win32_OperatingSystem).TotalVirtualMe
 if ($commitGB -lt 48) {
     if (!$env:VICTORY_UPLOAD_AHEAD)       { $env:VICTORY_UPLOAD_AHEAD = '0' }
     if (!$env:VICTORY_TEXTURE_BUDGET_MB)  { $env:VICTORY_TEXTURE_BUDGET_MB = '4096' }
-    Write-Host "Commit limit $commitGB GB: UPLOAD_AHEAD=$env:VICTORY_UPLOAD_AHEAD TEXTURE_BUDGET_MB=$env:VICTORY_TEXTURE_BUDGET_MB"
+    # Second run still died: driver pipeline compiles ("fatal: Memory allocation
+    # failure") ate the commit. Fewer workers = lower peak.
+    if (!$env:VICTORY_PIPELINE_WORKERS)   { $env:VICTORY_PIPELINE_WORKERS = '2' }
+    Write-Host "Commit limit $commitGB GB: UPLOAD_AHEAD=$env:VICTORY_UPLOAD_AHEAD TEXTURE_BUDGET_MB=$env:VICTORY_TEXTURE_BUDGET_MB PIPELINE_WORKERS=$env:VICTORY_PIPELINE_WORKERS"
 }
 $stamp = Get-Date -f yyyyMMdd-HHmmss
 Push-Location $src
