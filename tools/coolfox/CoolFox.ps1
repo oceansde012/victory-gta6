@@ -79,6 +79,15 @@ if ($NoLaunch) { Write-Host 'Ready.'; return }
 $env:VICTORY_GAME_DIR  = $GameDir
 $env:VICTORY_DATA_DIR  = $data
 $env:VICTORY_CACHE_DIR = "$env:LOCALAPPDATA\VIctory\cache-coolfox"
+# Low commit limit (RAM + pagefile < 48 GB): 2026-11-26 run died with
+# E_OUTOFMEMORY at 36 GB limit (4 GB pagefile), victory.exe at 21 GB commit,
+# 13 GB RAM still free. Trim host-side texture staging unless set by hand.
+$commitGB = [math]::Round((Get-CimInstance Win32_OperatingSystem).TotalVirtualMemorySize / 1MB, 1)
+if ($commitGB -lt 48) {
+    if (!$env:VICTORY_UPLOAD_AHEAD)       { $env:VICTORY_UPLOAD_AHEAD = '0' }
+    if (!$env:VICTORY_TEXTURE_BUDGET_MB)  { $env:VICTORY_TEXTURE_BUDGET_MB = '4096' }
+    Write-Host "Commit limit $commitGB GB: UPLOAD_AHEAD=$env:VICTORY_UPLOAD_AHEAD TEXTURE_BUDGET_MB=$env:VICTORY_TEXTURE_BUDGET_MB"
+}
 $stamp = Get-Date -f yyyyMMdd-HHmmss
 Push-Location $src
 try {
