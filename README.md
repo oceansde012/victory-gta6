@@ -9,43 +9,89 @@ Updated automatically by `.github/workflows/upstream-sync.yml`.
 
 ## fxceless/victory-gta6
 
-main: `a42b627` — Pipelines: a dispatch waits for its compute pipeline until it is made (VICTORY_PIPELINE_COMPUTE_WAIT=0: within the frame's budget, as before) (#1312)
-(**not yet in our main**: 113 commits)
+main: `6742906` — README: status of 2026-11-27 03:45 (structure builder runs; its known crash; water)
+(**not yet in our main**: 140 commits)
 
 ### Open pull requests
 
-- [#1400](https://github.com/fxceless/victory-fork/pull/1400) GPU: reduce heap churn and lock contention in watch, descriptor mirror, and draw bind — @DoktorTK
+- [#1435](https://github.com/fxceless/victory-fork/pull/1435) Allow the compute detile readback test on the runtime GPU — @UwUCammie
+- [#1427](https://github.com/fxceless/victory-fork/pull/1427) GPU: avoid Vec allocations in Shadow::card_merge_relay when skip is empty — @DoktorTK
+- [#1434](https://github.com/fxceless/victory-fork/pull/1434) Frame pacing record behind VICTORY_PACING (#1347) — @Danty-Cod
+- [#1433](https://github.com/fxceless/victory-fork/pull/1433) Rect tests: skip validation on a validator older than DXC 1.8 (#1337) — @Danty-Cod
+- [#1377](https://github.com/fxceless/victory-fork/pull/1377) GPU: retain depth-plane SRV descriptors for command-list lifetime — @spk-c
+- [#333](https://github.com/fxceless/victory-fork/pull/333) Shaders: one sampler's words used for both Sample and SampleCmp get two static slots — @RenzoWit35
+- [#1425](https://github.com/fxceless/victory-fork/pull/1425) GPU: preserve texture retry deadlines after card memory holds — @ByFxbian
+- [#1432](https://github.com/fxceless/victory-fork/pull/1432) diagnostics: analyse frame logs by draw count — @gingerninja85
+- [#1431](https://github.com/fxceless/victory-fork/pull/1431) GPU: merge dirty upload ranges in place — @gingerninja85
+- [#1430](https://github.com/fxceless/victory-fork/pull/1430) GPU tests: verify four queued copies stay distinct behind a fence — @gingerninja85
+- [#1429](https://github.com/fxceless/victory-fork/pull/1429) GPU: batch retirement of same-heap descriptor spans — @gingerninja85
+- [#1428](https://github.com/fxceless/victory-fork/pull/1428) GPU: reject device-removed fence values on copy lanes — @gingerninja85
+- [#795](https://github.com/fxceless/victory-fork/pull/795) GPU: a texture's levels on demand keep their tiles while anything names the texture (#776) — @LeonardoS11
+- [#213](https://github.com/fxceless/victory-fork/pull/213) Ray tracing: a child that is not there is a miss, whatever its box — @Pablo-Barros
+- [#1419](https://github.com/fxceless/victory-fork/pull/1419) Shaders: ordered paired FP32 reductions for Wave64 on Wave32 hosts — @ByFxbian
+- [#1414](https://github.com/fxceless/victory-fork/pull/1414) Descriptors: every slot of a table a draw binds counts as a table's slot (VICTORY_TABLED_ALL=1, off by default): 84-96 -> 55-59 ms a frame in the prologue's cell — @KyleS98
+- [#1388](https://github.com/fxceless/victory-fork/pull/1388) GPU: record per-span stamps for partial watched-page refreshes — @n-romanovich
+- [#100](https://github.com/fxceless/victory-fork/pull/100) Turn the last three switched-off style lints back on — @stojbde
+- [#1426](https://github.com/fxceless/victory-fork/pull/1426) GPU: allow disabling saved pipeline scheduling history — @ByFxbian
+- [#139](https://github.com/fxceless/victory-fork/pull/139) Shaders: v_writelane_b32 writes its lane whenever the wave runs it — @marketingwithlux
+- [#1322](https://github.com/fxceless/victory-fork/pull/1322) Asset policy: host test split, Rust-source ceiling, and v_cmp clippy fix (redo #1357/#1361) — @CwWwWwW
+- [#1189](https://github.com/fxceless/victory-fork/pull/1189) Series S: answer the FidelityFX upscaler API with a stretch of the render — @Tissma95
+- [#1216](https://github.com/fxceless/victory-fork/pull/1216) GPU/Shaders: a slot picked by index is read as a constant buffer only if it holds one — @GamingRipperDoc
+- [#354](https://github.com/fxceless/victory-fork/pull/354) Shaders: include v_readfirstlane_b32 in wave64 exchange and check implicit reads in lane_uniform — @AscilCH
+- [#1408](https://github.com/fxceless/victory-fork/pull/1408) Shaders: correct pixel quad, DPP8 and whole-quad execution semantics — @ByFxbian
+- [#1422](https://github.com/fxceless/victory-fork/pull/1422) GPU: a skin bake's own sources are uploaded while the card's budget holds them, not only under the texture line — @Granite900
+- [#1333](https://github.com/fxceless/victory-fork/pull/1333) GPU: keep the remap history for every view heap, coalesced and bounded (port of Kamiloj9/victory-dlss 2023d5c8b) — @CwWwWwW
+- [#1004](https://github.com/fxceless/victory-fork/pull/1004) GPU: display mode changes and devices added or removed go to the log and to the removal report's trail — @PiloteCode
+- [#845](https://github.com/fxceless/victory-fork/pull/845) GPU: allow first-use pipeline scheduling with a warm cache — @Lilith133T (draft)
+- [#1227](https://github.com/fxceless/victory-fork/pull/1227) Send-and-hash list in three steps (copies, one state change, hash passes): 29 -> 6 ms of card time a frame — @KyleS98
+- [#1171](https://github.com/fxceless/victory-fork/pull/1171) Indirect records gathered by runs inside their lists: one clamp pass per run of draws, 10-13 ms less card time a frame — @KyleS98
+- [#768](https://github.com/fxceless/victory-fork/pull/768) GPU: a submission's texture checks run several at a time (VICTORY_WIDE_TEXTURES=1) — @KyleS98
+- [#798](https://github.com/fxceless/victory-fork/pull/798) Series S: the title keeps its own upscaler, not FSR 4 (world frames were black) — @KyleS98
+- [#1081](https://github.com/fxceless/victory-fork/pull/1081) Present: blend the second present plane (the Series S interface) over the first, fixing the black boot and missing prompts — @KyleS98
+- [#1411](https://github.com/fxceless/victory-fork/pull/1411) Tests: exercise Wine watch capabilities and placeholder fallback — @Filip722
+- [#1323](https://github.com/fxceless/victory-fork/pull/1323) Loader: add opt-in reduced render scales — @Filip722
+- [#1357](https://github.com/fxceless/victory-fork/pull/1357) Move host.rs's and lower.rs's test modules to their own files, under the asset policy's 512 KiB limit — @fxceless
+- [#843](https://github.com/fxceless/victory-fork/pull/843) shader: software binary64 add and wave reduction for Arc A770 and other GPUs without DoublePrecisionFloatShaderOps — @UnkwnDev
+- [#461](https://github.com/fxceless/victory-fork/pull/461) Shaders: skip cross-half exchange in active_f64_sum for local waves and groups <= 32 — @Fimpos
+- [#854](https://github.com/fxceless/victory-fork/pull/854) Shaders: wave64 programs in a paired form on 32-lane GPUs, mesh programs over 32 KiB linked with their pixel program, and more (230 more programs pass) — @PiloteCode
+- [#994](https://github.com/fxceless/victory-fork/pull/994) Ray tracing: the title's structure builder runs without crashing it (dispatches by thread counts, title memory by address made ready); node tests answer no hit while it is off (stacked on #854 and #993) — @PiloteCode
+- [#1416](https://github.com/fxceless/victory-fork/pull/1416) Warm-up: the run's log names the view heap's null slot, the number VICTORY_VIEW_LIMIT wants — @Granite900
+- [#1415](https://github.com/fxceless/victory-fork/pull/1415) Diagnostics: VICTORY_FRAME_HEALTH=1 writes a per-frame CSV of draws/dispatches not run, unready textures and VRAM (off by default) — @TG0000
+- [#1413](https://github.com/fxceless/victory-fork/pull/1413) GPU: cache exact buffer span unions per heap — @spk-c
+- [#1002](https://github.com/fxceless/victory-fork/pull/1002) Shaders: the tiled cascade shadow programs translate exactly on 32-lane hosts — @brunofgmag
+- [#1412](https://github.com/fxceless/victory-fork/pull/1412) GPU: opt-in ordered single-group indirect batches — @spk-c
+- [#1358](https://github.com/fxceless/victory-fork/pull/1358) GPU: VICTORY_COLD_SKIP=1: refreshes pass over 2 MiB chunks with no write since (off by default) — @TG0000
+- [#500](https://github.com/fxceless/victory-fork/pull/500) Shaders: VICTORY_LDS_EXACT=1 orders LDS in a lane-branch region by the dwords it touches (369cbe906ea72764 on 32-lane GPUs) — @Yorivel
+- [#1406](https://github.com/fxceless/victory-fork/pull/1406) GPU: keep bounded sparse refresh spans for known unwatched buffers — @spk-c
+- [#1405](https://github.com/fxceless/victory-fork/pull/1405) Diagnostics: add opt-in title no-draw mode — @spk-c
+- [#1404](https://github.com/fxceless/victory-fork/pull/1404) Diagnostics: measure title submission driver and descriptor stages — @spk-c
+- [#1403](https://github.com/fxceless/victory-fork/pull/1403) GPU: bound conventional table CBV scratch fills and validate host ranges — @spk-c
+- [#1402](https://github.com/fxceless/victory-fork/pull/1402) Diagnostics: validate process-scoped PresentMon display captures — @spk-c
+- [#1393](https://github.com/fxceless/victory-fork/pull/1393) GPU/draw: create D3D12 command signatures outside cache mutex — @n-romanovich
+- [#1279](https://github.com/fxceless/victory-fork/pull/1279) watch: interval-skip absent placeholders, coalesce VirtualProtect runs, O(dirty) re-arm (#1238) — @Vladimir-Human
+- [#649](https://github.com/fxceless/victory-fork/pull/649) lint: re-enable six relaxed clippy lints across gpu and shader crates — @JulioMelo259
+- [#20](https://github.com/fxceless/victory-fork/pull/20) GPU: compile our run-time HLSL with DXC when the system compiler refuses it (Wine/Proton) — @ErRusso
+- [#938](https://github.com/fxceless/victory-fork/pull/938) Fix Proton Wave64 startup and reduce Wine remapping stalls — @hh-ze
+- [#1395](https://github.com/fxceless/victory-fork/pull/1395) GPU/texture: replace BLAKE3 texture content hash with 128-bit AVX2/scalar hash — @n-romanovich
+- [#1385](https://github.com/fxceless/victory-fork/pull/1385) victory-gpu: propagate relay merges to current sibling shadows — @SalmanBarkat
 - [#1365](https://github.com/fxceless/victory-fork/pull/1365) GPU/watch: batch GetWriteWatch queries by memory reservation — @spk-c
 - [#1350](https://github.com/fxceless/victory-fork/pull/1350) GPU: reuse the relay merge scratch and skip fully superseded reads — @Marukooh (draft)
 - [#868](https://github.com/fxceless/victory-fork/pull/868) Card copies: a census, and an opt-in switch that leaves write-combining memory on the card (−11…−20 % frame, 3 GPUs) — @Chipsraine
-- [#1279](https://github.com/fxceless/victory-fork/pull/1279) watch: interval-skip absent placeholders, coalesce VirtualProtect runs, O(dirty) re-arm (#1238) — @Vladimir-Human
 - [#1117](https://github.com/fxceless/victory-fork/pull/1117) GPU: zero-copy section-heap windows, lock-free HostHeap::mirror, VIEWS RwLock & Thin LTO — @RealAzemed
-- [#1388](https://github.com/fxceless/victory-fork/pull/1388) GPU: record per-span stamps for partial watched-page refreshes — @n-romanovich
-- [#1399](https://github.com/fxceless/victory-fork/pull/1399) GPU: deduplicate Step::GpuWrite per list and eliminate per-draw Vec allocations — @n-romanovich
 - [#1398](https://github.com/fxceless/victory-fork/pull/1398) Shaders/opt: push Bitcast through Select/Phi and fold constant chains/masks — @n-romanovich
-- [#1397](https://github.com/fxceless/victory-fork/pull/1397) Shaders: experimental paired Wave64 compute lowering for NVIDIA — @ByFxbian
 - [#896](https://github.com/fxceless/victory-fork/pull/896) Keep texture refresh notifications through streaming bursts — @gomeaw
-- [#1393](https://github.com/fxceless/victory-fork/pull/1393) GPU/draw: create D3D12 command signatures outside cache mutex — @n-romanovich
-- [#1396](https://github.com/fxceless/victory-fork/pull/1396) Working shader translation + precompilation (Belobug) + v7-v10 RTX 5070 perf + main fixes — @Alpacher
-- [#1395](https://github.com/fxceless/victory-fork/pull/1395) GPU/texture: replace BLAKE3 texture content hash with 128-bit AVX2/scalar hash — @n-romanovich
 - [#1316](https://github.com/fxceless/victory-fork/pull/1316) GPU: reuse submit-time snapshots for repeated table CBVs — @ByFxbian
 - [#1394](https://github.com/fxceless/victory-fork/pull/1394) GPU/profile: bound saved-register offsets and Rip range in frame_fits — @n-romanovich
-- [#20](https://github.com/fxceless/victory-fork/pull/20) GPU: compile our run-time HLSL with DXC when the system compiler refuses it (Wine/Proton) — @ErRusso
-- [#1390](https://github.com/fxceless/victory-fork/pull/1390) GPU: reuse own-byte copy buffers (VICTORY_EXACT_REUSE), log card-cap turn-downs, split bind time — @Alpacher
 - [#1391](https://github.com/fxceless/victory-fork/pull/1391) GPU/descriptor: cap Rule::Start head block at texture size — @n-romanovich
 - [#1389](https://github.com/fxceless/victory-fork/pull/1389) Shaders/host: skip Set*Root32BitConstants when constants list is empty — @n-romanovich
-- [#1333](https://github.com/fxceless/victory-fork/pull/1333) GPU: keep the remap history for every view heap, coalesced and bounded (port of Kamiloj9/victory-dlss 2023d5c8b) — @CwWwWwW
 - [#188](https://github.com/fxceless/victory-fork/pull/188) Series S: the second present plane, and a plain stretch for the upscale dispatch — @sagouindupm
 - [#1386](https://github.com/fxceless/victory-fork/pull/1386) Shaders: fast-path zero and square factors in legacy_mul/legacy_fmad — @n-romanovich
 - [#1384](https://github.com/fxceless/victory-fork/pull/1384) GPU: use HashSet for VICTORY_SKIP_PIPELINES and VICTORY_DENY_PIPELINES  — @n-romanovich
-- [#1385](https://github.com/fxceless/victory-fork/pull/1385) victory-gpu: propagate relay merges to current sibling shadows — @SalmanBarkat
-- [#1377](https://github.com/fxceless/victory-fork/pull/1377) GPU: retain depth-plane SRV descriptors for command-list lifetime — @spk-c
 - [#1381](https://github.com/fxceless/victory-fork/pull/1381) GPU: indirect mesh records launched by an amplification stage (VICTORY_MESH_LAUNCH=1, off by default) — @wildheathen
 - [#452](https://github.com/fxceless/victory-fork/pull/452) Shaders: mark buffer getDimensions heap handles non-uniform for AMD — @MalfoyDraco99
 - [#1261](https://github.com/fxceless/victory-fork/pull/1261) Shaders: console threads of 2-D groups on 32-lane hosts come from a group counter (fixes #1243) — @Garu667
 - [#398](https://github.com/fxceless/victory-fork/pull/398) GPU: isolate pipeline completion wakeups and prevent stale frame budget resets — @VlREX
 - [#1130](https://github.com/fxceless/victory-fork/pull/1130) GPU/texture: detile only the pages written since the last refresh (VICTORY_TEXTURE_PAGES) — @Lkxex
-- [#768](https://github.com/fxceless/victory-fork/pull/768) GPU: a submission's texture checks run several at a time (VICTORY_WIDE_TEXTURES=1) — @KyleS98
 - [#1362](https://github.com/fxceless/victory-fork/pull/1362) GPU: opt-in loose-window reuse via key aliasing and superseded reclamation (VICTORY_WINDOW_REUSE=1) — @RustPolaris
 - [#1299](https://github.com/fxceless/victory-fork/pull/1299) feat(hle): opt-in DX12 Async Compute BCPack offload via bcpack-gpu-sdk v0.14.1 — @POMXARK
 - [#402](https://github.com/fxceless/victory-fork/pull/402) Windows 10: load the D3D12 Agility SDK runtime for shader model 6.6 — @domints
@@ -54,9 +100,7 @@ main: `a42b627` — Pipelines: a dispatch waits for its compute pipeline until i
 - [#1031](https://github.com/fxceless/victory-fork/pull/1031) GPU: bound texture queue work and keep sampling on resident mips — @Lkxex
 - [#1140](https://github.com/fxceless/victory-fork/pull/1140) shader: static Wave32 LDS alias & lane-private analysis for native Wave32 compute — @Vladimir-Human
 - [#1295](https://github.com/fxceless/victory-fork/pull/1295) Card copies: pages with many changed runs go up as the page and a byte mask, one compute pass instead of a copy a run (VICTORY_MERGE_MASK, off) — @KainanP
-- [#994](https://github.com/fxceless/victory-fork/pull/994) Ray tracing: the title's structure builder runs without crashing it (dispatches by thread counts, title memory by address made ready); node tests answer no hit while it is off (stacked on #854 and #993) — @PiloteCode
 - [#1007](https://github.com/fxceless/victory-fork/pull/1007) GPU: async background worker for heap-indexed texture uploads (VICTORY_HEAP_WORKER=1) — @TG0000
-- [#1323](https://github.com/fxceless/victory-fork/pull/1323) Loader: add opt-in reduced render scales — @Filip722
 - [#257](https://github.com/fxceless/victory-fork/pull/257) Shaders: one latch per loop in emitted DXIL (dxil-spirv asserts on two back edges and stalls the pipeline workers under vkd3d-proton) — @Ortomanic
 - [#1229](https://github.com/fxceless/victory-fork/pull/1229) perf: avoid redundant readback selection allocations — @spk-c
 - [#1233](https://github.com/fxceless/victory-fork/pull/1233) perf: opt-in AVX2 changed-run detection — @spk-c
@@ -86,26 +130,18 @@ main: `a42b627` — Pipelines: a dispatch waits for its compute pipeline until i
 - [#1286](https://github.com/fxceless/victory-fork/pull/1286) perf(victory-gpu): reduce host System RAM footprint via VM decommit and cold pool/DXIL trimming — @Vladimir-Human
 - [#1178](https://github.com/fxceless/victory-fork/pull/1178) gpu: opt-in lazy GPU write-back (VEH), O(dirty) CopiedPages, AVX2 shadow & AdapterKey PSO — @Vladimir-Human
 - [#80](https://github.com/fxceless/victory-fork/pull/80) GPU: upload dirty title textures in HostList::prelude — @adritoyalser
-- [#100](https://github.com/fxceless/victory-fork/pull/100) Turn the last three switched-off style lints back on — @stojbde
 - [#141](https://github.com/fxceless/victory-fork/pull/141) GPU: wait before overwriting an in-flight texture staging buffer under VICTORY_LATE_WAIT/RELAY — @adritoyalser
 - [#119](https://github.com/fxceless/victory-fork/pull/119) Shaders: write v_writelane_b32 under wave-level EXEC (#111) — @adritoyalser
-- [#1216](https://github.com/fxceless/victory-fork/pull/1216) GPU/Shaders: a slot picked by index is read as a constant buffer only if it holds one — @GamingRipperDoc
 - [#170](https://github.com/fxceless/victory-fork/pull/170) Shaders: run wave32 and lane-mask retries after edge threading — @adritoyalser
 - [#506](https://github.com/fxceless/victory-fork/pull/506) GPU: check for a bound view heap before claiming the frame in early_textures — @adritoyalser
 - [#1361](https://github.com/fxceless/victory-fork/pull/1361) Policy: allow up to 2 MiB for Rust source files under asset policy — @ashishdhillon
 - [#1360](https://github.com/fxceless/victory-fork/pull/1360) GPU: opt-in hot-block pinning in watch::guard (VICTORY_WATCH_PIN, addresses #1238) — @RustPolaris
-- [#1358](https://github.com/fxceless/victory-fork/pull/1358) GPU: VICTORY_COLD_SKIP=1: refreshes pass over 2 MiB chunks with no write since (off by default) — @TG0000
-- [#1357](https://github.com/fxceless/victory-fork/pull/1357) Move host.rs's and lower.rs's test modules to their own files, under the asset policy's 512 KiB limit — @fxceless
 - [#1136](https://github.com/fxceless/victory-fork/pull/1136) Queued presents: the title's present goes into its queue's line and returns; our thread shows the frame in order, at most N waiting (VICTORY_PRESENT_QUEUED=1|2, off by default) — @exotiquee
 - [#827](https://github.com/fxceless/victory-fork/pull/827) Fix the world-entry crash the table-slot skip causes; coalesce refreshes; opt-in readable-range copies — @traidy2222 (draft)
 - [#1102](https://github.com/fxceless/victory-fork/pull/1102) watch: the journal's lock let go across the kernel's asking (VICTORY_JOURNAL_UNLOCKED=1), and what it waits for on the frame line — @alexis27yt
-- [#354](https://github.com/fxceless/victory-fork/pull/354) Shaders: include v_readfirstlane_b32 in wave64 exchange and check implicit reads in lane_uniform — @AscilCH
-- [#798](https://github.com/fxceless/victory-fork/pull/798) Series S: the title keeps its own upscaler, not FSR 4 (world frames were black) — @KyleS98
-- [#1081](https://github.com/fxceless/victory-fork/pull/1081) Present: blend the second present plane (the Series S interface) over the first, fixing the black boot and missing prompts — @KyleS98
 - [#1354](https://github.com/fxceless/victory-fork/pull/1354) Tests: cover tiled mip claims without a device — @anes66 (draft)
 - [#1234](https://github.com/fxceless/victory-fork/pull/1234) GPU: a pipeline is waited for in one frame only (#1181) — @milesah3ad
 - [#1212](https://github.com/fxceless/victory-fork/pull/1212) GPU/draw: reuse staging for repeated unaligned root CBVs — @nicolasveilleux
-- [#1189](https://github.com/fxceless/victory-fork/pull/1189) Series S: answer the FidelityFX upscaler API with a stretch of the render — @Tissma95
 - [#695](https://github.com/fxceless/victory-fork/pull/695) Shaders: VICTORY_WAVE_WIDE_ONLY turns the wave-wide form on for named programs (the two water volumetrics computes on NVIDIA) — @FrancescoGelosoEterea
 - [#1289](https://github.com/fxceless/victory-fork/pull/1289) gpu: fence-safe LRU texture eviction and budget-aware mip clamping — @Vladimir-Human
 - [#1298](https://github.com/fxceless/victory-fork/pull/1298) Card hash passes after ranges go up: each piece once by default (VICTORY_CARD_REHASH_RUNS=0 as before, =1 touching pieces joined) — @KainanP
@@ -124,7 +160,6 @@ main: `a42b627` — Pipelines: a dispatch waits for its compute pipeline until i
 - [#674](https://github.com/fxceless/victory-fork/pull/674) GPU/shadow: synchronize find_all snapshot reads and trim card_merge_relay per outside span — @AscilCH
 - [#1335](https://github.com/fxceless/victory-fork/pull/1335) Shader tests: the legacy multiply-add's rounding case takes either rounding — @bihanikeshav
 - [#1314](https://github.com/fxceless/victory-fork/pull/1314) GPU: finish pending texture checks before a host callback — @Cuebert
-- [#1002](https://github.com/fxceless/victory-fork/pull/1002) Shaders: the tiled cascade shadow programs translate exactly on 32-lane hosts — @brunofgmag
 - [#1276](https://github.com/fxceless/victory-fork/pull/1276) GPU: release buffer-pass copies with their descriptor heap — @UwUCammie
 - [#1184](https://github.com/fxceless/victory-fork/pull/1184) GPU: hoisted indirect clamps (VICTORY_HOIST_CLAMPS) and a cap on the planned card budget (VICTORY_VIDEO_BUDGET_MB), both off by default — @Marukooh (draft)
 - [#1146](https://github.com/fxceless/victory-fork/pull/1146) Landed lists reset on a thread of their own (VICTORY_LAND_ASIDE=1, off by default) — @beamdotdev
@@ -170,7 +205,6 @@ main: `a42b627` — Pipelines: a dispatch waits for its compute pipeline until i
 - [#1296](https://github.com/fxceless/victory-fork/pull/1296) feat: Series S support, fast FSR4 bypass, ambient floor, and 6GB VRAM texture fixes — @matthew565656
 - [#739](https://github.com/fxceless/victory-fork/pull/739) shader: lower nested control-flow descriptors and immediate sampler phis — @powplusplus
 - [#1291](https://github.com/fxceless/victory-fork/pull/1291) Trace texture bindings and upload fences for one graphics draw — @stem23456-coder
-- [#854](https://github.com/fxceless/victory-fork/pull/854) Shaders: wave64 programs in a paired form on 32-lane GPUs, mesh programs over 32 KiB linked with their pixel program, and more (230 more programs pass) — @PiloteCode
 - [#1290](https://github.com/fxceless/victory-fork/pull/1290) victory-gpu: chain heap-worker passes and read textures ahead on threads while slots are left due (stacked on #1007) — @Exopus-0x65f7ad0
 - [#1280](https://github.com/fxceless/victory-fork/pull/1280) victory-gpu: size-tiered card-buffer headroom and fence-safe LRU demotion (#1163) — @Vladimir-Human
 - [#1224](https://github.com/fxceless/victory-fork/pull/1224) Three opt-in levers for the layer's own frame time: VICTORY_FILL_HOT, VICTORY_SHADOW_CACHE, VICTORY_BURY_ASIDE (all off by default) — @Steenax6
@@ -181,14 +215,12 @@ main: `a42b627` — Pipelines: a dispatch waits for its compute pipeline until i
 - [#45](https://github.com/fxceless/victory-fork/pull/45) gpu: scale texture VRAM floor and per-frame staging budget from VRAM — @fever308
 - [#1176](https://github.com/fxceless/victory-fork/pull/1176) Shaders: take the wave-wide form as a last resort on 32-lane hosts — @notquiteog
 - [#1126](https://github.com/fxceless/victory-fork/pull/1126) perf(shader): add DXIL pure LICM, canonical ptr-path LDS forwarding, and barrier dedup — @Vladimir-Human
-- [#938](https://github.com/fxceless/victory-fork/pull/938) Fix Proton Wave64 startup and reduce Wine remapping stalls — @hh-ze
 - [#808](https://github.com/fxceless/victory-fork/pull/808) shader: lower packed dot products to DXIL dot4AddPacked and fmad — @UnkwnDev
 - [#1124](https://github.com/fxceless/victory-fork/pull/1124) Shaders: multi-wave group_any widen, guarded resources, and s_setpc early-out strip — @nameermohammedkhan-art
 - [#830](https://github.com/fxceless/victory-fork/pull/830) HLE: allow temporary file backing for physical pages on Wine — @Filip722
 - [#1266](https://github.com/fxceless/victory-fork/pull/1266) GPU: a raw buffer view's range stays inside its buffer (a description the driver refuses leaves the slot undefined) — @lichenlang89
 - [#885](https://github.com/fxceless/victory-fork/pull/885) GPU: pass null for empty D3D12 pipeline libraries on Proton — @Filip722
 - [#836](https://github.com/fxceless/victory-fork/pull/836) HLE: account for DirectStorage decode intermediates — @Filip722
-- [#1171](https://github.com/fxceless/victory-fork/pull/1171) Indirect records gathered by runs inside their lists: one clamp pass per run of draws, 10-13 ms less card time a frame — @KyleS98
 - [#648](https://github.com/fxceless/victory-fork/pull/648) Card copies' pieces come down inside their own flights: relay fetch wait 139 ? 0 ms/frame (VICTORY_CARD_FETCH_INFLIGHT=1, off by default) — @Jonirulah
 - [#1175](https://github.com/fxceless/victory-fork/pull/1175) Expose the scripted keyboard as GameInput pad 0 when no controller is connected — @BradRoland
 - [#895](https://github.com/fxceless/victory-fork/pull/895) Shaders: keep pixel helper lanes out of wave-first loops and quad permutes — @sagouindupm
@@ -202,7 +234,6 @@ main: `a42b627` — Pipelines: a dispatch waits for its compute pipeline until i
 - [#1006](https://github.com/fxceless/victory-fork/pull/1006) Shaders: the code table starts after the instructions (fixes RTX 5090 Xid 13; port of Marvisak/VIctory#2143) — @OctoAlgo
 - [#156](https://github.com/fxceless/victory-fork/pull/156) Ray tracing: shadow-ray traces and the full structure builder translate on 32-lane GPUs — @sedzz
 - [#715](https://github.com/fxceless/victory-fork/pull/715) GPU: no blending on integer render targets — @KyleS98
-- [#1227](https://github.com/fxceless/victory-fork/pull/1227) Send-and-hash list in three steps (copies, one state change, hash passes): 29 -> 6 ms of card time a frame — @KyleS98
 - [#1237](https://github.com/fxceless/victory-fork/pull/1237) A thread remembers what its asks for a buffer's host copy found: 245,000 lookups a frame off the tables' lock, 117 -> 104 ms — @KyleS98
 - [#457](https://github.com/fxceless/victory-fork/pull/457) GPU: hold a present with no flip wait since the last one to its flip tick (intro movie judder) — @GamingRipperDoc
 - [#799](https://github.com/fxceless/victory-fork/pull/799) NVIDIA (wave32) host fixes: CBV clamp, loose-LDS fallback, scalar ops — @Massive-Adrian
@@ -276,7 +307,6 @@ main: `a42b627` — Pipelines: a dispatch waits for its compute pipeline until i
 - [#507](https://github.com/fxceless/victory-fork/pull/507) GPU: keep VICTORY_TEXTURE_BUDGET_MB within DXGI video-memory budget (#415) — @axolotlpriv
 - [#1180](https://github.com/fxceless/victory-fork/pull/1180) Series S stretch: an opt-in Catmull-Rom sample with contrast-adaptive sharpening (VICTORY_UPSCALE_SHARP; stacked on #188) — @Exopus-0x65f7ad0
 - [#1179](https://github.com/fxceless/victory-fork/pull/1179) Test a four-dword load at byte 328 of a 340-byte view on D3D12 hardware — @BradRoland
-- [#992](https://github.com/fxceless/victory-fork/pull/992) GPU: the compare of card copies hashes each 64 KiB piece with a group of threads (a pass 0.2-0.8 ms -> 0.002-0.11 ms on an RTX 5090) — @PiloteCode
 - [#993](https://github.com/fxceless/victory-fork/pull/993) Shaders, second round: geometry programs as geometry shaders, loops as the console runs them, lighter wave64 forms, dispatches past 65,535 groups in x (stacked on #854) — @PiloteCode
 - [#1056](https://github.com/fxceless/victory-fork/pull/1056) Linux and Proton: Linux build and CI, a log file, early pipelines without a pipeline library — @nullexxx
 - [#824](https://github.com/fxceless/victory-fork/pull/824) perf(gpu,hle): optimize view-memory guards, xmem alias mapping, texture waits, and relay card copy-back — @powplusplus
@@ -294,8 +324,6 @@ main: `a42b627` — Pipelines: a dispatch waits for its compute pipeline until i
 - [#1138](https://github.com/fxceless/victory-fork/pull/1138) Heap pass: every buffer slot looked at once in N passes, a share at a time, not all in every Nth pass (VICTORY_HEAP_RESCAN_SPREAD=1, off by default) — @exotiquee
 - [#738](https://github.com/fxceless/victory-fork/pull/738) shader,gpu: resolve heap-loaded view addresses and widen native complement masks — @powplusplus
 - [#114](https://github.com/fxceless/victory-fork/pull/114) GPU: mirror placed unordered texture views onto host textures — @Kaivyyy
-- [#1004](https://github.com/fxceless/victory-fork/pull/1004) GPU: display mode changes and devices added or removed go to the log and to the removal report's trail — @PiloteCode
-- [#855](https://github.com/fxceless/victory-fork/pull/855) DirectStorage: a destination page number the title has not written yet is read again, not failed at once — @PiloteCode
 - [#925](https://github.com/fxceless/victory-fork/pull/925) Reuse changed-byte runs across shadow pages — @alpz1000
 - [#292](https://github.com/fxceless/victory-fork/pull/292) Preserve shader failure samples across inputs — @colonelpanic8
 - [#1141](https://github.com/fxceless/victory-fork/pull/1141) shader: VICTORY_WAVE_WIDE=last, wave-wide branches only where nothing else takes a wave64 program — @grindersky
@@ -323,7 +351,6 @@ main: `a42b627` — Pipelines: a dispatch waits for its compute pipeline until i
 - [#1070](https://github.com/fxceless/victory-fork/pull/1070) GPU: allow VICTORY_INDIRECT_GATHER=1 to work standalone without VICTORY_INDIRECT_WINDOW=1 — @Claudinhomerq
 - [#981](https://github.com/fxceless/victory-fork/pull/981) CLI: key embedded shaders on their declared container bytes — @avt0m4t48
 - [#1127](https://github.com/fxceless/victory-fork/pull/1127) GPU: a window that is one run of a section's pages goes in place through our own view (VICTORY_STRETCH=1) — @FrancescoGelosoEterea
-- [#500](https://github.com/fxceless/victory-fork/pull/500) Shaders: VICTORY_LDS_EXACT=1 orders LDS in a lane-branch region by the dwords it touches (369cbe906ea72764 on 32-lane GPUs) — @Yorivel
 - [#1125](https://github.com/fxceless/victory-fork/pull/1125) perf: batch contiguous GPU page mappings and physical aliases — @draggygaggy-maker
 - [#1123](https://github.com/fxceless/victory-fork/pull/1123) Shaders/GPU: aniso mip-point check, f16 interp omod/clamp, refused pipeline diagnostics — @nameermohammedkhan-art
 - [#1060](https://github.com/fxceless/victory-fork/pull/1060) XMem: coalesce split placeholders before retrying a mapping — @gmankab
@@ -351,7 +378,6 @@ main: `a42b627` — Pipelines: a dispatch waits for its compute pipeline until i
 - [#233](https://github.com/fxceless/victory-fork/pull/233) Shaders: lower the console's scalar bit searches (s_flbit_i32_b64, s_ff0_i32_b32/b64) — @pablogonz12
 - [#657](https://github.com/fxceless/victory-fork/pull/657) Shaders: lower pixel shader SV_Coverage input via dx.op.coverage — @davi713albano-coder
 - [#277](https://github.com/fxceless/victory-fork/pull/277) Shaders: keep literal select mask bits when lowering local half-waves — @fluffyflattershy-afk
-- [#461](https://github.com/fxceless/victory-fork/pull/461) Shaders: skip cross-half exchange in active_f64_sum for local waves and groups <= 32 — @Fimpos
 - [#561](https://github.com/fxceless/victory-fork/pull/561) Shaders/lower: pin partial tail wave in wave64-on-wave32 wave_base() — @AscilCH
 - [#592](https://github.com/fxceless/victory-fork/pull/592) Shaders: a lane-branch region that only raises an LDS flag runs as two host waves (one more wave64 compute on NVIDIA) — @FrancescoGelosoEterea
 - [#615](https://github.com/fxceless/victory-fork/pull/615) Shaders: support cross-half ds_bpermute_b32 and fix group <= 32 OOB lanes on 32-lane GPUs — @orazal12
@@ -438,10 +464,8 @@ main: `a42b627` — Pipelines: a dispatch waits for its compute pipeline until i
 - [#216](https://github.com/fxceless/victory-fork/pull/216) GPU: release ready queues before forcing present waits — @avt0m4t48
 - [#849](https://github.com/fxceless/victory-fork/pull/849) Indirect test: the two groups charge the budget in either order (the test failed 5 runs in 6) — @MamaLeVrai
 - [#847](https://github.com/fxceless/victory-fork/pull/847) Tests: the warp budget test accepts either group winning the budget race — @Roy-0406
-- [#845](https://github.com/fxceless/victory-fork/pull/845) GPU: allow first-use pipeline scheduling with a warm cache — @Lilith133T (draft)
 - [#929](https://github.com/fxceless/victory-fork/pull/929) Loading and FPS Optimizations — @AlexMiu2083
 - [#467](https://github.com/fxceless/victory-fork/pull/467) GPU: heap buffer pass looks only at marked slots; time split in the fps line — @LeonardoS11
-- [#213](https://github.com/fxceless/victory-fork/pull/213) Ray tracing: a child that is not there is a miss, whatever its box — @Pablo-Barros
 - [#358](https://github.com/fxceless/victory-fork/pull/358) GPU: give back exactly the pages a placement locked, and place nothing under late waits — @HailLucifer666
 - [#964](https://github.com/fxceless/victory-fork/pull/964) GPU: propagate device loss from copy queue fences — @avt0m4t48
 - [#165](https://github.com/fxceless/victory-fork/pull/165) GPU: clamp Staging::detile slices and harden page readability checks — @HailLucifer666
@@ -511,10 +535,8 @@ main: `a42b627` — Pipelines: a dispatch waits for its compute pipeline until i
 - [#603](https://github.com/fxceless/victory-fork/pull/603) Crash log: name the pipelines the host driver was compiling — @hxghr6
 - [#110](https://github.com/fxceless/victory-fork/pull/110) Shaders: emit canonical system-value names and preserve in-row order in ISG1/OSG1 (#53) — @adritoyalser
 - [#47](https://github.com/fxceless/victory-fork/pull/47) gpu: scale snapshot, scratch, and command-list pools from system RAM — @fever308
-- [#843](https://github.com/fxceless/victory-fork/pull/843) shader: software binary64 add and wave reduction for Arc A770 and other GPUs without DoublePrecisionFloatShaderOps — @UnkwnDev
 - [#793](https://github.com/fxceless/victory-fork/pull/793) GPU/indirect: gate diagnostic budget atomics and readbacks behind diagnostics feature — @im-a-cat
 - [#794](https://github.com/fxceless/victory-fork/pull/794) Preserve untouched bytes during partial texture read-back — @Lilith133T (draft)
-- [#795](https://github.com/fxceless/victory-fork/pull/795) GPU: a texture's levels on demand keep their tiles while anything names the texture (#776) — @LeonardoS11
 - [#9](https://github.com/fxceless/victory-fork/pull/9) Shaders: lower v_cvt_f32_f64 and model v_add_f64 whole-wave sums — @MartinIndra02
 - [#842](https://github.com/fxceless/victory-fork/pull/842) GPU: VICTORY_BACK_JOIN writes nearby runs of shader writes back as one kernel call (opt-in) — @Xeltax
 - [#180](https://github.com/fxceless/victory-fork/pull/180) Shaders: keep lane-mask restores apart across reads of first register — @sandie69p
@@ -604,7 +626,6 @@ main: `a42b627` — Pipelines: a dispatch waits for its compute pipeline until i
 - [#105](https://github.com/fxceless/victory-fork/pull/105) hle/gameinput: match keyboard controls by physical position, not letter — @omeuniercombet
 - [#663](https://github.com/fxceless/victory-fork/pull/663) GPU: invalidate prefetched indirect arguments on recorded writes — @Pin0d1
 - [#662](https://github.com/fxceless/victory-fork/pull/662) GPU: query the view heap limit before probing allocation — @Pin0d1
-- [#649](https://github.com/fxceless/victory-fork/pull/649) lint: re-enable six relaxed clippy lints across gpu and shader crates — @JulioMelo259
 - [#769](https://github.com/fxceless/victory-fork/pull/769) GPU tests: forget a view's guard state before unmapping it — @larelgit
 - [#593](https://github.com/fxceless/victory-fork/pull/593) PE: reject zero IAT RVA in import and delay-import descriptors — @Androtim
 - [#190](https://github.com/fxceless/victory-fork/pull/190) Shaders: lower scc_some directly and per host wave under with_local_waves_any — @gdawid9407
@@ -771,7 +792,6 @@ main: `a42b627` — Pipelines: a dispatch waits for its compute pipeline until i
 - [#489](https://github.com/fxceless/victory-fork/pull/489) Fix stale frames in the opening video — @ballade0d
 - [#490](https://github.com/fxceless/victory-fork/pull/490) loader/prepare: use checked arithmetic and block-bounded reads for base relocations — @IlyassRS3
 - [#488](https://github.com/fxceless/victory-fork/pull/488) pipeline/cache: retry stale staging collisions and handle concurrent publish — @IlyassRS3
-- [#139](https://github.com/fxceless/victory-fork/pull/139) Shaders: v_writelane_b32 writes its lane whenever the wave runs it — @marketingwithlux
 - [#328](https://github.com/fxceless/victory-fork/pull/328) Shader scan: a raw DXBC container's source is exactly its declared length — @RenzoWit35
 - [#486](https://github.com/fxceless/victory-fork/pull/486) core/policy: expand dangling symlinks, reject symlink loops, and handle .. after missing paths — @IlyassRS3
 - [#271](https://github.com/fxceless/victory-fork/pull/271) GPU: optional parallel detiling of large 2D subresources — @fffluffy-dev
@@ -794,7 +814,6 @@ main: `a42b627` — Pipelines: a dispatch waits for its compute pipeline until i
 - [#322](https://github.com/fxceless/victory-fork/pull/322) XGameSave: a legacy blob that cannot be read stops the migration instead of being dropped — @RenzoWit35
 - [#265](https://github.com/fxceless/victory-fork/pull/265) GPU: VICTORY_LEAN_WINDOWS=1 — windows on the card with no CPU side, mapped in 64 KiB tiles (−0.8 GB commit, −2.1 GB memory in use) — @CDR-0000
 - [#344](https://github.com/fxceless/victory-fork/pull/344) shader(dxil): include comparison flag in static sampler slot deduplication key — @Caasares
-- [#333](https://github.com/fxceless/victory-fork/pull/333) Shaders: one sampler's words used for both Sample and SampleCmp get two static slots — @RenzoWit35
 - [#337](https://github.com/fxceless/victory-fork/pull/337) gpu(primitive): preserve NaN and use ties-to-even in FP16 rect expansion — @Caasares
 - [#395](https://github.com/fxceless/victory-fork/pull/395) GPU: preserve staged texture hashes after rejected partial reads — @VlREX
 - [#448](https://github.com/fxceless/victory-fork/pull/448) GPU: index pending relay flight ranges without changing copyback semantics — @VlREX
@@ -962,7 +981,308 @@ main: `63bcca4` — update readme
 
 ### Open pull requests
 
+- [#3455](https://github.com/Marvisak/VIctory/pull/3455) perf(gpu,shader): add opt-in raw CBV reads, sharded submit journal, and fine write guards — @legayclightning22
+- [#2426](https://github.com/Marvisak/VIctory/pull/2426) Build: a ship profile with fat LTO and one codegen unit — @Halfect `triage: needs work`
+- [#2633](https://github.com/Marvisak/VIctory/pull/2633) Shaders: wave64 compute programs run in 32-lane halves on hosts of 32-lane waves — @chippy01 `triage: needs work`
+- [#3463](https://github.com/Marvisak/VIctory/pull/3463) Game: use checked arithmetic in shaderpack::Pack::parse and input_layout — @alexandruiulian201-bot
+- [#3459](https://github.com/Marvisak/VIctory/pull/3459) Shaders: sort SDK dxil.dll versions numerically and ignore empty VICTORY_DXIL — @alexandruiulian201-bot
+- [#3465](https://github.com/Marvisak/VIctory/pull/3465) victory-shader: fix NVIDIA access violation in heap_direct_texture_reads_mark_their_heap_index — @kalberts0089-hash
+- [#2118](https://github.com/Marvisak/VIctory/pull/2118) GPU: the BVH builder runs whole or not at all — @0xkn0wh3r3 `triage: merge candidate`
+- [#3473](https://github.com/Marvisak/VIctory/pull/3473) GPU: add opt-in VICTORY_BURY_LAG for delayed resource retirement — @pushkarreddyy
+- [#3472](https://github.com/Marvisak/VIctory/pull/3472) perf(gpu): add texture staging throttles, ripe-block guards, and post-upload slot visibility — @legayclightning22
+- [#3323](https://github.com/Marvisak/VIctory/pull/3323) Shaders: PSV0 names every arbitrary element, as DXC does — @Moon0755
+- [#2091](https://github.com/Marvisak/VIctory/pull/2091) Shaders: lower Wave32 compute branches that reuse lane masks as scalar data — @rezioliver-collab `triage: needs work`
+- [#3468](https://github.com/Marvisak/VIctory/pull/3468) GPU: publish numeric descriptor bases in 16-byte view-address records — @rezioliver-collab
+- [#3461](https://github.com/Marvisak/VIctory/pull/3461) GPU: report staged texture bytes in the frame line — @tharun-37
+- [#3467](https://github.com/Marvisak/VIctory/pull/3467) GPU: support D3D12_FEATURE_ARCHITECTURE1 and reject empty feature_levels — @alexandruiulian201-bot
+- [#1998](https://github.com/Marvisak/VIctory/pull/1998) GPU: keep valid marked writes beside withheld ranges — @Halfect `triage: merge candidate`
+- [#3435](https://github.com/Marvisak/VIctory/pull/3435) HLE: add opt-in xmem commit vs touched-pages diagnostic (VICTORY_XMEM_TOUCH_DIAG) — @Luislariosss
+- [#3466](https://github.com/Marvisak/VIctory/pull/3466) GPU: echo requested format and report required count in DXGI GetDisplayModeList — @alexandruiulian201-bot
+- [#3471](https://github.com/Marvisak/VIctory/pull/3471) fix(hle,loader,gpu): add storage/save safety guards, loader helpers, and bounded DRED diagnostics — @legayclightning22
+- [#2472](https://github.com/Marvisak/VIctory/pull/2472) GPU: hoist and batch indirect argument clamps into the list prelude — @ESAT586 `triage: merge candidate`
+- [#3197](https://github.com/Marvisak/VIctory/pull/3197) GPU: clamp consecutive indirect draws in one pass (VICTORY_CLAMP_WINDOW, opt-in) — @Slay326
+- [#3470](https://github.com/Marvisak/VIctory/pull/3470) perf(gpu,hle,loader,shader): add opt-in in-place heap, descriptor marks, raw CBV, and sharded journal — @legayclightning22
+- [#2703](https://github.com/Marvisak/VIctory/pull/2703) GPU: a root constant's dword 4 is a value, not a view offset (#2699) — @Calvix2k `triage: merge candidate`
+- [#3469](https://github.com/Marvisak/VIctory/pull/3469) fix(gpu): add integer RT blend bypass and merged readback run handling — @legayclightning22
+- [#3457](https://github.com/Marvisak/VIctory/pull/3457) GPU: add opt-in LRU eviction for unreferenced shadow buffer copies (VICTORY_SHADOW_BUDGET_MB) — @Luislariosss
+- [#3460](https://github.com/Marvisak/VIctory/pull/3460) feat(shader,gpu): add wave64 lowering, own-bits support, and bitcode shader optimizations — @legayclightning22
+- [#3458](https://github.com/Marvisak/VIctory/pull/3458) HLE: reject null out pointers before allocating in DirectStorage factory — @alexandruiulian201-bot
+- [#3464](https://github.com/Marvisak/VIctory/pull/3464) HLE: match Windows executable paths case- and separator-insensitively on relaunch — @alexandruiulian201-bot
+- [#3111](https://github.com/Marvisak/VIctory/pull/3111) Formats/BCPack: restrict BC7 channel rotation to modes 4 and 5 — @RVZO6 `triage: merge candidate`
+- [#3292](https://github.com/Marvisak/VIctory/pull/3292) GPU: catch driver shader compiler crashes in pipeline workers and skip bad keys — @pushkarreddyy
+- [#3243](https://github.com/Marvisak/VIctory/pull/3243) Loader: skip DIR64 relocation addresses that overflow u32 — @andrewpozdnakov7-jpg
+- [#3033](https://github.com/Marvisak/VIctory/pull/3033) GPU: load an optional D3D12 Agility SDK — @Auroraooy `triage: needs work`
+- [#3298](https://github.com/Marvisak/VIctory/pull/3298) Shaders: allow redundant masked v_mov_b32 writes after per-lane descriptor joins (fixes #750) — @pushkarreddyy
+- [#3296](https://github.com/Marvisak/VIctory/pull/3296) GPU: schedule slow-compiling early pipelines in their own bounded queue — @pushkarreddyy
+- [#3303](https://github.com/Marvisak/VIctory/pull/3303) GPU: pin internal GPU helper threads to fastest CPU core class — @pushkarreddyy
+- [#3439](https://github.com/Marvisak/VIctory/pull/3439) perf(gpu): add opt-in marked heap-slot refresh pass and async texture worker — @legayclightning22
+- [#1434](https://github.com/Marvisak/VIctory/pull/1434) Loader: match title DLL filenames ignoring ASCII case — @fuzeofficlal `triage: merge candidate`
+- [#3462](https://github.com/Marvisak/VIctory/pull/3462) fix(shader,gpu): add universal DXIL sampler/signature fixes and Wave32-safe wave policy — @legayclightning22
+- [#3414](https://github.com/Marvisak/VIctory/pull/3414) GPU: add Series S second-plane composition and opt-in screen-probe ambient fallback — @legayclightning22
+- [#3438](https://github.com/Marvisak/VIctory/pull/3438) HLE: add opt-in demand-commit for large XMemVirtualAlloc blocks (VICTORY_XMEM_LAZY_COMMIT) — @Luislariosss
+- [#2723](https://github.com/Marvisak/VIctory/pull/2723) Shader: key every heap handle cache by element type (#177 on main, fixes the NVIDIA compute-pipeline crash) — @andyeox-systemd `triage: merge candidate`
+- [#3441](https://github.com/Marvisak/VIctory/pull/3441) perf(gpu): add opt-in copy-queue lanes, ReBAR placement, and GPU mesh launch — @legayclightning22
+- [#3448](https://github.com/Marvisak/VIctory/pull/3448) fix(shader,gpu): clamp sampler indices and bound static sampler root descriptors — @legayclightning22
+- [#2066](https://github.com/Marvisak/VIctory/pull/2066) Net: forward zero-address datagram disconnects — @fuzeofficlal `triage: needs work`
+- [#1769](https://github.com/Marvisak/VIctory/pull/1769) Shaders: LDS accesses outside the program's allocation read 0 and drop their writes — @Impre-visible `triage: proposed close`
+- [#1956](https://github.com/Marvisak/VIctory/pull/1956) Shaders: cube face and multisampled image loads — @RaghavVijayanand `triage: needs rebase`
+- [#3456](https://github.com/Marvisak/VIctory/pull/3456) GPU: store HostHeap::kept sparsely by slot index to save unpopulated slot RAM and speed up evict — @Luislariosss
+- [#3454](https://github.com/Marvisak/VIctory/pull/3454) GPU: release unused depth-twin scratch buffers via Weak cache and keep 1 spare placement heap — @Luislariosss
+- [#3453](https://github.com/Marvisak/VIctory/pull/3453) GPU: open VICTORY_PIPELINE_LOG once and ignore empty values — @alexandruiulian201-bot
+- [#3452](https://github.com/Marvisak/VIctory/pull/3452) GPU: remove dropped host descriptor heaps from GPU_RANGES — @alexandruiulian201-bot
+- [#2920](https://github.com/Marvisak/VIctory/pull/2920) Shaders: lanes of a wave reach group barriers together, as on the console — @lhnizdo `triage: needs work`
+- [#1959](https://github.com/Marvisak/VIctory/pull/1959) Shaders: LDS sub-dword writes, typed buffers at offsets and of some channels, typed loads by index — @RaghavVijayanand `triage: needs rebase`
+- [#3450](https://github.com/Marvisak/VIctory/pull/3450) fix(shader,gpu): add wave-mask shortcuts, UAV clear fixes, and contiguous texture copies — @legayclightning22
+- [#1722](https://github.com/Marvisak/VIctory/pull/1722) GPU: the host pipeline library works under Wine (null blob for an empty library) — @Impre-visible `triage: merge candidate`
+- [#2844](https://github.com/Marvisak/VIctory/pull/2844) GPU: keep CPU descriptor slots until recording consumes them — @andrewpozdnakov7-jpg `triage: merge candidate`
+- [#2843](https://github.com/Marvisak/VIctory/pull/2843) Shaders: round scaled and normalized D16 buffer loads to nearest even — @dooprazol `triage: needs work`
+- [#2841](https://github.com/Marvisak/VIctory/pull/2841) GPU, Shaders: honor thread dimensions in direct DispatchX (#2750) — @brainbudt `triage: merge candidate`
+- [#3451](https://github.com/Marvisak/VIctory/pull/3451) perf(gpu): add opt-in texture-ahead copy queue and post-copy slot visibility — @legayclightning22
+- [#3444](https://github.com/Marvisak/VIctory/pull/3444) GPU: evict LRU title-backed textures under Windows system commit pressure — @Luislariosss
+- [#3446](https://github.com/Marvisak/VIctory/pull/3446) fix(shader,gpu): add shader intrinsic lowerings, barrier ordering fixes, and telemetry guards — @legayclightning22
+- [#3449](https://github.com/Marvisak/VIctory/pull/3449) perf(gpu): add opt-in thin-list translation workers and async submit lane — @legayclightning22
+- [#2885](https://github.com/Marvisak/VIctory/pull/2885) GPU, Shaders: view structured buffers raw on host for NVIDIA heap reads (FIND-11) — @jujumoneylol `triage: merge candidate`
+- [#3447](https://github.com/Marvisak/VIctory/pull/3447) feat(gpu): add adaptive DXGI and system RAM budget scaling across tiers — @legayclightning22
+- [#3427](https://github.com/Marvisak/VIctory/pull/3427) perf(gpu): add coherent texture refresh, invalidation tracking, and frame staging budget — @legayclightning22
+- [#3312](https://github.com/Marvisak/VIctory/pull/3312) GPU: back shadow buffers, page tables, and dirty bitmaps in VRAM on discrete GPUs — @danielibabet
+- [#3443](https://github.com/Marvisak/VIctory/pull/3443) GPU: pool list upload and readback staging buffers with bounded idle cap — @Luislariosss
+- [#2051](https://github.com/Marvisak/VIctory/pull/2051) GPU: a submission's refreshes copy on several threads — @0xkn0wh3r3 `triage: merge candidate`
+- [#112](https://github.com/Marvisak/VIctory/pull/112) Build: Linux workspace, contributor setup and CI — @Quat3rnion `triage: needs rebase`
+- [#3418](https://github.com/Marvisak/VIctory/pull/3418) gpu: allow @file in VICTORY_SKIP_PIPELINES — @danielibabet
+- [#3419](https://github.com/Marvisak/VIctory/pull/3419) gpu: preserve dynamic descriptor budget on capped heaps — @danielibabet
+- [#3385](https://github.com/Marvisak/VIctory/pull/3385) fix(formats): reject unsupported MSAA swizzles — @oddmaniv
+- [#3211](https://github.com/Marvisak/VIctory/pull/3211) GPU: append only newly covered bytes to write snapshots — @yumaste
+- [#3384](https://github.com/Marvisak/VIctory/pull/3384) gpu: keep the snapshot pool sorted; binary-search take/insert instead of scan + re-sort — @borosf
+- [#3423](https://github.com/Marvisak/VIctory/pull/3423) HLE: apply scripted keys to every connected host pad — @SavageCore
+- [#3412](https://github.com/Marvisak/VIctory/pull/3412) GPU: preserve CPU stores across overlapping snapshot writebacks — @Jineggegg
+- [#2141](https://github.com/Marvisak/VIctory/pull/2141) HLE: registry lookups through kernelbase.dll reach the device-type overrides — @BastienRodz `triage: merge candidate`
+- [#2195](https://github.com/Marvisak/VIctory/pull/2195) GPU tests: the library test's shaders compile with Wine's compiler too — @winne42 `triage: merge candidate`
+- [#2205](https://github.com/Marvisak/VIctory/pull/2205) Diagnostics: VICTORY_KEYS can hold a key longer than 0.2 s — @fiestorra `triage: merge candidate`
+- [#2249](https://github.com/Marvisak/VIctory/pull/2249) HLE: WSAConnectByList and GetAddrInfoExA fail where the host lacks them, not abort (Wine) — @desplmfao `triage: merge candidate`
+- [#3440](https://github.com/Marvisak/VIctory/pull/3440) perf(gpu,hle): switch descriptor heap to RwLock and add remap pooling — @legayclightning22
+- [#590](https://github.com/Marvisak/VIctory/pull/590) HLE: reject duplicate blob changes in one save update — @Quat3rnion `triage: needs work`
+- [#2658](https://github.com/Marvisak/VIctory/pull/2658) Game tests: cover CityHash64 length and block boundaries — @XeNS1 `triage: merge candidate`
+- [#2450](https://github.com/Marvisak/VIctory/pull/2450) Shader: check device removal before FMad readback — @Damokles2 `triage: merge candidate`
+- [#2480](https://github.com/Marvisak/VIctory/pull/2480) Shaders: BDD meet rejects a node held both ways and takes one condition as met — @liandraraiane `triage: merge candidate`
+- [#2622](https://github.com/Marvisak/VIctory/pull/2622) Shaders: a constant branch through a folded block drops its untaken phi entry — @BastienRodz `triage: merge candidate`
+- [#512](https://github.com/Marvisak/VIctory/pull/512) HLE: resolve ordinals on pseudo-module handles — @Quat3rnion `triage: needs work`
+- [#443](https://github.com/Marvisak/VIctory/pull/443) Audio: keep XMA frames split across rolling inputs — @Quat3rnion `triage: needs rebase`
+- [#321](https://github.com/Marvisak/VIctory/pull/321) GPU: honour scheduled frame-event offsets — @Quat3rnion `triage: needs rebase`
+- [#503](https://github.com/Marvisak/VIctory/pull/503) HLE: pin a call's task queue at XAsyncBegin — @Quat3rnion `triage: needs rebase`
+- [#278](https://github.com/Marvisak/VIctory/pull/278) GPU: answer format-info and virtual-address feature queries — @Quat3rnion `triage: needs rebase`
+- [#544](https://github.com/Marvisak/VIctory/pull/544) HLE: report queue termination after running callbacks — @Quat3rnion `triage: needs rebase`
+- [#290](https://github.com/Marvisak/VIctory/pull/290) HLE tests: cover Windows path rules on every host — @Quat3rnion `triage: needs rebase`
+- [#574](https://github.com/Marvisak/VIctory/pull/574) HLE: write at-rest gamepad state for non-pad readings — @Quat3rnion `triage: needs rebase`
+- [#2657](https://github.com/Marvisak/VIctory/pull/2657) Shaders: scope DXIL bitcode liveness to reachable blocks and live phi edges — @Moon0755 `triage: merge candidate`
+- [#2662](https://github.com/Marvisak/VIctory/pull/2662) Shaders: O(|known|) BDD forced() sweep, read-only implies(), per-block reuse in finish(), and FxHash in meet_in() — @RVZO6 `triage: merge candidate`
+- [#2664](https://github.com/Marvisak/VIctory/pull/2664) Shaders/IR: eliminate per-instruction/CFG Vec allocations and O(1) effects dedup — @RVZO6 `triage: merge candidate`
+- [#2665](https://github.com/Marvisak/VIctory/pull/2665) Shaders/Bitcode: cache Shader::op declarations, primitive types, scalar constants, and zero-copy bitcode Writer — @RVZO6 `triage: merge candidate`
+- [#2848](https://github.com/Marvisak/VIctory/pull/2848) victory-gpu: take per-frame allocations, locks and system calls off the frame paths (7 places the profile points at) — @pes7 `triage: needs work`
+- [#1942](https://github.com/Marvisak/VIctory/pull/1942) GameInput: answer IUnknown and own-IID queries on the COM objects (re-lands #1641) — @Calvix2k `triage: needs work`
+- [#1966](https://github.com/Marvisak/VIctory/pull/1966) Crash reports: keep them when stderr is closed — @imjustprism `triage: needs work`
+- [#3431](https://github.com/Marvisak/VIctory/pull/3431) perf(gpu): add opt-in submission flights, late waits, and async submit/present — @legayclightning22
+- [#3426](https://github.com/Marvisak/VIctory/pull/3426) fix(shader,gpu): add heap slot lookup tables and partial dispatch thread counts — @legayclightning22
+- [#3442](https://github.com/Marvisak/VIctory/pull/3442) GPU: bound idle staging, shadow snapshot, arena, and list scratch pools — @Luislariosss
+- [#3069](https://github.com/Marvisak/VIctory/pull/3069) GPU, HLE: marked pages go back beside the guards (VICTORY_COPY_BACK_BESIDE, opt-in) — @moe-miau `triage: merge candidate`
+- [#2626](https://github.com/Marvisak/VIctory/pull/2626) GPU: packed 16-bit colour targets the host cannot write are RGBA8 there — @moe-miau `triage: merge candidate`
+- [#2958](https://github.com/Marvisak/VIctory/pull/2958) Shaders: one lane of a wave sets a mark its wave shares (frames 411 -> 283 ms on an RTX 4070 SUPER) — @moe-miau `triage: merge candidate`
+- [#3335](https://github.com/Marvisak/VIctory/pull/3335) Shaders: pixel barycentrics through SV_Barycentrics (rebased #453) — @kotekompotek
+- [#1631](https://github.com/Marvisak/VIctory/pull/1631) Tests: allow prebuilt HLE probe DLL via VICTORY_HLE_PROBE_DLL — @fuzeofficlal `triage: merge candidate`
+- [#2490](https://github.com/Marvisak/VIctory/pull/2490) Shaders: lower root UAV accesses as ROVs in POPS pixel shaders — @reeledMarek `triage: needs work`
+- [#2121](https://github.com/Marvisak/VIctory/pull/2121) GPU: page view heaps a host caps below the slots shaders index — @0xkn0wh3r3 `triage: needs work`
+- [#3436](https://github.com/Marvisak/VIctory/pull/3436) gpu+shader: encode sRGB UAV stores and fill unknown RTV format on typeless textures — @Monard2033
+- [#3139](https://github.com/Marvisak/VIctory/pull/3139) GPU: batch dirty heap page ranges under one diff pass in sync_heaps — @MeMako
+- [#2386](https://github.com/Marvisak/VIctory/pull/2386) Shaders: a DPP step over a lane set the section names stays followed — @borosf `triage: needs work`
+- [#2382](https://github.com/Marvisak/VIctory/pull/2382) Shaders: follow EXEC set from a scalar the section made constant — @Calvix2k `triage: needs rebase`
+- [#3280](https://github.com/Marvisak/VIctory/pull/3280) Fix #2412: reject out-of-range export addresses in parse_exports — @tharun-37
+- [#1701](https://github.com/Marvisak/VIctory/pull/1701) GPU: VICTORY_MODE overrides the reported console display mode — @Calvix2k `triage: merge candidate`
+- [#2519](https://github.com/Marvisak/VIctory/pull/2519) HLE: optionally back physical page pools with temporary sparse files — @yyc160 `triage: needs work`
+- [#2101](https://github.com/Marvisak/VIctory/pull/2101) GPU: castable formats the host has — @Deilach `triage: merge candidate`
+- [#2686](https://github.com/Marvisak/VIctory/pull/2686) Shaders: validate far-jump arithmetic and control-flow entries — @XeNS1 `triage: merge candidate`
+- [#2694](https://github.com/Marvisak/VIctory/pull/2694) Reject XMA frame starts outside the announcing packet — @VlREX `triage: merge candidate`
+- [#2647](https://github.com/Marvisak/VIctory/pull/2647) Shaders: lower nearest-even binary64 rounding — @andrewpozdnakov7-jpg `triage: merge candidate`
+- [#2713](https://github.com/Marvisak/VIctory/pull/2713) Shaders: lower binary64 ceiling and floor — @andrewpozdnakov7-jpg `triage: merge candidate`
+- [#2710](https://github.com/Marvisak/VIctory/pull/2710) Apply outstanding XMA sample skips to the final overlap — @VlREX `triage: merge candidate`
+- [#2714](https://github.com/Marvisak/VIctory/pull/2714) Keep XMA input valid when looping back to the start of a buffer — @VlREX `triage: merge candidate`
+- [#3430](https://github.com/Marvisak/VIctory/pull/3430) GPU: memory-map pipeline library and serialize saves by generation — @Luislariosss
+- [#3180](https://github.com/Marvisak/VIctory/pull/3180) Add a synthetic D3D12 wave64 regression for independently looping waves — @carlosmegino
+- [#2808](https://github.com/Marvisak/VIctory/pull/2808) Shaders: speed up DXBC container MD5 hashing by 16-43% — @brainbudt `triage: merge candidate`
+- [#2811](https://github.com/Marvisak/VIctory/pull/2811) Shaders: lower binary64 reciprocal square root with dwords — @andrewpozdnakov7-jpg `triage: merge candidate`
+- [#2938](https://github.com/Marvisak/VIctory/pull/2938) Shaders: lower RDNA2 lighting multiply in DXIL — @andrewpozdnakov7-jpg `triage: merge candidate`
+- [#2943](https://github.com/Marvisak/VIctory/pull/2943) Shaders: pack half FMA NaNs directly — @Ingenioeren `triage: merge candidate`
+- [#2690](https://github.com/Marvisak/VIctory/pull/2690) GPU: report default buffer alignment from GetDesc — @andrewpozdnakov7-jpg `triage: merge candidate`
+- [#3434](https://github.com/Marvisak/VIctory/pull/3434) GPU: sub-allocate list upload blocks from reusable 2 MiB slabs — @Luislariosss
+- [#2846](https://github.com/Marvisak/VIctory/pull/2846) docs: fix the dangling HDR TODO reference — @kyle7908 `triage: merge candidate`
+- [#1687](https://github.com/Marvisak/VIctory/pull/1687) Shaders: lower image_gather4_c_lz(_o) and offset sample variants — @Calvix2k `triage: needs rebase`
+- [#2035](https://github.com/Marvisak/VIctory/pull/2035) Shaders: drop group sync for race-free divergent single-wave barriers on narrow-wave hosts — @rivaldodev `triage: needs rebase`
+- [#2906](https://github.com/Marvisak/VIctory/pull/2906) HLE: oleaut32 is not in the host pass-through list, so the title's BSTR ordinals do not resolve — @Jackster `triage: proposed close`
+- [#2524](https://github.com/Marvisak/VIctory/pull/2524) HLE: bounds-check all four bytes of ACP notification writes in audio::submit — @reeledMarek `triage: merge candidate`
+- [#1428](https://github.com/Marvisak/VIctory/pull/1428) GPU: guard OMSetRenderTargets handle expansion on empty, null, or oversized calls — @fuzeofficlal `triage: merge candidate`
+- [#1554](https://github.com/Marvisak/VIctory/pull/1554) Shaders: the legacy MAD/MAC encodings are one fused multiply-add with flushed sources — @Calvix2k `triage: needs rebase`
+- [#2312](https://github.com/Marvisak/VIctory/pull/2312) GPU, Shaders: spread compute dispatches past 65,535 groups in x across z (fixes #2256) — @Xvania7 `triage: needs work`
+- [#3433](https://github.com/Marvisak/VIctory/pull/3433) Game: draw keyboard key caps over the title's button prompts — @imjustprism
+- [#3437](https://github.com/Marvisak/VIctory/pull/3437) GPU: shrink default loose shadow window to 1 MiB and reuse containing spans — @Luislariosss
+- [#2953](https://github.com/Marvisak/VIctory/pull/2953) Shaders: lower binary64 division fixup in DXIL — @andrewpozdnakov7-jpg `triage: merge candidate`
+- [#2823](https://github.com/Marvisak/VIctory/pull/2823) Shaders: the neg input modifier flips a NaN's sign too — @xKineticK `triage: merge candidate`
+- [#2812](https://github.com/Marvisak/VIctory/pull/2812) shader: a comparison sampler replaces the reduction instead of OR-ing into it — @spy0eye-beep `triage: merge candidate`
+- [#3432](https://github.com/Marvisak/VIctory/pull/3432) perf(gpu): memory-map pipeline library with safe page trimming and handle retention — @legayclightning22
+- [#3337](https://github.com/Marvisak/VIctory/pull/3337) fix(gpu): bind bounded single-descriptor tables for root SRVs and UAVs — @legayclightning22
+- [#3429](https://github.com/Marvisak/VIctory/pull/3429) GPU: attribute the copy term's VirtualQuery work (FIND-49) — @Jackster
+- [#3184](https://github.com/Marvisak/VIctory/pull/3184) GPU: list calls can translate on worker threads (VICTORY_DEFER_LISTS, opt-in) — @AurumCarlos
+- [#3428](https://github.com/Marvisak/VIctory/pull/3428) fix(victory-shader): lowers() needs second argument — @ConstCorrectness
+- [#3258](https://github.com/Marvisak/VIctory/pull/3258) GPU: a draw's texture read takes its host copy once, and its flags without asking the driver — @KainanP
+- [#2766](https://github.com/Marvisak/VIctory/pull/2766) Shader tests: the descriptor-join tests build off Windows — @lcg007xd-c `triage: merge candidate`
+- [#2738](https://github.com/Marvisak/VIctory/pull/2738) Tests: wait for the late page list instead of sleeping — @Therecalloftheonion `triage: merge candidate`
+- [#2698](https://github.com/Marvisak/VIctory/pull/2698) Shaders: derive ATOMIC64_TYPED and ATOMIC64_HEAP from the atomics that are written — @Moon0755 `triage: merge candidate`
+- [#2985](https://github.com/Marvisak/VIctory/pull/2985) GPU: a tracked texture write detiles and copies only the rows it touches (#1135) — @wwwwwwww3333333 `triage: merge candidate`
+- [#3404](https://github.com/Marvisak/VIctory/pull/3404) fix(shader,gpu): add BVH intersect lowering, spill handling, and builder quarantine — @legayclightning22
+- [#3294](https://github.com/Marvisak/VIctory/pull/3294) Shaders/GPU: opt-in AMD hardware BVH ray-node intersection (VICTORY_HW_BVH=1) — @MeMako
+- [#3191](https://github.com/Marvisak/VIctory/pull/3191) GPU test: assert the descriptor heap range a capped host can make — @zzm1234560621-prog
+- [#2743](https://github.com/Marvisak/VIctory/pull/2743) Shaders: lower binary64 scaling with floating-point modes — @andrewpozdnakov7-jpg `triage: merge candidate`
+- [#3230](https://github.com/Marvisak/VIctory/pull/3230) GPU: reclaim idle snapshot and texture staging pools and compact pipeline/heap metadata — @0xKaji
+- [#2724](https://github.com/Marvisak/VIctory/pull/2724) Shaders: texture reads at a computed table entry keep their read mark (#2722) — @BastienRodz `triage: merge candidate`
+- [#2728](https://github.com/Marvisak/VIctory/pull/2728) Shaders: lower binary64 fractional parts — @andrewpozdnakov7-jpg `triage: merge candidate`
+- [#3408](https://github.com/Marvisak/VIctory/pull/3408) fix(shader): preserve console signature row order and lower branch-phi static samplers — @legayclightning22
+- [#2741](https://github.com/Marvisak/VIctory/pull/2741) PE: reject null IAT RVAs in non-empty import descriptors — @fuzeofficlal `triage: merge candidate`
+- [#2511](https://github.com/Marvisak/VIctory/pull/2511) XGameSave: refuse an update when no version number is above the highest (#2497) — @Creaa `triage: merge candidate`
+- [#3266](https://github.com/Marvisak/VIctory/pull/3266) GPU: back off texture heap growth after out-of-memory — @yumaste
+- [#3389](https://github.com/Marvisak/VIctory/pull/3389) Shaders: drop unaligned 32-bit buffer atomics — @Moon0755
+- [#3390](https://github.com/Marvisak/VIctory/pull/3390) Shaders: drop unaligned 32-bit global atomics — @Moon0755
+- [#3391](https://github.com/Marvisak/VIctory/pull/3391) gpu: batch descriptor-heap mirroring per draw (HostHeap::mirror_draw) — @borosf
+- [#3407](https://github.com/Marvisak/VIctory/pull/3407) victory-hle: reject non-null reserved in OEM RegQueryValueExW (#3123) — @cloph-dsp
+- [#2978](https://github.com/Marvisak/VIctory/pull/2978) Shaders: whole-wave sections follow binary64 sums (WaveActiveSum of a double) — @Anzymanz `triage: needs work`
+- [#3413](https://github.com/Marvisak/VIctory/pull/3413) Shaders: bound synthetic test fence waits and retain unfinished submissions — @carlosmegino
+- [#3147](https://github.com/Marvisak/VIctory/pull/3147) GPU and shaders: Grand Theft Auto VI runs its first 3D scene on a 32-lane laptop GPU (wave64 split and fallback, capped heaps, null root views, castable stand-in views, mapped pipeline library) — @RaghavVijayanand
+- [#3369](https://github.com/Marvisak/VIctory/pull/3369) fix(shader): decode scalar NULL operand as Bool::FALSE in lane mask analysis — @reeledMarek
+- [#3244](https://github.com/Marvisak/VIctory/pull/3244) GPU tests: assert the heaps and slots a host can make — @HailLucifer666
+- [#3382](https://github.com/Marvisak/VIctory/pull/3382) fix(gpu): add NVIDIA Ada D3D12 submission safety and OOM guards — @legayclightning22
+- [#3348](https://github.com/Marvisak/VIctory/pull/3348) fix(shader): track wave width and parked-lane restores in wave barriers — @legayclightning22
+- [#2974](https://github.com/Marvisak/VIctory/pull/2974) GPU: reduce shader and pipeline RAM usage (Weak cache, deflate containers, 32 MiB DXIL cache) — @0xKaji `triage: needs work`
+- [#3270](https://github.com/Marvisak/VIctory/pull/3270) Loader: VICTORY_HLE_PROBE names a prebuilt hle-probe fixture — @neonbyte1
+- [#385](https://github.com/Marvisak/VIctory/pull/385) Shaders: track every incoming edge of a lane-mask phi — @nathanbzrr `triage: merge candidate`
+- [#2389](https://github.com/Marvisak/VIctory/pull/2389) GPU: streamed textures take video memory only for the levels the title holds (opt-in; 0.4-1.4 GB less on current main) — @desplmfao `triage: merge candidate`
+- [#223](https://github.com/Marvisak/VIctory/pull/223) Shaders: translate for the host's wave sizes — @r4tedx `triage: merge candidate`
+- [#3233](https://github.com/Marvisak/VIctory/pull/3233) GPU: the frame line splits a heap sync's slots by outcome — @Jackster
+- [#3376](https://github.com/Marvisak/VIctory/pull/3376) HLE rpcrt4: fix GUID brace parsing and UuidToString OOM handling — @Arkenoz
+- [#2749](https://github.com/Marvisak/VIctory/pull/2749) XTaskQueue: every queue using a port hears of a task submitted to it — @F1reworks10 `triage: merge candidate`
+- [#3421](https://github.com/Marvisak/VIctory/pull/3421) shader: omit WaveSize(64) for wave-invariant ds_swizzle and 32-lane DPP ops — @danielibabet
+- [#3406](https://github.com/Marvisak/VIctory/pull/3406) shader: relax WaveSize(64) for uniform single-wave LDS compute shaders — @danielibabet
+- [#491](https://github.com/Marvisak/VIctory/pull/491) GPU: remember pipelines whose creation crashed the process (VICTORY_PIPELINE_JOURNAL) — @desplmfao `triage: merge candidate`
+- [#465](https://github.com/Marvisak/VIctory/pull/465) Shaders: lower v_dot2_f32_f16 and v_dot2c_f32_f16 — @Baconzido `triage: merge candidate`
+- [#171](https://github.com/Marvisak/VIctory/pull/171) Shaders: lower v_mad_u64_u32 and v_mad_i64_i32 — @n-romanovich `triage: merge candidate`
+- [#379](https://github.com/Marvisak/VIctory/pull/379) Shaders: lower v_div_fixup_f16 — @LouisRiverstone `triage: merge candidate`
+- [#511](https://github.com/Marvisak/VIctory/pull/511) Shaders: coalesce aligned constant-buffer loads — @aycow `triage: merge candidate`
+- [#2863](https://github.com/Marvisak/VIctory/pull/2863) Diagnostics: opt-in native Graphics settings tab and menu traces — @AwkGrep256 (draft)
+- [#3381](https://github.com/Marvisak/VIctory/pull/3381) GPU: test a queue segment's waits after the segments before it ran — @Kolkka
+- [#1877](https://github.com/Marvisak/VIctory/pull/1877) Shaders: hardware test for the 16-bit integer ops — @LouisRiverstone `triage: merge candidate`
+- [#2516](https://github.com/Marvisak/VIctory/pull/2516) GPU capture: decode XR-biased RGB before image scaling — @andrewpozdnakov7-jpg `triage: merge candidate`
+- [#2631](https://github.com/Marvisak/VIctory/pull/2631) Shaders: s_cbranch_vccz/vccnz tests raw VCC, not VCC & EXEC — @dutch2005 `triage: proposed close`
+- [#3148](https://github.com/Marvisak/VIctory/pull/3148) Shaders: accept inline constants in V_PK_FMAC_F16 — @andrewpozdnakov7-jpg
+- [#2755](https://github.com/Marvisak/VIctory/pull/2755) Shaders: coalesce title-memory dirty marks within a wave — @brainbudt `triage: merge candidate`
+- [#2768](https://github.com/Marvisak/VIctory/pull/2768) Shaders: decode and lower v_dot8_i32_i4 — @lcg007xd-c `triage: merge candidate`
+- [#2782](https://github.com/Marvisak/VIctory/pull/2782) Shaders: read known FP16/FP64 rounding mode bits — @andrewpozdnakov7-jpg `triage: merge candidate`
+- [#2784](https://github.com/Marvisak/VIctory/pull/2784) Shaders: build Halves def/phi table lazily as a compact Vec<Def> in io::raise — @RVZO6 `triage: merge candidate`
+- [#166](https://github.com/Marvisak/VIctory/pull/166) Shaders: lower s_bitset{0,1}_b64, s_brev_b64 and s_bitreplicate_b64_b32 — @n-romanovich `triage: merge candidate`
+- [#559](https://github.com/Marvisak/VIctory/pull/559) GPU: track mip states for 2D color targets — @fuzeofficlal `triage: merge candidate`
+- [#3332](https://github.com/Marvisak/VIctory/pull/3332) DSP: convolution streams play the title's IRs (phones, TVs, radios): its IR layout on top of #2483 — @thebigredder
+- [#541](https://github.com/Marvisak/VIctory/pull/541) GPU: retain D3D12 object names in private data — @broccolize `triage: merge candidate`
+- [#2520](https://github.com/Marvisak/VIctory/pull/2520) Shaders: walk a predecessor's live-out registers once instead of searching it per register — @liandraraiane `triage: merge candidate`
+- [#3188](https://github.com/Marvisak/VIctory/pull/3188) GPU: skip host pipeline library serialisation when only early list changed — @reeledMarek
+- [#3153](https://github.com/Marvisak/VIctory/pull/3153) Shaders: honor EXEC guard on v_interp_* writes to preserve inactive lanes — @reeledMarek
+- [#3424](https://github.com/Marvisak/VIctory/pull/3424) audio capture: avoid OOM on long silence and enforce 4 GiB WAV limit — @XratePirate
+- [#3415](https://github.com/Marvisak/VIctory/pull/3415) GPU: target dumps name every writer, and VICTORY_DUMP_AFTER dumps a texture right after a pipeline — @JurajSimicevic
+- [#320](https://github.com/Marvisak/VIctory/pull/320) Shaders: lane reads and writes where lanes branch differently run in the console flow — @r4tedx `triage: needs work`
+- [#2214](https://github.com/Marvisak/VIctory/pull/2214) Shaders: console flow for groups of several console waves on 32-lane hosts — @shawshanker18 (draft) `triage: needs rebase`
+- [#3224](https://github.com/Marvisak/VIctory/pull/3224) GPU: the frame line times the title's calls, and how long they waited — @borosf
+- [#3231](https://github.com/Marvisak/VIctory/pull/3231) HLE: keep KernelWrite leases across pending overlapped and scatter reads — @kilvynsilveira-tech
+- [#3163](https://github.com/Marvisak/VIctory/pull/3163) GPU: device slots 0x1c8 and 0x218 fail on purpose, with no object — @arogan178
+- [#3157](https://github.com/Marvisak/VIctory/pull/3157) GPU: report frames with completed fence waits — @andrewpozdnakov7-jpg
+- [#3159](https://github.com/Marvisak/VIctory/pull/3159) Shaders: honor directed rounding in V_CVT_F16_F32 — @andrewpozdnakov7-jpg
+- [#2789](https://github.com/Marvisak/VIctory/pull/2789) Shaders: ds_wrap_rtn_b32 reads both of its data operands — @lcg007xd-c `triage: merge candidate`
+- [#2791](https://github.com/Marvisak/VIctory/pull/2791) Shaders: lower binary64 square root with 32-bit operations — @andrewpozdnakov7-jpg `triage: merge candidate`
+- [#3377](https://github.com/Marvisak/VIctory/pull/3377) Shaders: lower partial-channel typed and indexed sub-dword buffer stores — @Texbirds
+- [#2605](https://github.com/Marvisak/VIctory/pull/2605) GPU: waits on memory that cannot be read are counted apart (#2604) — @BastienRodz `triage: merge candidate`
+- [#2718](https://github.com/Marvisak/VIctory/pull/2718) Report overlapping VICTORY_KEYS holds as one active key — @VlREX `triage: proposed close`
+- [#1473](https://github.com/Marvisak/VIctory/pull/1473) Shaders: track per-lane export state across mixed pixel-shader joins — @Texbirds `triage: merge candidate`
+- [#1493](https://github.com/Marvisak/VIctory/pull/1493) Shaders: declare SamplerComparisonState for immediate comparison samplers and add GPU test — @piyonchu `triage: merge candidate`
+- [#1569](https://github.com/Marvisak/VIctory/pull/1569) Shaders: lower v_swaprel_b32 — @piyonchu `triage: merge candidate`
+- [#1734](https://github.com/Marvisak/VIctory/pull/1734) victory-shader: make the test dispatches cheap - an event wait and reused command objects (emit suite -33% wall, -48% CPU) — @pes7 `triage: merge candidate`
+- [#1784](https://github.com/Marvisak/VIctory/pull/1784) Test Wave32 spilled lane masks at control-flow joins — @rezioliver-collab `triage: merge candidate`
+- [#3422](https://github.com/Marvisak/VIctory/pull/3422) Tests: log native compute pipeline call boundaries for driver crashes — @VlREX (draft)
+- [#3256](https://github.com/Marvisak/VIctory/pull/3256) loader: stop clzero loop emulation before address wraparound — @cloph-dsp
+- [#3215](https://github.com/Marvisak/VIctory/pull/3215) GPU: a read slot is resolved once, not twice — @borosf
+- [#3267](https://github.com/Marvisak/VIctory/pull/3267) Shader tests: use the selected adapter for the native gather check — @andrewpozdnakov7-jpg
+- [#3399](https://github.com/Marvisak/VIctory/pull/3399) HLE: PlayStation button prompts from the user's copy, served at read time with opt-in VICTORY_FILE_PATCH — @anoyarou
+- [#3177](https://github.com/Marvisak/VIctory/pull/3177) HLE: physical pages come from 2 MiB sections, so remaps stop waiting on Windows' large-page worker — @KainanP
+- [#3402](https://github.com/Marvisak/VIctory/pull/3402) Shaders: one lane of a whole-wave section's value, read after the section — @Lyrnc
+- [#3401](https://github.com/Marvisak/VIctory/pull/3401) Shaders: the SCC of a lane-mask operation, read as data, is whether the mask is not zero — @Lyrnc
+- [#2792](https://github.com/Marvisak/VIctory/pull/2792) fix(shader): allow untracked scalar lane masks in v_cndmask_b32 — @legayclightning22 `triage: merge candidate`
+- [#2799](https://github.com/Marvisak/VIctory/pull/2799) Shaders: lower binary64 reciprocal with 32-bit operations — @andrewpozdnakov7-jpg `triage: merge candidate`
+- [#2793](https://github.com/Marvisak/VIctory/pull/2793) Shaders: signature rows of one register follow their name offsets — @Moon0755 `triage: merge candidate`
+- [#2798](https://github.com/Marvisak/VIctory/pull/2798) Shaders: a mesh program's PSV0 counts shared memory only when it has some — @Moon0755 `triage: merge candidate`
+- [#3168](https://github.com/Marvisak/VIctory/pull/3168) GPU: dropped draws say whether their pipeline was refused or is still being made — @pablogonz12
+- [#3167](https://github.com/Marvisak/VIctory/pull/3167) GPU: a pipeline a list binds again is not kept and named again — @pablogonz12
 - [#3403](https://github.com/Marvisak/VIctory/pull/3403) Shaders: lower partial-channel and dmask=0 image_store — @Texbirds
+- [#2961](https://github.com/Marvisak/VIctory/pull/2961) GPU: reject shader-visible RTV and DSV heap creation — @andrewpozdnakov7-jpg `triage: needs work`
+- [#1218](https://github.com/Marvisak/VIctory/pull/1218) xtask: wine-test runs the Windows tests on a Linux host under Wine — @neonbyte1 `triage: needs work`
+- [#2567](https://github.com/Marvisak/VIctory/pull/2567) Diagnostics: capture RGBA32 unsigned targets — @andrewpozdnakov7-jpg `triage: merge candidate`
+- [#1802](https://github.com/Marvisak/VIctory/pull/1802) Perf/shader relative shift bounds — @VlREX `triage: merge candidate`
+- [#1803](https://github.com/Marvisak/VIctory/pull/1803) GPU: route UAV barriers on depth textures to their twin planes — @mgunes1311-lab `triage: merge candidate`
+- [#1834](https://github.com/Marvisak/VIctory/pull/1834) Shaders: read a VALU opcode's name without a heap vector — @slatefield `triage: merge candidate`
+- [#1846](https://github.com/Marvisak/VIctory/pull/1846) Shaders: worklist register liveness with 96 independent synthetic CFG… — @VlREX `triage: merge candidate`
+- [#1849](https://github.com/Marvisak/VIctory/pull/1849) GPU: free memory is not the runtime's to watch (fixes a world-load deadlock under Wine) — @crashbashash `triage: merge candidate`
+- [#1856](https://github.com/Marvisak/VIctory/pull/1856) Shaders: programs without FMad disable math refactoring — @rminzao `triage: merge candidate`
+- [#3416](https://github.com/Marvisak/VIctory/pull/3416) GPU: disable write marks on shadow buffers with untracked pages — @fuzeofficlal
+- [#2706](https://github.com/Marvisak/VIctory/pull/2706) victory-gpu: keep a pipeline library per translation, not one shared one (a translator edit destroyed a 926 MB / 7.5 min cache) — @pes7 `triage: merge candidate`
+- [#3240](https://github.com/Marvisak/VIctory/pull/3240) docs: honor CARGO_TARGET_DIR in Windows build examples — @Linshi7766
+- [#2456](https://github.com/Marvisak/VIctory/pull/2456) Shaders: name the adapter on translate --pipelines verdicts (FIND-3) — @makmatvey `triage: needs rebase`
+- [#2845](https://github.com/Marvisak/VIctory/pull/2845) docs: name the variables the tests on outside files read — @AurumCarlos `triage: needs work`
+- [#3247](https://github.com/Marvisak/VIctory/pull/3247) GPU: the held-work pump reads each wait's word once, and answers its own blocked question — @borosf
+- [#3229](https://github.com/Marvisak/VIctory/pull/3229) GPU: compact watch page tracking with dense PageBits and inline OneOrMany storage — @0xKaji
+- [#3228](https://github.com/Marvisak/VIctory/pull/3228) GPU: route upload buffers to GPU_UPLOAD VRAM under budget and move indirect arguments to DEFAULT — @0xKaji
+- [#2828](https://github.com/Marvisak/VIctory/pull/2828) Pipeline cache: verify content when accepting a racing publication — @andrewpozdnakov7-jpg `triage: proposed close`
+- [#2794](https://github.com/Marvisak/VIctory/pull/2794) Game: truncate oversized inflated stream to pack size in shaderpack::find — @GuckstduWeitaaa `triage: needs work`
+- [#1841](https://github.com/Marvisak/VIctory/pull/1841) Shaders: honor FP32 rounding when packing a byte — @AlanQiang0418 `triage: needs rebase`
+- [#148](https://github.com/Marvisak/VIctory/pull/148) Shaders: lower s_bcnt0_i32_b32/_b64, s_ff0_i32_b32/_b64 and s_flbit_i32_b64/_i64 — @Rareuncommon `triage: needs rebase`
+- [#3172](https://github.com/Marvisak/VIctory/pull/3172) hle: reject null tiling out when the count is nonzero — @cloph-dsp
+- [#1777](https://github.com/Marvisak/VIctory/pull/1777) GPU: size the view heap clamp from what the host takes (NVIDIA 1,000,000 cap) — @antoinerz1 `triage: merge candidate`
+- [#3293](https://github.com/Marvisak/VIctory/pull/3293) Diagnostics: script gamepad input by frame (VICTORY_SCRIPTED_INPUT) — @neonbyte1
+- [#2629](https://github.com/Marvisak/VIctory/pull/2629) GPU diagnostics: sample pages the watch calls unchanged against title memory — @r4tedx `triage: merge candidate`
+- [#3268](https://github.com/Marvisak/VIctory/pull/3268) GPU: the DRED report reads only the breadcrumb history that is there — @davesousa
+- [#3162](https://github.com/Marvisak/VIctory/pull/3162) GPU: a list used twice in one submission gets a prelude per use — @kotekompotek
+- [#3145](https://github.com/Marvisak/VIctory/pull/3145) GPU: release mark owners outside the marks lock — @andrewpozdnakov7-jpg
+- [#1857](https://github.com/Marvisak/VIctory/pull/1857) Shader tests: 64-bit image atomics skip devices without typed 64-bit heap atomics — @Ingenioeren `triage: merge candidate`
+- [#1862](https://github.com/Marvisak/VIctory/pull/1862) GPU: index bindless texture slots for targeted release and preserve u… — @VlREX `triage: merge candidate`
+- [#1871](https://github.com/Marvisak/VIctory/pull/1871) Shaders: lower indexed tbuffer_load_format_* and indexed buffer_store_{byte,short} — @ESAT586 `triage: merge candidate`
+- [#3286](https://github.com/Marvisak/VIctory/pull/3286) GPU test: the pair region is not where a capped heap puts it — @zzm1234560621-prog
+- [#3397](https://github.com/Marvisak/VIctory/pull/3397) Shaders: opt-in VICTORY_NAN_SCRUB to zero NaN/Inf pixel and float image outputs — @danielibabet
+- [#1907](https://github.com/Marvisak/VIctory/pull/1907) victory-shader: honor unwritten OSG1 channels and output modes in rectangle_gs — @mgunes1311-lab `triage: merge candidate`
+- [#1904](https://github.com/Marvisak/VIctory/pull/1904) GPU: VICTORY_LIBRARY_TIMING measures the host FidelityFX upscaler's GPU and CPU cost — @AwkGrep256 `triage: merge candidate`
+- [#1920](https://github.com/Marvisak/VIctory/pull/1920) Shaders: v_mad_f32 and v_mac_f32 multiply apart from their add — @kais7654 `triage: merge candidate`
+- [#3372](https://github.com/Marvisak/VIctory/pull/3372) Major swarm update — @vanya890 (draft)
+- [#3409](https://github.com/Marvisak/VIctory/pull/3409) Tested merge candidate: open PRs added a batch at a time, each batch built, tested and run on the title (replaces #3327) — @pes7
+- [#3360](https://github.com/Marvisak/VIctory/pull/3360) fix(gpu): skip converting twin copy routes when depth converter is unavailable — @reeledMarek
+- [#3359](https://github.com/Marvisak/VIctory/pull/3359) fix(gpu): treat unreadable memory in ValueWait::holds as not holding — @reeledMarek
+- [#2956](https://github.com/Marvisak/VIctory/pull/2956) Loader/TLS: use memchr::memmem SIMD scan in tls::patch — @RVZO6 `triage: needs work`
+- [#2909](https://github.com/Marvisak/VIctory/pull/2909) GPU: reject empty query heaps at creation — @andrewpozdnakov7-jpg `triage: needs work`
+- [#3222](https://github.com/Marvisak/VIctory/pull/3222) Shaders: trace a geometry program's signature memory — @kotekompotek
+- [#3226](https://github.com/Marvisak/VIctory/pull/3226) Shaders: the test host never passes NVIDIA an empty root-constant slice — @Indy2l
+- [#1927](https://github.com/Marvisak/VIctory/pull/1927) Shaders: d16 format loads saturate 32-bit integer channels — @upipibi `triage: merge candidate`
+- [#1933](https://github.com/Marvisak/VIctory/pull/1933) victory-gpu: keep depth-twin UAVs in concrete UAV formats and support default views — @mgunes1311-lab `triage: merge candidate`
+- [#1939](https://github.com/Marvisak/VIctory/pull/1939) Shaders: truncate s_buffer_load terms to dword alignment independently — @ashrafsdrop `triage: merge candidate`
+- [#1944](https://github.com/Marvisak/VIctory/pull/1944) Shaders: reject a dxbc part inside the header or part table — @imjustprism `triage: merge candidate`
+- [#3097](https://github.com/Marvisak/VIctory/pull/3097) Shaders: lower's tests in their own file, under the policy's size limit — @neonbyte1 `triage: merge candidate`
+- [#2683](https://github.com/Marvisak/VIctory/pull/2683) victory-shader: clamp heap indices to the largest heap a host can make (no descriptor read past the heap) — @pes7 `triage: needs work`
+- [#2527](https://github.com/Marvisak/VIctory/pull/2527) GPU capture: decode R32G32_UINT targets — @andrewpozdnakov7-jpg `triage: merge candidate`
+- [#3149](https://github.com/Marvisak/VIctory/pull/3149) Shaders: honor EXEC guards in Lower::interp — @Arkenoz
+- [#1244](https://github.com/Marvisak/VIctory/pull/1244) Validate VICTORY_PAIRS before translating shaders — @DoubleD17 `triage: merge candidate`
+- [#3322](https://github.com/Marvisak/VIctory/pull/3322) Linux Enhance GPU pipeline handling and improve shader program structure — @theDVNVS
+- [#3264](https://github.com/Marvisak/VIctory/pull/3264) Shaders/IR: give buffer_gl0_inv and buffer_gl1_inv no register effects — @fuzeofficlal
+- [#3358](https://github.com/Marvisak/VIctory/pull/3358) fix(gpu): stop copy_mapped on non-writable title destinations instead of faulting — @reeledMarek
+- [#3350](https://github.com/Marvisak/VIctory/pull/3350) Run: find title DLLs, the manifest and G: in a separated exe/dump layout — @oni-swr
+- [#3398](https://github.com/Marvisak/VIctory/pull/3398) Shaders: opt-in VICTORY_BVH_MISS to miss BVH nodes at the root — @danielibabet
+- [#2977](https://github.com/Marvisak/VIctory/pull/2977) Shaders: one back edge per block, for the dxil-spirv in Proton — @neonbyte1 `triage: needs work`
+- [#3187](https://github.com/Marvisak/VIctory/pull/3187) Shaders: continue scanning wave sections past an unmatched saveexec — @reeledMarek
 - [#3291](https://github.com/Marvisak/VIctory/pull/3291) Docs: Linux and Wine setup guide (experimental) — @neonbyte1
 - [#2178](https://github.com/Marvisak/VIctory/pull/2178) GPU+shader: back structured buffer views with raw descriptors for NVIDIA rawBufferLoad — @n-romanovich `triage: needs work`
 - [#3200](https://github.com/Marvisak/VIctory/pull/3200) Shaders: allow half-local DPP in divergent Wave64 Emulate (FIND-7) — @makmatvey
@@ -971,91 +1291,40 @@ main: `63bcca4` — update readme
 - [#1963](https://github.com/Marvisak/VIctory/pull/1963) GPU: what shaders write beside a root UAV in its pages goes back to title memory — @oVolkra `triage: merge candidate`
 - [#2594](https://github.com/Marvisak/VIctory/pull/2594) Shader: lower f32 fused multiply-adds through f64 — @JAEdotUK `triage: needs work`
 - [#1978](https://github.com/Marvisak/VIctory/pull/1978) GPU: no texture layouts or name copies per draw for unchanged answers — @0xkn0wh3r3 `triage: merge candidate`
-- [#1857](https://github.com/Marvisak/VIctory/pull/1857) Shader tests: 64-bit image atomics skip devices without typed 64-bit heap atomics — @Ingenioeren `triage: merge candidate`
 - [#1984](https://github.com/Marvisak/VIctory/pull/1984) GPU: return NV12 and P010 luma and chroma copy footprints — @yuniskh `triage: merge candidate`
-- [#1998](https://github.com/Marvisak/VIctory/pull/1998) GPU: keep valid marked writes beside withheld ranges — @Halfect `triage: merge candidate`
-- [#3413](https://github.com/Marvisak/VIctory/pull/3413) Shaders: bound synthetic test fence waits and retain unfinished submissions — @carlosmegino
 - [#2005](https://github.com/Marvisak/VIctory/pull/2005) GPU: log the missing D3D12 1.7 (no castable texture formats) — @Calvix2k `triage: merge candidate`
 - [#2265](https://github.com/Marvisak/VIctory/pull/2265) Tests: allow the frame clock to skip ticks after a late frame — @andrewpozdnakov7-jpg `triage: merge candidate`
-- [#3408](https://github.com/Marvisak/VIctory/pull/3408) fix(shader): preserve console signature row order and lower branch-phi static samplers — @legayclightning22
-- [#2703](https://github.com/Marvisak/VIctory/pull/2703) GPU: a root constant's dword 4 is a value, not a view offset (#2699) — @Calvix2k `triage: merge candidate`
-- [#2567](https://github.com/Marvisak/VIctory/pull/2567) Diagnostics: capture RGBA32 unsigned targets — @andrewpozdnakov7-jpg `triage: merge candidate`
-- [#2527](https://github.com/Marvisak/VIctory/pull/2527) GPU capture: decode R32G32_UINT targets — @andrewpozdnakov7-jpg `triage: merge candidate`
-- [#3412](https://github.com/Marvisak/VIctory/pull/3412) GPU: preserve CPU stores across overlapping snapshot writebacks — @Jineggegg
 - [#3282](https://github.com/Marvisak/VIctory/pull/3282) fix(hle): retry transient physical destination writes in DirectStorage — @legayclightning22
-- [#3384](https://github.com/Marvisak/VIctory/pull/3384) gpu: keep the snapshot pool sorted; binary-search take/insert instead of scan + re-sort — @borosf
 - [#2153](https://github.com/Marvisak/VIctory/pull/2153) GPU: a snapshot that fails to allocate frees the idle pool and tries once more — @desplmfao `triage: merge candidate`
-- [#2683](https://github.com/Marvisak/VIctory/pull/2683) victory-shader: clamp heap indices to the largest heap a host can make (no descriptor read past the heap) — @pes7 `triage: needs work`
 - [#2993](https://github.com/Marvisak/VIctory/pull/2993) GPU: host copies of title buffers in video memory, under a DXGI budget (opt-in) — @r4tedx `triage: needs work`
-- [#3377](https://github.com/Marvisak/VIctory/pull/3377) Shaders: lower partial-channel typed and indexed sub-dword buffer stores — @Texbirds
 - [#2817](https://github.com/Marvisak/VIctory/pull/2817) Shaders: pixel DPP8 within a quad reads through quad operations; common quad patterns take one — @0xkn0wh3r3 `triage: merge candidate`
-- [#3407](https://github.com/Marvisak/VIctory/pull/3407) victory-hle: reject non-null reserved in OEM RegQueryValueExW (#3123) — @cloph-dsp
 - [#3400](https://github.com/Marvisak/VIctory/pull/3400) GPU: distinguish live texture allocations from the title-memory index — @AlanQiang0418
 - [#3396](https://github.com/Marvisak/VIctory/pull/3396) GPU: cut pipeline creation allocations and CPU overhead — @Desamodeth
-- [#3348](https://github.com/Marvisak/VIctory/pull/3348) fix(shader): track wave width and parked-lane restores in wave barriers — @legayclightning22
 - [#3251](https://github.com/Marvisak/VIctory/pull/3251) Shaders: reject DXBC part offsets inside the header or part table — @andrewpozdnakov7-jpg
-- [#3406](https://github.com/Marvisak/VIctory/pull/3406) shader: relax WaveSize(64) for uniform single-wave LDS compute shaders — @danielibabet
-- [#3149](https://github.com/Marvisak/VIctory/pull/3149) Shaders: honor EXEC guards in Lower::interp — @Arkenoz
 - [#3208](https://github.com/Marvisak/VIctory/pull/3208) pe: bound data directory offset by optional header size — @cloph-dsp
-- [#3191](https://github.com/Marvisak/VIctory/pull/3191) GPU test: assert the descriptor heap range a capped host can make — @zzm1234560621-prog
 - [#3161](https://github.com/Marvisak/VIctory/pull/3161) GPU: keep alias groups transitive and symmetrically guarded in title_memory_aliased — @fuzeofficlal
-- [#3168](https://github.com/Marvisak/VIctory/pull/3168) GPU: dropped draws say whether their pipeline was refused or is still being made — @pablogonz12
-- [#3224](https://github.com/Marvisak/VIctory/pull/3224) GPU: the frame line times the title's calls, and how long they waited — @borosf
-- [#3167](https://github.com/Marvisak/VIctory/pull/3167) GPU: a pipeline a list binds again is not kept and named again — @pablogonz12
 - [#3164](https://github.com/Marvisak/VIctory/pull/3164) GPU: clear unused RTFormats slots and clamp NumRenderTargets — @fuzeofficlal
-- [#3172](https://github.com/Marvisak/VIctory/pull/3172) hle: reject null tiling out when the count is nonzero — @cloph-dsp
-- [#3145](https://github.com/Marvisak/VIctory/pull/3145) GPU: release mark owners outside the marks lock — @andrewpozdnakov7-jpg
 - [#3150](https://github.com/Marvisak/VIctory/pull/3150) GPU: ignore depth-stencil clears whose host flags mask to zero — @fuzeofficlal
-- [#3163](https://github.com/Marvisak/VIctory/pull/3163) GPU: device slots 0x1c8 and 0x218 fail on purpose, with no object — @arogan178
-- [#3162](https://github.com/Marvisak/VIctory/pull/3162) GPU: a list used twice in one submission gets a prelude per use — @kotekompotek
-- [#3157](https://github.com/Marvisak/VIctory/pull/3157) GPU: report frames with completed fence waits — @andrewpozdnakov7-jpg
-- [#2843](https://github.com/Marvisak/VIctory/pull/2843) Shaders: round scaled and normalized D16 buffer loads to nearest even — @dooprazol `triage: needs work`
-- [#3270](https://github.com/Marvisak/VIctory/pull/3270) Loader: VICTORY_HLE_PROBE names a prebuilt hle-probe fixture — @neonbyte1
-- [#2848](https://github.com/Marvisak/VIctory/pull/2848) victory-gpu: take per-frame allocations, locks and system calls off the frame paths (7 places the profile points at) — @pes7 `triage: needs work`
 - [#3318](https://github.com/Marvisak/VIctory/pull/3318) GPU: avoid quadratic shadow snapshotting in Shadow::writing — @danielibabet
-- [#3312](https://github.com/Marvisak/VIctory/pull/3312) GPU: back shadow buffers, page tables, and dirty bitmaps in VRAM on discrete GPUs — @danielibabet
 - [#3352](https://github.com/Marvisak/VIctory/pull/3352) fix(shader): preserve NaN operands in float min/max lowering — @Thomas73737
-- [#3294](https://github.com/Marvisak/VIctory/pull/3294) Shaders/GPU: opt-in AMD hardware BVH ray-node intersection (VICTORY_HW_BVH=1) — @MeMako
-- [#1244](https://github.com/Marvisak/VIctory/pull/1244) Validate VICTORY_PAIRS before translating shaders — @DoubleD17 `triage: merge candidate`
 - [#2512](https://github.com/Marvisak/VIctory/pull/2512) GameInput: look up only devices already seen by the process — @andrewpozdnakov7-jpg `triage: merge candidate`
 - [#1462](https://github.com/Marvisak/VIctory/pull/1462) CLI: report emitted shader wave sizes in translate — @gurvancampion `triage: merge candidate`
-- [#3409](https://github.com/Marvisak/VIctory/pull/3409) Tested merge candidate: open PRs added a batch at a time, each batch built, tested and run on the title (replaces #3327) — @pes7
-- [#3230](https://github.com/Marvisak/VIctory/pull/3230) GPU: reclaim idle snapshot and texture staging pools and compact pipeline/heap metadata — @0xKaji
 - [#3375](https://github.com/Marvisak/VIctory/pull/3375) GPU, HLE: opt-in guarded writes for title memcpy and memset — @lhnizdo
-- [#3240](https://github.com/Marvisak/VIctory/pull/3240) docs: honor CARGO_TARGET_DIR in Windows build examples — @Linshi7766
-- [#3229](https://github.com/Marvisak/VIctory/pull/3229) GPU: compact watch page tracking with dense PageBits and inline OneOrMany storage — @0xKaji
-- [#3228](https://github.com/Marvisak/VIctory/pull/3228) GPU: route upload buffers to GPU_UPLOAD VRAM under budget and move indirect arguments to DEFAULT — @0xKaji
-- [#3292](https://github.com/Marvisak/VIctory/pull/3292) GPU: catch driver shader compiler crashes in pipeline workers and skip bad keys — @pushkarreddyy
-- [#3247](https://github.com/Marvisak/VIctory/pull/3247) GPU: the held-work pump reads each wait's word once, and answers its own blocked question — @borosf
 - [#3263](https://github.com/Marvisak/VIctory/pull/3263) HLE: wait for in-flight monitor callbacks in XTaskQueueUnregisterMonitor — @fuzeofficlal
 - [#3272](https://github.com/Marvisak/VIctory/pull/3272) HLE: wait for in-flight lifecycle callbacks on unregister — @fuzeofficlal
-- [#3231](https://github.com/Marvisak/VIctory/pull/3231) HLE: keep KernelWrite leases across pending overlapped and scatter reads — @kilvynsilveira-tech
 - [#3257](https://github.com/Marvisak/VIctory/pull/3257) GPU: fix PresentX subresource copy and plane format handling — @fuzeofficlal
 - [#1993](https://github.com/Marvisak/VIctory/pull/1993) GPU: hash DXIL shader slices zero-copy in HostPipeline::new — @nathanbzrr `triage: merge candidate`
 - [#2012](https://github.com/Marvisak/VIctory/pull/2012) Shaders: decode finds instructions in a table by dword, not a tree — @0xkn0wh3r3 `triage: merge candidate`
 - [#2020](https://github.com/Marvisak/VIctory/pull/2020) Shaders: abs / neg on the shift-add and align ops act on the sign bit — @upipibi `triage: merge candidate`
-- [#2101](https://github.com/Marvisak/VIctory/pull/2101) GPU: castable formats the host has — @Deilach `triage: merge candidate`
 - [#3393](https://github.com/Marvisak/VIctory/pull/3393) Shaders: honor v_permlanex16 EXEC/FI/BOUND_CTRL and 64-bit masks in wave sections — @fuzeofficlal
-- [#3404](https://github.com/Marvisak/VIctory/pull/3404) fix(shader,gpu): add BVH intersect lowering, spill handling, and builder quarantine — @legayclightning22
-- [#3303](https://github.com/Marvisak/VIctory/pull/3303) GPU: pin internal GPU helper threads to fastest CPU core class — @pushkarreddyy
-- [#3258](https://github.com/Marvisak/VIctory/pull/3258) GPU: a draw's texture read takes its host copy once, and its flags without asking the driver — @KainanP
 - [#3255](https://github.com/Marvisak/VIctory/pull/3255) GPU: keep command queues alive while HELD tracks pending work — @fuzeofficlal
 - [#3271](https://github.com/Marvisak/VIctory/pull/3271) fix(hle): opt out of Windows efficiency mode throttling in console timers — @legayclightning22
-- [#3402](https://github.com/Marvisak/VIctory/pull/3402) Shaders: one lane of a whole-wave section's value, read after the section — @Lyrnc
-- [#3401](https://github.com/Marvisak/VIctory/pull/3401) Shaders: the SCC of a lane-mask operation, read as data, is whether the mask is not zero — @Lyrnc
-- [#3180](https://github.com/Marvisak/VIctory/pull/3180) Add a synthetic D3D12 wave64 regression for independently looping waves — @carlosmegino
 - [#2937](https://github.com/Marvisak/VIctory/pull/2937) GPU tests: the two view-heap tests say when a host caps the heap — @HoLa-Lee `triage: merge candidate`
 - [#3283](https://github.com/Marvisak/VIctory/pull/3283) Tests on Windows 10: skip four tests that need shader model 6.6 / ID3D12Device10 / an SM 6.6 WARP (#1999) — @lerapeurdu62280-debug
-- [#3337](https://github.com/Marvisak/VIctory/pull/3337) fix(gpu): bind bounded single-descriptor tables for root SRVs and UAVs — @legayclightning22
 - [#3367](https://github.com/Marvisak/VIctory/pull/3367) Loader: validate TLS pointers and bounds in OwnTls — @Arkenoz
 - [#3340](https://github.com/Marvisak/VIctory/pull/3340) fix(gpu): handle integer RT blend disable and target format variants — @legayclightning22
 - [#3388](https://github.com/Marvisak/VIctory/pull/3388) GPU: target dumps refuse a footprint the host could not give — @neonbyte1
 - [#3317](https://github.com/Marvisak/VIctory/pull/3317) HLE: preserve ERROR_TLW_WITH_WSCHILD and close relaunch duplicate handle — @mgunes1311-lab
-- [#3226](https://github.com/Marvisak/VIctory/pull/3226) Shaders: the test host never passes NVIDIA an empty root-constant slice — @Indy2l
-- [#3397](https://github.com/Marvisak/VIctory/pull/3397) Shaders: opt-in VICTORY_NAN_SCRUB to zero NaN/Inf pixel and float image outputs — @danielibabet
-- [#148](https://github.com/Marvisak/VIctory/pull/148) Shaders: lower s_bcnt0_i32_b32/_b64, s_ff0_i32_b32/_b64 and s_flbit_i32_b64/_i64 — @Rareuncommon `triage: needs rebase`
-- [#3222](https://github.com/Marvisak/VIctory/pull/3222) Shaders: trace a geometry program's signature memory — @kotekompotek
-- [#3398](https://github.com/Marvisak/VIctory/pull/3398) Shaders: opt-in VICTORY_BVH_MISS to miss BVH nodes at the root — @danielibabet
 - [#3316](https://github.com/Marvisak/VIctory/pull/3316) Shaders: decode fixed 4-VGPR data and 4-SGPR rsrc for image_bvh_intersect_ray — @mgunes1311-lab
 - [#3355](https://github.com/Marvisak/VIctory/pull/3355) Shaders: 16-bit integer sources take abs and neg on bit 15 — @Lyrnc
 - [#3368](https://github.com/Marvisak/VIctory/pull/3368) fix(shader): reject unlowered VALU modifiers on f16 interpolation halves — @reeledMarek
@@ -1063,45 +1332,27 @@ main: `63bcca4` — update readme
 - [#3383](https://github.com/Marvisak/VIctory/pull/3383) Audio/XMA: box voices, skip inactive slots in pump, and reuse per-frame scratch — @Desamodeth
 - [#3378](https://github.com/Marvisak/VIctory/pull/3378) GPU: the dropped passes a presented image reads go first in the pipeline queue — @neonbyte1
 - [#3361](https://github.com/Marvisak/VIctory/pull/3361) fix(hle): fix verbatim/UNC/drive-root virtual path translation and GetDiskFreeSpaceW volume roots — @reeledMarek
-- [#3184](https://github.com/Marvisak/VIctory/pull/3184) GPU: list calls can translate on worker threads (VICTORY_DEFER_LISTS, opt-in) — @AurumCarlos
 - [#3315](https://github.com/Marvisak/VIctory/pull/3315) GPU: validate ByteStride alignment and root signature in signature::create — @mgunes1311-lab
 - [#3387](https://github.com/Marvisak/VIctory/pull/3387) GPU: collect tracked page runs without temporary trees — @Desamodeth
 - [#3379](https://github.com/Marvisak/VIctory/pull/3379) GPU: deduplicate HostList::keep refs, stack-allocate user_data, and avoid double CBV shadow lookup — @Texbirds
-- [#3244](https://github.com/Marvisak/VIctory/pull/3244) GPU tests: assert the heaps and slots a host can make — @HailLucifer666
-- [#3233](https://github.com/Marvisak/VIctory/pull/3233) GPU: the frame line splits a heap sync's slots by outcome — @Jackster
 - [#3392](https://github.com/Marvisak/VIctory/pull/3392) hle: VICTORY_KEYS entries can hold a key, so a scripted run can walk — @pes7
 - [#3273](https://github.com/Marvisak/VIctory/pull/3273) HLE media: translate \??\<drive> paths through the virtual drives — @andrewpozdnakov7-jpg
 - [#1995](https://github.com/Marvisak/VIctory/pull/1995) CLI: recommend a DXIL validator in translate --help — @AlanQiang0418 `triage: merge candidate`
-- [#3360](https://github.com/Marvisak/VIctory/pull/3360) fix(gpu): skip converting twin copy routes when depth converter is unavailable — @reeledMarek
-- [#3350](https://github.com/Marvisak/VIctory/pull/3350) Run: find title DLLs, the manifest and G: in a separated exe/dump layout — @oni-swr
 - [#3386](https://github.com/Marvisak/VIctory/pull/3386) Formats: fix BC7 dictionary layout and mode 4/5 rotation guards — @legayclightning22
 - [#2125](https://github.com/Marvisak/VIctory/pull/2125) Shaders: load D16 integer textures with their bound component type — @AlanQiang0418 `triage: needs rebase`
-- [#3389](https://github.com/Marvisak/VIctory/pull/3389) Shaders: drop unaligned 32-bit buffer atomics — @Moon0755
 - [#2030](https://github.com/Marvisak/VIctory/pull/2030) Shaders: round D16 image reads according to the bound texture format — @AlanQiang0418 `triage: needs rebase`
 - [#2129](https://github.com/Marvisak/VIctory/pull/2129) GPU: map the pipeline library's file instead of reading it into memory — @0xkn0wh3r3 `triage: merge candidate`
 - [#2160](https://github.com/Marvisak/VIctory/pull/2160) shader: improve v_log_f32 accuracy near unity (NEW-58) — @TheGrayOrange `triage: merge candidate`
-- [#3187](https://github.com/Marvisak/VIctory/pull/3187) Shaders: continue scanning wave sections past an unmatched saveexec — @reeledMarek
-- [#3358](https://github.com/Marvisak/VIctory/pull/3358) fix(gpu): stop copy_mapped on non-writable title destinations instead of faulting — @reeledMarek
-- [#3359](https://github.com/Marvisak/VIctory/pull/3359) fix(gpu): treat unreadable memory in ValueWait::holds as not holding — @reeledMarek
 - [#3371](https://github.com/Marvisak/VIctory/pull/3371) fix(gpu): guard rectangle vertex expansion against bounds overflow and partial slot updates — @reeledMarek
-- [#3256](https://github.com/Marvisak/VIctory/pull/3256) loader: stop clzero loop emulation before address wraparound — @cloph-dsp
 - [#3362](https://github.com/Marvisak/VIctory/pull/3362) fix(shader): reject modified v_add_co_ci_u32 in address carry tracing — @reeledMarek
-- [#3369](https://github.com/Marvisak/VIctory/pull/3369) fix(shader): decode scalar NULL operand as Bool::FALSE in lane mask analysis — @reeledMarek
-- [#3385](https://github.com/Marvisak/VIctory/pull/3385) fix(formats): reject unsupported MSAA swizzles — @oddmaniv
 - [#1357](https://github.com/Marvisak/VIctory/pull/1357) HLE: native 4-motor Xbox impulse trigger haptics via Windows.Gaming.Input with XInput fallback — @wbkepler `triage: needs rebase`
-- [#3215](https://github.com/Marvisak/VIctory/pull/3215) GPU: a read slot is resolved once, not twice — @borosf
 - [#3395](https://github.com/Marvisak/VIctory/pull/3395) GPU: mark retaken aliases without collecting temporary page numbers — @Desamodeth
-- [#3267](https://github.com/Marvisak/VIctory/pull/3267) Shader tests: use the selected adapter for the native gather check — @andrewpozdnakov7-jpg
-- [#1841](https://github.com/Marvisak/VIctory/pull/1841) Shaders: honor FP32 rounding when packing a byte — @AlanQiang0418 `triage: needs rebase`
 - [#3339](https://github.com/Marvisak/VIctory/pull/3339) fix(gpu): add CBV guards and typed buffer view validation — @legayclightning22
 - [#3305](https://github.com/Marvisak/VIctory/pull/3305) gpu: refresh the submission's buffer copies on several threads — @borosf
 - [#3394](https://github.com/Marvisak/VIctory/pull/3394) HLE: speak the title's narration with the host's speech synthesizer — @kilolimaVI
-- [#3399](https://github.com/Marvisak/VIctory/pull/3399) HLE: PlayStation button prompts from the user's copy, served at read time with opt-in VICTORY_FILE_PATCH — @anoyarou
-- [#3147](https://github.com/Marvisak/VIctory/pull/3147) GPU and shaders: Grand Theft Auto VI runs its first 3D scene on a 32-lane laptop GPU (wave64 split and fallback, capped heaps, null root views, castable stand-in views, mapped pipeline library) — @RaghavVijayanand
 - [#3169](https://github.com/Marvisak/VIctory/pull/3169) GPU: drain fence wait counts and durations together — @andrewpozdnakov7-jpg
 - [#1864](https://github.com/Marvisak/VIctory/pull/1864) Shaders: global byte and half stores keep the rest of their dword — @TinkerBell-90 `triage: needs rebase`
 - [#3155](https://github.com/Marvisak/VIctory/pull/3155) Shader: a load through a built CODE descriptor starts the constant table at the byte it reads — @pablogonz12
-- [#3390](https://github.com/Marvisak/VIctory/pull/3390) Shaders: drop unaligned 32-bit global atomics — @Moon0755
 - [#3357](https://github.com/Marvisak/VIctory/pull/3357) Shaders: reuse decoded instructions across range rebuilds — @borosf
 - [#2079](https://github.com/Marvisak/VIctory/pull/2079) Shaders: a relative move's program is built at its full range only if no bound is proven — @0xkn0wh3r3 `triage: merge candidate`
 - [#2269](https://github.com/Marvisak/VIctory/pull/2269) GPU: marks in the last dword of the written-pages bitmap are not discarded — @denkencar-sketch `triage: merge candidate`
@@ -1109,9 +1360,7 @@ main: `63bcca4` — update readme
 - [#2293](https://github.com/Marvisak/VIctory/pull/2293) GPU: a slot rewritten during a run keeps its view's copy of title memory until the run is over — @denkencar-sketch `triage: merge candidate`
 - [#2294](https://github.com/Marvisak/VIctory/pull/2294) GPU: a typed depth format in a shader resource view is made in the readable colour format — @denkencar-sketch `triage: merge candidate`
 - [#2295](https://github.com/Marvisak/VIctory/pull/2295) GPU: the fifth dword of a root constants parameter is read as a constant — @denkencar-sketch `triage: merge candidate`
-- [#2472](https://github.com/Marvisak/VIctory/pull/2472) GPU: hoist and batch indirect argument clamps into the list prelude — @ESAT586 `triage: merge candidate`
 - [#2451](https://github.com/Marvisak/VIctory/pull/2451) GPU: cap oversized sampler heaps at 2,048 with dynamic slots — @makmatvey `triage: needs rebase`
-- [#3382](https://github.com/Marvisak/VIctory/pull/3382) fix(gpu): add NVIDIA Ada D3D12 submission safety and OOM guards — @legayclightning22
 - [#3320](https://github.com/Marvisak/VIctory/pull/3320) GPU: back indirect arguments in VRAM, use RwLock for SHADER_HEAPS, and batch copy_back_marks — @danielibabet
 - [#3345](https://github.com/Marvisak/VIctory/pull/3345) Input: add opt-in GTA V PC-style keyboard and mouse mapping (VICTORY_KBM_GTA) — @zhu1025960209-web
 - [#3354](https://github.com/Marvisak/VIctory/pull/3354) loader: boot I/O — digest sidecar for the image cache, batched IAT VirtualProtect — @borosf
@@ -1122,7 +1371,6 @@ main: `63bcca4` — update readme
 - [#3192](https://github.com/Marvisak/VIctory/pull/3192) Shaders: v_fmac_f16 in VOP3 applies abs and neg to its accumulator — @Moon0755
 - [#3152](https://github.com/Marvisak/VIctory/pull/3152) Shaders: compute Module::plan once in Shader::finish and reuse for uses and bitcode write — @reeledMarek
 - [#3166](https://github.com/Marvisak/VIctory/pull/3166) Shaders: honor explicit half input flush in normalized conversions — @andrewpozdnakov7-jpg
-- [#3391](https://github.com/Marvisak/VIctory/pull/3391) gpu: batch descriptor-heap mirroring per draw (HostHeap::mirror_draw) — @borosf
 - [#2504](https://github.com/Marvisak/VIctory/pull/2504) HLE: physical-page writes open the title's views before they write — @BastienRodz `triage: merge candidate`
 - [#2298](https://github.com/Marvisak/VIctory/pull/2298) GPU: aliasing and UAV barriers keep the host resources they name until the list is reset — @denkencar-sketch `triage: merge candidate`
 - [#2299](https://github.com/Marvisak/VIctory/pull/2299) GPU: harden CopyMemoryToMemoryX against unmapped or read-only pages — @denkencar-sketch `triage: merge candidate`
@@ -1130,7 +1378,6 @@ main: `63bcca4` — update readme
 - [#2361](https://github.com/Marvisak/VIctory/pull/2361) Shaders: lower SOP2 s_pack_{ll,lh,hh}_b32_b16 (#815) — @fuzeofficlal `triage: merge candidate`
 - [#2096](https://github.com/Marvisak/VIctory/pull/2096) GPU: bound shadow buffer lookup by maximum registered size instead of 64 entries — @fuzeofficlal `triage: merge candidate`
 - [#2397](https://github.com/Marvisak/VIctory/pull/2397) GPU: copystat counts its counters at compile time; range and drain tests (revives #1188) — @KainanP `triage: merge candidate`
-- [#240](https://github.com/Marvisak/VIctory/pull/240) DSP: convolve reverb streams on the host — @Quat3rnion `triage: needs work`
 - [#2483](https://github.com/Marvisak/VIctory/pull/2483) DSP: the reverb convolver passes the host checks (rebased #240) — @kais7654 `triage: proposed close`
 - [#1880](https://github.com/Marvisak/VIctory/pull/1880) Audio: refill XMA rings from a decoded reserve on the title's thread — @beamdotdev `triage: needs work`
 - [#2788](https://github.com/Marvisak/VIctory/pull/2788) Audio: XMA decoding keeps up while frames are slow (MMCSS thread, the mixer never waits for a decode) — @0xkn0wh3r3 `triage: merge candidate`
@@ -1138,17 +1385,13 @@ main: `63bcca4` — update readme
 - [#3104](https://github.com/Marvisak/VIctory/pull/3104) HLE XGameSave: tolerate locked old or unfinished version cleanup — @fuzeofficlal `triage: merge candidate`
 - [#1825](https://github.com/Marvisak/VIctory/pull/1825) GPU: keep the view-stride table once per list, not per draw stage — @slatefield `triage: needs work`
 - [#2461](https://github.com/Marvisak/VIctory/pull/2461) GPU and shaders: a host that caps its view heaps gets heaps at its ca… — @lhnizdo `triage: merge candidate`
-- [#2118](https://github.com/Marvisak/VIctory/pull/2118) GPU: the BVH builder runs whole or not at all — @0xkn0wh3r3 `triage: merge candidate`
 - [#2969](https://github.com/Marvisak/VIctory/pull/2969) GPU: shaders of our own that Wine's compiler builds too — @neonbyte1 `triage: merge candidate`
-- [#2312](https://github.com/Marvisak/VIctory/pull/2312) GPU, Shaders: spread compute dispatches past 65,535 groups in x across z (fixes #2256) — @Xvania7 `triage: needs work`
 - [#3007](https://github.com/Marvisak/VIctory/pull/3007) Shaders: lower the 32-bit mul_hi forms to one UMul/IMul — @Ingenioeren `triage: merge candidate`
 - [#3373](https://github.com/Marvisak/VIctory/pull/3373) Shaders: scalar buffer load offsets do not wrap in 32 bits — @Moon0755
 - [#3029](https://github.com/Marvisak/VIctory/pull/3029) CLI: keep distinct DXIL dumps when shader labels collide — @passerbyyhx `triage: merge candidate`
 - [#3154](https://github.com/Marvisak/VIctory/pull/3154) GPU: unprotect guarded alias pages when their last tracker drops — @reeledMarek
 - [#3068](https://github.com/Marvisak/VIctory/pull/3068) GPU: fresh tables past a capped heap's title slots copy views made once per slot — @r4tedx `triage: needs work`
 - [#3365](https://github.com/Marvisak/VIctory/pull/3365) Shaders: f16 results flush output denormals when MODE says so — @Lyrnc
-- [#3376](https://github.com/Marvisak/VIctory/pull/3376) HLE rpcrt4: fix GUID brace parsing and UuidToString OOM handling — @Arkenoz
-- [#3381](https://github.com/Marvisak/VIctory/pull/3381) GPU: test a queue segment's waits after the segments before it ran — @Kolkka
 - [#1653](https://github.com/Marvisak/VIctory/pull/1653) victory-gpu: split the pipeline library into shards so a save writes only what changed (was 600 MB per save) — @pes7 `triage: needs work`
 - [#961](https://github.com/Marvisak/VIctory/pull/961) Shaders, GPU: draw mesh pipelines without mesh shaders through a compute fallback (#3) — @EduBertozzi `triage: needs rebase`
 - [#3380](https://github.com/Marvisak/VIctory/pull/3380) Shader dxbc: use checked arithmetic for bounds slicing — @Arkenoz
@@ -1161,81 +1404,57 @@ main: `63bcca4` — update readme
 - [#3356](https://github.com/Marvisak/VIctory/pull/3356) gpu: sync_heaps walks regions with VirtualQuery instead of a kernel read per page — @borosf
 - [#2518](https://github.com/Marvisak/VIctory/pull/2518) Preserve signed R8 contrast in PNG captures — @DoubleD17 `triage: merge candidate`
 - [#2585](https://github.com/Marvisak/VIctory/pull/2585) GPU tests: each test's prepare hook runs on its own thread — @fyernald `triage: merge candidate`
-- [#3293](https://github.com/Marvisak/VIctory/pull/3293) Diagnostics: script gamepad input by frame (VICTORY_SCRIPTED_INPUT) — @neonbyte1
 - [#3299](https://github.com/Marvisak/VIctory/pull/3299) Shaders: avoid overwriting mesh indices when every slot is exported — @andrewpozdnakov7-jpg
 - [#2190](https://github.com/Marvisak/VIctory/pull/2190) GPU: Map typeless texture views to concrete formats (fixes #850) — @Xvania7 `triage: needs rebase`
 - [#3067](https://github.com/Marvisak/VIctory/pull/3067) feat(runtime): budget DirectStorage buffers and loose GPU shadows — @brainbudt `triage: needs work`
-- [#2091](https://github.com/Marvisak/VIctory/pull/2091) Shaders: lower Wave32 compute branches that reuse lane masks as scalar data — @rezioliver-collab `triage: needs work`
-- [#1493](https://github.com/Marvisak/VIctory/pull/1493) Shaders: declare SamplerComparisonState for immediate comparison samplers and add GPU test — @piyonchu `triage: merge candidate`
 - [#3353](https://github.com/Marvisak/VIctory/pull/3353) GPU: a frame whose presented image a dropped draw left unwritten is not shown — @neonbyte1
 - [#3307](https://github.com/Marvisak/VIctory/pull/3307) GPU: an indirect execution's argument buffer stays readable until the next clamp (one barrier fewer, ~0.4 µs per indirect call) — @KainanP
 - [#470](https://github.com/Marvisak/VIctory/pull/470) shader: lower wave prefixes of min and max — @Loggerten `triage: needs rebase`
 - [#395](https://github.com/Marvisak/VIctory/pull/395) shader: unpack compressed f16 pixel exports — @Loggerten `triage: needs work`
-- [#2844](https://github.com/Marvisak/VIctory/pull/2844) GPU: keep CPU descriptor slots until recording consumes them — @andrewpozdnakov7-jpg `triage: merge candidate`
-- [#2841](https://github.com/Marvisak/VIctory/pull/2841) GPU, Shaders: honor thread dimensions in direct DispatchX (#2750) — @brainbudt `triage: merge candidate`
 - [#2394](https://github.com/Marvisak/VIctory/pull/2394) victory-gpu: skip repeated dynamic descriptor slot searches after failure — @bartikele `triage: needs rebase`
 - [#3364](https://github.com/Marvisak/VIctory/pull/3364) Shaders: VOP3 forms of VOP1 and VOP2 16-bit operations ignore op_sel — @Lyrnc
-- [#3033](https://github.com/Marvisak/VIctory/pull/3033) GPU: load an optional D3D12 Agility SDK — @Auroraooy `triage: needs work`
 - [#2223](https://github.com/Marvisak/VIctory/pull/2223) GPU: account for pending pipelines before promotion — @andrewpozdnakov7-jpg `triage: merge candidate`
-- [#3069](https://github.com/Marvisak/VIctory/pull/3069) GPU, HLE: marked pages go back beside the guards (VICTORY_COPY_BACK_BESIDE, opt-in) — @moe-miau `triage: merge candidate`
-- [#3372](https://github.com/Marvisak/VIctory/pull/3372) Major swarm update — @vanya890 (draft)
 - [#2878](https://github.com/Marvisak/VIctory/pull/2878) Tests: the GPU tests load the D3D12 Agility SDK, as victory.exe does — @lhnizdo `triage: needs work`
 - [#3026](https://github.com/Marvisak/VIctory/pull/3026) xtask: bound policy file reads and report read errors — @fuzeofficlal `triage: needs work`
 - [#3321](https://github.com/Marvisak/VIctory/pull/3321) hle/xg: validate subresource slice and pitches before creating copy slices — @SalmanBarkat
 - [#3351](https://github.com/Marvisak/VIctory/pull/3351) Shaders: scalar code-table buffer loads keep NUM_RECORDS — @Moon0755
 - [#2972](https://github.com/Marvisak/VIctory/pull/2972) GPU: reclaim idle texture staging, command list scratch, and shadow arena buffers — @0xKaji `triage: needs work`
-- [#2956](https://github.com/Marvisak/VIctory/pull/2956) Loader/TLS: use memchr::memmem SIMD scan in tls::patch — @RVZO6 `triage: needs work`
 - [#3236](https://github.com/Marvisak/VIctory/pull/3236) GPU: a list's state prelude is made the first time it has work to do — @Luislariosss
 - [#3300](https://github.com/Marvisak/VIctory/pull/3300) gpu: scale dynamic descriptor pool on capped heaps (NVIDIA) — @AdvaitPalve11
 - [#3341](https://github.com/Marvisak/VIctory/pull/3341) GPU: parallelize marked page copy-backs across disjoint pages — @danielibabet
 - [#3343](https://github.com/Marvisak/VIctory/pull/3343) GPU: avoid heap allocations and batch unprotects in watch fault hot path — @danielibabet
-- [#3298](https://github.com/Marvisak/VIctory/pull/3298) Shaders: allow redundant masked v_mov_b32 writes after per-lane descriptor joins (fixes #750) — @pushkarreddyy
 - [#3309](https://github.com/Marvisak/VIctory/pull/3309) formats: guard XMA Bits::read and Bits::signed against shift overflow — @SalmanBarkat
 - [#2225](https://github.com/Marvisak/VIctory/pull/2225) Shaders: honor WARP-only mode in paired tests — @andrewpozdnakov7-jpg `triage: merge candidate`
-- [#3177](https://github.com/Marvisak/VIctory/pull/3177) HLE: physical pages come from 2 MiB sections, so remaps stop waiting on Windows' large-page worker — @KainanP
 - [#2564](https://github.com/Marvisak/VIctory/pull/2564) Shaders: hardware probes for the remaining s_cmp_* integer compares — @LouisRiverstone `triage: merge candidate`
 - [#2565](https://github.com/Marvisak/VIctory/pull/2565) Shaders: hardware probes for s_bitcmp0_b32 and s_bitcmp1_b32 — @LouisRiverstone `triage: merge candidate`
 - [#2570](https://github.com/Marvisak/VIctory/pull/2570) Shaders: hardware probes for the 64-bit scalar logic and shift ops — @LouisRiverstone `triage: merge candidate`
 - [#2363](https://github.com/Marvisak/VIctory/pull/2363) GPU: descriptor dwords read as data — the record count and the format — @Calvix2k `triage: needs rebase`
 - [#2999](https://github.com/Marvisak/VIctory/pull/2999) Shaders: implicit-level samples in compute follow the console's lane quads (#2027, on #1237) — @wwwwwwww3333333 `triage: merge candidate`
-- [#2706](https://github.com/Marvisak/VIctory/pull/2706) victory-gpu: keep a pipeline library per translation, not one shared one (a translator edit destroyed a 926 MB / 7.5 min cache) — @pes7 `triage: merge candidate`
 - [#2559](https://github.com/Marvisak/VIctory/pull/2559) GPU: a removal report without DRED names the switch, not "unsupported" — @Ingenioeren `triage: merge candidate`
-- [#3332](https://github.com/Marvisak/VIctory/pull/3332) DSP: convolution streams play the title's IRs (phones, TVs, radios): its IR layout on top of #2483 — @thebigredder
-- [#3323](https://github.com/Marvisak/VIctory/pull/3323) Shaders: PSV0 names every arbitrary element, as DXC does — @Moon0755
 - [#3325](https://github.com/Marvisak/VIctory/pull/3325) Shaders: reverse integer opcodes apply DPP to the second source — @Moon0755
 - [#3333](https://github.com/Marvisak/VIctory/pull/3333) Shaders: 16-bit raw buffer loads join their bytes across dwords — @Moon0755
 - [#3025](https://github.com/Marvisak/VIctory/pull/3025) GPU: graphics pipelines are made before compute ones, and compute never takes every worker — @Luislariosss `triage: needs work`
 - [#3276](https://github.com/Marvisak/VIctory/pull/3276) GPU: a texture the host had no memory for is made again later, not refused for the rest of the run — @lerapeurdu62280-debug
 - [#3342](https://github.com/Marvisak/VIctory/pull/3342) Shaders: preserve a broadcast FP16 wave reduction across EXEC restore — @draggygaggy-maker
-- [#3111](https://github.com/Marvisak/VIctory/pull/3111) Formats/BCPack: restrict BC7 channel rotation to modes 4 and 5 — @RVZO6 `triage: merge candidate`
 - [#2486](https://github.com/Marvisak/VIctory/pull/2486) GPU: keep constant nonzero targets visible in captures — @andrewpozdnakov7-jpg `triage: merge candidate`
 - [#3349](https://github.com/Marvisak/VIctory/pull/3349) Shaders: scalar memory loads align each address term independently — @Moon0755
-- [#2626](https://github.com/Marvisak/VIctory/pull/2626) GPU: packed 16-bit colour targets the host cannot write are RGBA8 there — @moe-miau `triage: merge candidate`
-- [#2633](https://github.com/Marvisak/VIctory/pull/2633) Shaders: wave64 compute programs run in 32-lane halves on hosts of 32-lane waves — @chippy01 `triage: needs work`
-- [#3335](https://github.com/Marvisak/VIctory/pull/3335) Shaders: pixel barycentrics through SV_Barycentrics (rebased #453) — @kotekompotek
 - [#1237](https://github.com/Marvisak/VIctory/pull/1237) Shaders: implicit-level samples in compute take their gradients from the quad — @felicienradio `triage: needs rebase`
-- [#2273](https://github.com/Marvisak/VIctory/pull/2273) GPU diagnostics: VICTORY_SKIP_PIPELINES says what it took and when it skips — @BaggyALPHA `triage: merge candidate`
 - [#2072](https://github.com/Marvisak/VIctory/pull/2072) HLE: an unknown gamertag component is an invalid argument — @0xkn0wh3r3 `triage: merge candidate`
 - [#2189](https://github.com/Marvisak/VIctory/pull/2189) GPU: Graceful degradation and dynamic recycling for descriptor heaps exceeding 1,000,000 slots — @Xvania7 `triage: needs rebase`
 - [#2491](https://github.com/Marvisak/VIctory/pull/2491) Shaders: intersect compare bounds with existing range bounds in Ranges::edge_hi — @reeledMarek `triage: merge candidate`
-- [#1862](https://github.com/Marvisak/VIctory/pull/1862) GPU: index bindless texture slots for targeted release and preserve u… — @VlREX `triage: merge candidate`
 - [#2598](https://github.com/Marvisak/VIctory/pull/2598) GPU: giving up a texture leaves the dynamic slots of recorded lists alone — @BastienRodz `triage: merge candidate`
-- [#2121](https://github.com/Marvisak/VIctory/pull/2121) GPU: page view heaps a host caps below the slots shaders index — @0xkn0wh3r3 `triage: needs work`
 - [#3092](https://github.com/Marvisak/VIctory/pull/3092) Loader: keep concurrent crash records whole — @neonbyte1 `triage: merge candidate`
 - [#551](https://github.com/Marvisak/VIctory/pull/551) Shaders: lower compute thread-group info and s_get_waveid_in_workgroup — @kilvynsilveira-tech `triage: merge candidate`
 - [#2085](https://github.com/Marvisak/VIctory/pull/2085) Shaders: pixel programs the console tests depth before keep early depth — @0xkn0wh3r3 `triage: merge candidate`
 - [#1142](https://github.com/Marvisak/VIctory/pull/1142) Shaders: support saturating clamp on packed 16-bit integer ops (v_pk_{add,sub,mad}_{u16,i16}) — @ESAT586 `triage: merge candidate`
 - [#2238](https://github.com/Marvisak/VIctory/pull/2238) Watch: dropping a tracker keeps a mapping guarded while a tracker holds its alias — @denkencar-sketch `triage: merge candidate`
 - [#2283](https://github.com/Marvisak/VIctory/pull/2283) GPU: a fast content digest for untracked textures, and their commit check kept per remap epoch — @alessiodeia `triage: merge candidate`
-- [#2885](https://github.com/Marvisak/VIctory/pull/2885) GPU, Shaders: view structured buffers raw on host for NVIDIA heap reads (FIND-11) — @jujumoneylol `triage: merge candidate`
 - [#3054](https://github.com/Marvisak/VIctory/pull/3054) Loader: unload already-mapped title DLLs when a dependency fails — @Dukestar69 `triage: merge candidate`
-- [#1904](https://github.com/Marvisak/VIctory/pull/1904) GPU: VICTORY_LIBRARY_TIMING measures the host FidelityFX upscaler's GPU and CPU cost — @AwkGrep256 `triage: merge candidate`
 - [#2478](https://github.com/Marvisak/VIctory/pull/2478) GPU: an option to refresh a texture once every N frames — @HoLa-Lee `triage: merge candidate`
 - [#2098](https://github.com/Marvisak/VIctory/pull/2098) GPU: an acceleration structure's view address is its location — @moe-miau `triage: merge candidate`
 - [#2624](https://github.com/Marvisak/VIctory/pull/2624) GPU: forward all direct mesh dispatch group counts — @andrewpozdnakov7-jpg (draft) `triage: merge candidate`
 - [#2465](https://github.com/Marvisak/VIctory/pull/2465) GPU: the views' written-pages bitmap lives in video memory — @wbkepler (draft) `triage: needs rebase`
 - [#1362](https://github.com/Marvisak/VIctory/pull/1362) Shaders: hardware test for s_lshl1..4_add_u32 — @LouisRiverstone `triage: merge candidate`
-- [#1877](https://github.com/Marvisak/VIctory/pull/1877) Shaders: hardware test for the 16-bit integer ops — @LouisRiverstone `triage: merge candidate`
 - [#3249](https://github.com/Marvisak/VIctory/pull/3249) GPU: a draw ensures its targets once per states generation, and clones a texture only when a barrier is owed — @borosf
 - [#1211](https://github.com/Marvisak/VIctory/pull/1211) Shaders: lower v_mad_{u16,i16} and saturating clamp on 16-bit integer ops — @ESAT586 `triage: merge candidate`
 - [#3049](https://github.com/Marvisak/VIctory/pull/3049) Game: recover SGD5 records from unparsed databases alongside intact ones — @fuzeofficlal `triage: merge candidate`
@@ -1243,17 +1462,14 @@ main: `63bcca4` — update readme
 - [#1271](https://github.com/Marvisak/VIctory/pull/1271) Shaders: propagate written heap UAVs and mark glc UAV handles globally coherent — @fuzeofficlal `triage: merge candidate`
 - [#1543](https://github.com/Marvisak/VIctory/pull/1543) GPU: avoid shift and arithmetic overflow panics in subresource and copyable_footprints (victory-gpu) — @Texbirds `triage: merge candidate`
 - [#1717](https://github.com/Marvisak/VIctory/pull/1717) HLE: the retail console ID has the documented dotted form — @davutsimsekk `triage: merge candidate`
-- [#1834](https://github.com/Marvisak/VIctory/pull/1834) Shaders: read a VALU opcode's name without a heap vector — @slatefield `triage: merge candidate`
 - [#1807](https://github.com/Marvisak/VIctory/pull/1807) Refactor/iterative shader bdd — @VlREX `triage: merge candidate`
 - [#1991](https://github.com/Marvisak/VIctory/pull/1991) Shader tests: skip the GPU suites a device cannot run — @Calvix2k `triage: merge candidate`
 - [#200](https://github.com/Marvisak/VIctory/pull/200) Shaders: lower v_div_scale_f32, v_div_fmas_f32 and v_div_fixup_f32 — @n-romanovich `triage: merge candidate`
 - [#2240](https://github.com/Marvisak/VIctory/pull/2240) GPU: title memory copies are brought up to date again after a title write — @denkencar-sketch `triage: merge candidate`
 - [#2276](https://github.com/Marvisak/VIctory/pull/2276) GPU: a depth texture used before it got a twin is copied to the twin in the list — @denkencar-sketch `triage: merge candidate`
 - [#2279](https://github.com/Marvisak/VIctory/pull/2279) GPU: a render or depth view description with an unknown format names the resource's on a typeless host copy — @denkencar-sketch `triage: merge candidate`
-- [#2051](https://github.com/Marvisak/VIctory/pull/2051) GPU: a submission's refreshes copy on several threads — @0xkn0wh3r3 `triage: merge candidate`
 - [#1866](https://github.com/Marvisak/VIctory/pull/1866) Game: preserve sample masks in prebuilt graphics pipelines — @necrobytes `triage: merge candidate`
 - [#1797](https://github.com/Marvisak/VIctory/pull/1797) XMA: reject frame starts in packet headers — @VlREX `triage: merge candidate`
-- [#1846](https://github.com/Marvisak/VIctory/pull/1846) Shaders: worklist register liveness with 96 independent synthetic CFG… — @VlREX `triage: merge candidate`
 - [#3048](https://github.com/Marvisak/VIctory/pull/3048) Game: try what depth-stencil registers do not keep (stacked on #3047) — @zed6000 `triage: merge candidate`
 - [#3304](https://github.com/Marvisak/VIctory/pull/3304) shader: multiply all three PSV0 thread dimensions and keep output maxima in mesh_stride — @fuzeofficlal
 - [#2960](https://github.com/Marvisak/VIctory/pull/2960) Cut the 17 s world frames with asynchronous submission and a copy queue — @ynnmuraii `triage: proposed close`
@@ -1263,10 +1479,8 @@ main: `63bcca4` — update readme
 - [#2210](https://github.com/Marvisak/VIctory/pull/2210) Shaders: replace HashMap/linear scans in Lower with O(1) dense Vec tables — @RVZO6 `triage: merge candidate`
 - [#3179](https://github.com/Marvisak/VIctory/pull/3179) Wave64 pairs — @Vyto-Line
 - [#2309](https://github.com/Marvisak/VIctory/pull/2309) Shaders: one back edge per block, so vkd3d-proton converts #439's loops (stacked on #439) — @desplmfao `triage: needs work`
-- [#1722](https://github.com/Marvisak/VIctory/pull/1722) GPU: the host pipeline library works under Wine (null blob for an empty library) — @Impre-visible `triage: merge candidate`
 - [#3338](https://github.com/Marvisak/VIctory/pull/3338) GPU: copy textures from GPU-backed buffer shadows — @fuzeofficlal
 - [#2242](https://github.com/Marvisak/VIctory/pull/2242) \ GPU: copy-backs put back only the bytes the GPU changed\ — @wbkepler `triage: needs rebase`
-- [#1784](https://github.com/Marvisak/VIctory/pull/1784) Test Wave32 spilled lane masks at control-flow joins — @rezioliver-collab `triage: merge candidate`
 - [#1811](https://github.com/Marvisak/VIctory/pull/1811) Shader tests: run v_perm_b32 on the GPU — @n-romanovich `triage: merge candidate`
 - [#2284](https://github.com/Marvisak/VIctory/pull/2284) Shader tests: cover the merged geometry user-data layout — @Halfect `triage: merge candidate`
 - [#3047](https://github.com/Marvisak/VIctory/pull/3047) Game: name rasterisers from the pack's register images — @zed6000 `triage: merge candidate`
@@ -1286,7 +1500,6 @@ main: `63bcca4` — update readme
 - [#3289](https://github.com/Marvisak/VIctory/pull/3289) GPU: a refresh takes the whole pages it touches — @QalityDev
 - [#3297](https://github.com/Marvisak/VIctory/pull/3297) GPU: viewports, scissors and barriers set without an allocation per call — @KainanP
 - [#3044](https://github.com/Marvisak/VIctory/pull/3044) CLI: refuse VICTORY_PREBUILD_KEYS paths inside the repository — @fuzeofficlal `triage: merge candidate`
-- [#3197](https://github.com/Marvisak/VIctory/pull/3197) GPU: clamp consecutive indirect draws in one pass (VICTORY_CLAMP_WINDOW, opt-in) — @Slay326
 - [#2711](https://github.com/Marvisak/VIctory/pull/2711) Shaders, GPU: on 32-lane hosts, wave64 halves act as waves; the BVH builder waits (stacked on #2176, #2118) — @moe-miau `triage: needs work`
 - [#2358](https://github.com/Marvisak/VIctory/pull/2358) GPU: prepare and upload only dirty texture bands (opt-in) — @nicolasveilleux `triage: merge candidate`
 - [#2184](https://github.com/Marvisak/VIctory/pull/2184) xmem: 32-bit XMemAllocDefault blocks get the alignment they ask for — @BastienRodz `triage: merge candidate`
@@ -1294,11 +1507,7 @@ main: `63bcca4` — update readme
 - [#2314](https://github.com/Marvisak/VIctory/pull/2314) GPU: copy compatible multisampled texture aliases directly — @andrewpozdnakov7-jpg `triage: merge candidate`
 - [#1819](https://github.com/Marvisak/VIctory/pull/1819) Shaders: translated loops are left after 2^14 iterations (was 2^20) — @Exopus-0x65f7ad0 `triage: merge candidate`
 - [#2090](https://github.com/Marvisak/VIctory/pull/2090) Add CPU-only execution-equivalence tests for Wave32 shader SSA and structured EXEC — @chaseb64 `triage: merge candidate`
-- [#1871](https://github.com/Marvisak/VIctory/pull/1871) Shaders: lower indexed tbuffer_load_format_* and indexed buffer_store_{byte,short} — @ESAT586 `triage: merge candidate`
 - [#2596](https://github.com/Marvisak/VIctory/pull/2596) Shader tests: an empty root-constant list is set as the one constant it declares (#2571) — @Creaa `triage: merge candidate`
-- [#1802](https://github.com/Marvisak/VIctory/pull/1802) Perf/shader relative shift bounds — @VlREX `triage: merge candidate`
-- [#1927](https://github.com/Marvisak/VIctory/pull/1927) Shaders: d16 format loads saturate 32-bit integer channels — @upipibi `triage: merge candidate`
-- [#1920](https://github.com/Marvisak/VIctory/pull/1920) Shaders: v_mad_f32 and v_mac_f32 multiply apart from their add — @kais7654 `triage: merge candidate`
 - [#2501](https://github.com/Marvisak/VIctory/pull/2501) Shaders: a BVH node offset from a root descriptor is computed in 64 bits — @Calvix2k `triage: merge candidate`
 - [#2915](https://github.com/Marvisak/VIctory/pull/2915) Shaders: f16 results ignore their output modifier, as RDNA2 does with half denormals kept — @0xkn0wh3r3 `triage: needs work`
 - [#1673](https://github.com/Marvisak/VIctory/pull/1673) HLE: XTaskQueueTerminate cancels only its own tasks on shared ports — @Calvix2k `triage: needs rebase`
@@ -1306,19 +1515,15 @@ main: `63bcca4` — update readme
 - [#2509](https://github.com/Marvisak/VIctory/pull/2509) GPU: upload the stencil plane with guest textures — @andrewpozdnakov7-jpg `triage: merge candidate`
 - [#2510](https://github.com/Marvisak/VIctory/pull/2510) GPU: sweep cut pipeline-cache staging files — @Ingenioeren `triage: merge candidate`
 - [#2566](https://github.com/Marvisak/VIctory/pull/2566) HLE: DirectStorage page writes are opened before the bytes land — @Calvix2k `triage: needs rebase`
-- [#1687](https://github.com/Marvisak/VIctory/pull/1687) Shaders: lower image_gather4_c_lz(_o) and offset sample variants — @Calvix2k `triage: needs rebase`
 - [#2542](https://github.com/Marvisak/VIctory/pull/2542) GPU: use non-zero NumElements for null raw pairs in HostHeap::raw_pair_at — @reeledMarek `triage: merge candidate`
 - [#2543](https://github.com/Marvisak/VIctory/pull/2543) GPU: keep view_addresses upload buffer alive on command lists — @reeledMarek `triage: merge candidate`
-- [#1803](https://github.com/Marvisak/VIctory/pull/1803) GPU: route UAV barriers on depth textures to their twin planes — @mgunes1311-lab `triage: merge candidate`
 - [#2150](https://github.com/Marvisak/VIctory/pull/2150) Shaders: one instruction for one value (13.5 % fewer emitted instructions, no program lost) — @r4tedx `triage: merge candidate`
-- [#1933](https://github.com/Marvisak/VIctory/pull/1933) victory-gpu: keep depth-twin UAVs in concrete UAV formats and support default views — @mgunes1311-lab `triage: merge candidate`
 - [#2816](https://github.com/Marvisak/VIctory/pull/2816) Shaders: a wave64 mask restored from word-by-word scalar copies is the same mask — @0xkn0wh3r3 `triage: merge candidate`
 - [#2576](https://github.com/Marvisak/VIctory/pull/2576) GPU: read marks of slots forgotten before a submission are cleared before it runs — @BastienRodz `triage: merge candidate`
 - [#703](https://github.com/Marvisak/VIctory/pull/703) Formats: eliminate BCPack per-call allocations and optimize streaming decode — @wbkepler `triage: needs work`
 - [#1796](https://github.com/Marvisak/VIctory/pull/1796) Core: report unreadable implicit configuration files — @VlREX `triage: merge candidate`
 - [#1823](https://github.com/Marvisak/VIctory/pull/1823) Shaders: bound a signature part's register rows and its allocation — @slatefield `triage: merge candidate`
 - [#1824](https://github.com/Marvisak/VIctory/pull/1824) Shaders: declare each dx.op call once — @slatefield `triage: merge candidate`
-- [#1473](https://github.com/Marvisak/VIctory/pull/1473) Shaders: track per-lane export state across mixed pixel-shader joins — @Texbirds `triage: merge candidate`
 - [#3331](https://github.com/Marvisak/VIctory/pull/3331) GPU tests: read back the buffer address after rebinding a descriptor — @Venom2054
 - [#2562](https://github.com/Marvisak/VIctory/pull/2562) translate --pipelines: driver reasons for refusals, and --only <stages> (#2537) — @oni-swr `triage: merge candidate`
 - [#2612](https://github.com/Marvisak/VIctory/pull/2612) GPU: skip pending copy-backs and clear saved snapshots on remapped pages — @ashrafsdrop `triage: merge candidate`
@@ -1328,7 +1533,6 @@ main: `63bcca4` — update readme
 - [#3102](https://github.com/Marvisak/VIctory/pull/3102) GPU: the Xbox's shared CPU/GPU memory on PC GPUs: simulated in video memory on discrete cards, title memory itself on unified ones — @0xkn0wh3r3 `triage: needs work`
 - [#2736](https://github.com/Marvisak/VIctory/pull/2736) Formats: speed up GFX10 tiled texture copies up to 2.4x — @brainbudt `triage: merge candidate`
 - [#2428](https://github.com/Marvisak/VIctory/pull/2428) GPU: a submission refreshes a copy's ranges disjoint, not their span — @borosf `triage: merge candidate`
-- [#320](https://github.com/Marvisak/VIctory/pull/320) Shaders: lane reads and writes where lanes branch differently run in the console flow — @r4tedx `triage: needs work`
 - [#2152](https://github.com/Marvisak/VIctory/pull/2152) Shaders: lower ds_permute_b32 and ds_nop — @fuzeofficlal `triage: merge candidate`
 - [#3324](https://github.com/Marvisak/VIctory/pull/3324) Formats: add cargo-fuzz targets for the BCPack and XMA decoders — @gabrielvbraga
 - [#1312](https://github.com/Marvisak/VIctory/pull/1312) Shaders: mask v_readlane/v_writelane lane index and bypass EXEC on writelane — @ashrafsdrop `triage: merge candidate`
@@ -1336,10 +1540,8 @@ main: `63bcca4` — update readme
 - [#2875](https://github.com/Marvisak/VIctory/pull/2875) GPU: loose windows can sit in video memory the CPU writes — @Luislariosss `triage: needs work`
 - [#2981](https://github.com/Marvisak/VIctory/pull/2981) HLE/DirectStorage: reuse per-worker DecompressorOxide and source/intermediate scratch buffers — @RVZO6 `triage: merge candidate`
 - [#3003](https://github.com/Marvisak/VIctory/pull/3003) CLI: deduplicate translate containers by declared container bytes instead of DXIL payload alone — @fuzeofficlal `triage: merge candidate`
-- [#2863](https://github.com/Marvisak/VIctory/pull/2863) Diagnostics: opt-in native Graphics settings tab and menu traces — @AwkGrep256 (draft)
 - [#2589](https://github.com/Marvisak/VIctory/pull/2589) Diagnostics: preserve the world capture draw count — @andrewpozdnakov7-jpg `triage: merge candidate`
 - [#2600](https://github.com/Marvisak/VIctory/pull/2600) Shaders: lower binary64 truncation — @andrewpozdnakov7-jpg `triage: merge candidate`
-- [#3139](https://github.com/Marvisak/VIctory/pull/3139) GPU: batch dirty heap page ranges under one diff pass in sync_heaps — @MeMako
 - [#3232](https://github.com/Marvisak/VIctory/pull/3232) GPU: batch page-table rebuilds by region and owner — @yumaste
 - [#2646](https://github.com/Marvisak/VIctory/pull/2646) GPU: a WARP host keeps its pipeline library in a file of its own (#2637) — @Creaa `triage: merge candidate`
 - [#2702](https://github.com/Marvisak/VIctory/pull/2702) GPU: resolve multisampled color targets before diagnostic readback — @andrewpozdnakov7-jpg `triage: merge candidate`
@@ -1347,7 +1549,6 @@ main: `63bcca4` — update readme
 - [#3175](https://github.com/Marvisak/VIctory/pull/3175) GPU: preserve pre-init dynamic and concurrent view_addresses updates — @fuzeofficlal
 - [#3090](https://github.com/Marvisak/VIctory/pull/3090) Shaders: a record's zero stride is refused apart from an unknown one — @borosf `triage: merge candidate`
 - [#3093](https://github.com/Marvisak/VIctory/pull/3093) Shader tests: share one D3D12 queue per adapter — @neonbyte1 `triage: merge candidate`
-- [#2977](https://github.com/Marvisak/VIctory/pull/2977) Shaders: one back edge per block, for the dxil-spirv in Proton — @neonbyte1 `triage: needs work`
 - [#2904](https://github.com/Marvisak/VIctory/pull/2904) DirectStorage: workers read a file through a handle each — @0xkn0wh3r3 `triage: merge candidate`
 - [#3098](https://github.com/Marvisak/VIctory/pull/3098) GPU: reject corrupted successful and refused shader-cache entries — @yefan911 `triage: needs work`
 - [#2166](https://github.com/Marvisak/VIctory/pull/2166) xtask: add CPU-only source verification report — @yefan911 `triage: needs work`
@@ -1363,11 +1564,8 @@ main: `63bcca4` — update readme
 - [#3073](https://github.com/Marvisak/VIctory/pull/3073) gpu: select high-performance hardware adapter on multi-GPU systems — @AdvaitPalve11 `triage: needs work`
 - [#2732](https://github.com/Marvisak/VIctory/pull/2732) GPU: capture render and depth targets written by clears — @andrewpozdnakov7-jpg `triage: merge candidate`
 - [#2192](https://github.com/Marvisak/VIctory/pull/2192) GPU: schedule shader translation and pipeline creation as a dependency DAG (#1509) — @Xvania7 `triage: needs rebase`
-- [#2658](https://github.com/Marvisak/VIctory/pull/2658) Game tests: cover CityHash64 length and block boundaries — @XeNS1 `triage: merge candidate`
 - [#2731](https://github.com/Marvisak/VIctory/pull/2731) PE: tests for delay-import parsing (names, ordinals, IAT bounds) — @Vedoxdev123 `triage: merge candidate`
-- [#2738](https://github.com/Marvisak/VIctory/pull/2738) Tests: wait for the late page list instead of sleeping — @Therecalloftheonion `triage: merge candidate`
 - [#1196](https://github.com/Marvisak/VIctory/pull/1196) HLE: fix self-closing XML element body parsing in runtime.rs and add unit tests — @geiyiliyabumo `triage: merge candidate`
-- [#3322](https://github.com/Marvisak/VIctory/pull/3322) Linux Enhance GPU pipeline handling and improve shader program structure — @theDVNVS
 - [#3120](https://github.com/Marvisak/VIctory/pull/3120) GPU: with VICTORY_GPU_OVERLAP=1, the title's submissions return before the host GPU has run them — @0xkn0wh3r3 `triage: needs work`
 - [#2887](https://github.com/Marvisak/VIctory/pull/2887) HLE: a title's ExitProcess is logged as its exit is — @0xkn0wh3r3 `triage: merge candidate`
 - [#2825](https://github.com/Marvisak/VIctory/pull/2825) Shaders: f16 arithmetic in native half on hosts with 16-bit operations (37x on an RTX 5070 Ti; for #2384) — @0xkn0wh3r3 `triage: merge candidate`
@@ -1376,7 +1574,6 @@ main: `63bcca4` — update readme
 - [#2795](https://github.com/Marvisak/VIctory/pull/2795) Formats: speed up XMA2 inverse MDCT by 24-29% — @brainbudt `triage: merge candidate`
 - [#1767](https://github.com/Marvisak/VIctory/pull/1767) translate: report the validator's own reason, not the line that hides it — @fiestorra `triage: merge candidate`
 - [#3156](https://github.com/Marvisak/VIctory/pull/3156) GPU: replace O(N^2) unmapped page lookup in Tracked::take_split with linear merge — @reeledMarek
-- [#2665](https://github.com/Marvisak/VIctory/pull/2665) Shaders/Bitcode: cache Shader::op declarations, primitive types, scalar constants, and zero-copy bitcode Writer — @RVZO6 `triage: merge candidate`
 - [#2663](https://github.com/Marvisak/VIctory/pull/2663) Formats/XMA: add 10-bit VLC lookup table, u64 bit-peek, and quant-factor LUT — @RVZO6 `triage: merge candidate`
 - [#3216](https://github.com/Marvisak/VIctory/pull/3216) GPU: index withheld ranges during copy-back — @yumaste
 - [#2866](https://github.com/Marvisak/VIctory/pull/2866) Translate: count the instructions on 16-bit floats (for #2384, #2825) — @xndbogdan `triage: merge candidate`
@@ -1386,7 +1583,6 @@ main: `63bcca4` — update readme
 - [#2839](https://github.com/Marvisak/VIctory/pull/2839) CLI: flag files configured as directories — @109User109 `triage: merge candidate`
 - [#2362](https://github.com/Marvisak/VIctory/pull/2362) xtask: type-check the Windows target from any host — @borosf `triage: needs work`
 - [#2344](https://github.com/Marvisak/VIctory/pull/2344) Shaders: name the operation kind a whole-wave section the simulation cannot follow — @borosf `triage: merge candidate`
-- [#2386](https://github.com/Marvisak/VIctory/pull/2386) Shaders: a DPP step over a lane set the section names stays followed — @borosf `triage: needs work`
 - [#2399](https://github.com/Marvisak/VIctory/pull/2399) Shaders: hash the translator's hot maps with the multiply-rotate hasher — @borosf `triage: needs work`
 - [#3214](https://github.com/Marvisak/VIctory/pull/3214) GPU: a frame line says how many copy calls the refresh made, and note_use stops allocating — @borosf
 - [#3112](https://github.com/Marvisak/VIctory/pull/3112) GPU: the console follows the adapter's memory (12 GiB or less: series-s) — @borosf `triage: needs work`
@@ -1407,14 +1603,9 @@ main: `63bcca4` — update readme
 - [#1588](https://github.com/Marvisak/VIctory/pull/1588) Shaders: single-round v_fma_mixlo_f16 and v_fma_mixhi_f16 — @Ctrl-Alt-Haze `triage: needs rebase`
 - [#1608](https://github.com/Marvisak/VIctory/pull/1608) Shaders: single-round v_fma_mixlo_f16 and v_fma_mixhi_f16 to binary16 — @geiyiliyabumo `triage: needs rebase`
 - [#2094](https://github.com/Marvisak/VIctory/pull/2094) Shaders: lower v_add_nc_i32, v_sub_nc_i32, v_add_nc_i16, and v_sub_nc_i16 in pure 32-bit DXIL — @geiyiliyabumo `triage: merge candidate`
-- [#1734](https://github.com/Marvisak/VIctory/pull/1734) victory-shader: make the test dispatches cheap - an event wait and reused command objects (emit suite -33% wall, -48% CPU) — @pes7 `triage: merge candidate`
-- [#465](https://github.com/Marvisak/VIctory/pull/465) Shaders: lower v_dot2_f32_f16 and v_dot2c_f32_f16 — @Baconzido `triage: merge candidate`
 - [#3202](https://github.com/Marvisak/VIctory/pull/3202) shader: lower 64-bit shifts without INT64 — @Jackster
 - [#2963](https://github.com/Marvisak/VIctory/pull/2963) Shaders: allow abs/neg source modifiers on v_cvt_{u16,i16}_f16 — @Dukestar69 `triage: merge candidate`
 - [#3124](https://github.com/Marvisak/VIctory/pull/3124) Shaders: an SDWA WORD_0 result with UNUSED_SEXT is sign-extended (#823) — @KainanP `triage: merge candidate`
-- [#3148](https://github.com/Marvisak/VIctory/pull/3148) Shaders: accept inline constants in V_PK_FMAC_F16 — @andrewpozdnakov7-jpg
-- [#3280](https://github.com/Marvisak/VIctory/pull/3280) Fix #2412: reject out-of-range export addresses in parse_exports — @tharun-37
-- [#3159](https://github.com/Marvisak/VIctory/pull/3159) Shaders: honor directed rounding in V_CVT_F16_F32 — @andrewpozdnakov7-jpg
 - [#439](https://github.com/Marvisak/VIctory/pull/439) Shaders: one console wave sharing LDS runs in the console flow on 32-lane hosts — @r4tedx `triage: needs work`
 - [#2648](https://github.com/Marvisak/VIctory/pull/2648) BCPack: stop completed lanes from taking another lane’s bytes — @chaseb64 `triage: merge candidate`
 - [#1855](https://github.com/Marvisak/VIctory/pull/1855) victory-gpu: clamp constant buffer views to their registered buffer — @mgunes1311-lab `triage: needs rebase`
@@ -1422,13 +1613,10 @@ main: `63bcca4` — update readme
 - [#1356](https://github.com/Marvisak/VIctory/pull/1356) GPU: use RwLock for read-mostly tables and add per-HostList VA/view caches — @wbkepler `triage: needs rebase`
 - [#1577](https://github.com/Marvisak/VIctory/pull/1577) Shaders: expand 64-bit inline constants as signed ints and binary64 floats — @mgunes1311-lab `triage: needs rebase`
 - [#3295](https://github.com/Marvisak/VIctory/pull/3295) victory-gpu: a copy of title memory in video memory, prepared and tested — @pes7
-- [#3296](https://github.com/Marvisak/VIctory/pull/3296) GPU: schedule slow-compiling early pipelines in their own bounded queue — @pushkarreddyy
 - [#3310](https://github.com/Marvisak/VIctory/pull/3310) HLE: match host DLLs behind lifecycle and CRT API sets — @fuzeofficlal
 - [#2146](https://github.com/Marvisak/VIctory/pull/2146) GPU: add opt-in VICTORY_TEXTURE_MIP_DROP quality switch (fixes #737) — @antikohza `triage: needs work`
 - [#2084](https://github.com/Marvisak/VIctory/pull/2084) Shaders: buffer loads of a table in the program's code — @rminzao `triage: merge candidate`
-- [#2958](https://github.com/Marvisak/VIctory/pull/2958) Shaders: one lane of a wave sets a mark its wave shares (frames 411 -> 283 ms on an RTX 4070 SUPER) — @moe-miau `triage: merge candidate`
 - [#2229](https://github.com/Marvisak/VIctory/pull/2229) Shaders: v_pk_fmac_f16 with DPP reads src0 from the selected lane — @BastienRodz `triage: merge candidate`
-- [#1907](https://github.com/Marvisak/VIctory/pull/1907) victory-shader: honor unwritten OSG1 channels and output modes in rectangle_gs — @mgunes1311-lab `triage: merge candidate`
 - [#2230](https://github.com/Marvisak/VIctory/pull/2230) GameInput: a tap between two current-state reads is not lost (input at low frame rates) — @desplmfao `triage: merge candidate`
 - [#2167](https://github.com/Marvisak/VIctory/pull/2167) Shaders: guard memory_dirty atomics with test-before-or and coalesce page-table loads (FIND-12) — @RVZO6 `triage: merge candidate`
 - [#2193](https://github.com/Marvisak/VIctory/pull/2193) GPU: report allocated mip levels for auto-sized textures in GetDesc (fixes #773) — @Xvania7 `triage: needs work`
@@ -1445,21 +1633,16 @@ main: `63bcca4` — update readme
 - [#3288](https://github.com/Marvisak/VIctory/pull/3288) GPU: refresh texture views when shared host textures are replaced — @fuzeofficlal
 - [#3221](https://github.com/Marvisak/VIctory/pull/3221) fix(shader): preserve signed zero when f32 div:2 underflows — @brainbudt
 - [#2726](https://github.com/Marvisak/VIctory/pull/2726) victory-gpu: refresh and route external host textures through one copy — @mgunes1311-lab `triage: needs work`
-- [#3286](https://github.com/Marvisak/VIctory/pull/3286) GPU test: the pair region is not where a capped heap puts it — @zzm1234560621-prog
 - [#3099](https://github.com/Marvisak/VIctory/pull/3099) GPU: drop only marked pages for withheld marked ranges — @fuzeofficlal `triage: merge candidate`
 - [#3245](https://github.com/Marvisak/VIctory/pull/3245) GPU: return pinned HostTexture from alias_source to avoid source Release UAF — @fuzeofficlal
 - [#3117](https://github.com/Marvisak/VIctory/pull/3117) Shaders: support multi-way and nested immediate sampler phis — @fuzeofficlal `triage: needs work`
 - [#3114](https://github.com/Marvisak/VIctory/pull/3114) GPU: deduplicate identical per-list defer_gpu_write declarations — @fuzeofficlal `triage: needs work`
 - [#1516](https://github.com/Marvisak/VIctory/pull/1516) Shaders: zero missing typed-buffer components — @venglov `triage: needs rebase`
 - [#492](https://github.com/Marvisak/VIctory/pull/492) GPU: substitute R9G9B9E5_SHAREDEXP render targets and UAVs with R16G16B16A16_FLOAT — @Yaekai `triage: needs rebase`
-- [#1849](https://github.com/Marvisak/VIctory/pull/1849) GPU: free memory is not the runtime's to watch (fixes a world-load deadlock under Wine) — @crashbashash `triage: merge candidate`
 - [#1816](https://github.com/Marvisak/VIctory/pull/1816) GPU: account for delivered bytes in bulk copyback — @aycow `triage: merge candidate`
 - [#1817](https://github.com/Marvisak/VIctory/pull/1817) GPU: enforce logical indirect buffer spans — @aycow `triage: merge candidate`
-- [#379](https://github.com/Marvisak/VIctory/pull/379) Shaders: lower v_div_fixup_f16 — @LouisRiverstone `triage: merge candidate`
-- [#1856](https://github.com/Marvisak/VIctory/pull/1856) Shaders: programs without FMad disable math refactoring — @rminzao `triage: merge candidate`
 - [#2350](https://github.com/Marvisak/VIctory/pull/2350) Shaders: lower binary64 frexp exponent and significand — @andrewpozdnakov7-jpg `triage: merge candidate`
 - [#2328](https://github.com/Marvisak/VIctory/pull/2328) GPU: pipeline library saves run one at a time — @denkencar-sketch `triage: merge candidate`
-- [#2035](https://github.com/Marvisak/VIctory/pull/2035) Shaders: drop group sync for race-free divergent single-wave barriers on narrow-wave hosts — @rivaldodev `triage: needs rebase`
 - [#3051](https://github.com/Marvisak/VIctory/pull/3051) GPU: mesh pipelines without a pixel shader get an empty one on WARP — @redNSF `triage: needs work`
 - [#3071](https://github.com/Marvisak/VIctory/pull/3071) GPU: a pipeline waited for in vain is not waited for again — @ntgata1-dotcom `triage: needs work`
 - [#3041](https://github.com/Marvisak/VIctory/pull/3041) GPU: refresh heap textures with untracked pages (FIND-17) — @leftmove `triage: merge candidate`
@@ -1475,13 +1658,9 @@ main: `63bcca4` — update readme
 - [#3284](https://github.com/Marvisak/VIctory/pull/3284) feat(hle): add opt-in hidden window mode for lifecycle stand-in    — @legayclightning22
 - [#3239](https://github.com/Marvisak/VIctory/pull/3239) HLE: VICTORY_KEYS repeats and holds, and VICTORY_KEYS_FILE — @EgoraWyn
 - [#2644](https://github.com/Marvisak/VIctory/pull/2644) Loader (diagnostics): VICTORY_STEP_OVER steps over listed title breakpoints (#698) — @Pierrot1398 `triage: merge candidate`
-- [#2978](https://github.com/Marvisak/VIctory/pull/2978) Shaders: whole-wave sections follow binary64 sums (WaveActiveSum of a double) — @Anzymanz `triage: needs work`
 - [#1776](https://github.com/Marvisak/VIctory/pull/1776) GPU: exclude 4:2:2 packed formats 68/69 from castable texture formats — @0xKaji `triage: merge candidate`
 - [#2606](https://github.com/Marvisak/VIctory/pull/2606) HLE: decode numeric character references in manifests — @XeNS1 `triage: merge candidate`
-- [#1445](https://github.com/Marvisak/VIctory/pull/1445) HLE reuses freed physical page numbers — @BaggyALPHA `triage: merge candidate`
 - [#3265](https://github.com/Marvisak/VIctory/pull/3265) GPU: batch host mirroring for contiguous descriptor copies — @yumaste
-- [#3266](https://github.com/Marvisak/VIctory/pull/3266) GPU: back off texture heap growth after out-of-memory — @yumaste
-- [#3268](https://github.com/Marvisak/VIctory/pull/3268) GPU: the DRED report reads only the breadcrumb history that is there — @davesousa
 - [#3183](https://github.com/Marvisak/VIctory/pull/3183) GPU: validate index buffer format, alignment, and empty views before binding — @fuzeofficlal
 - [#3086](https://github.com/Marvisak/VIctory/pull/3086) GPU, Shaders: direct dispatches past 65,535 groups in x run in parts — @0xkn0wh3r3 `triage: needs work`
 - [#3278](https://github.com/Marvisak/VIctory/pull/3278) fix(loader): accelerate 15-byte CLZERO loops with page-readability caching — @legayclightning22
@@ -1495,23 +1674,18 @@ main: `63bcca4` — update readme
 - [#2592](https://github.com/Marvisak/VIctory/pull/2592) CLI: reject VS+GS graphics pipelines in prebuild — @fuzeofficlal `triage: merge candidate`
 - [#2787](https://github.com/Marvisak/VIctory/pull/2787) CLI/GPU: avoid rescanning game_dir and re-inflating/re-hashing cached containers during warm prebuild, and stop Named::find early — @RVZO6 `triage: merge candidate`
 - [#2405](https://github.com/Marvisak/VIctory/pull/2405) Shaders: test raw VCC on s_cbranch_vccz and s_cbranch_vccnz without EXEC masking — @ashrafsdrop `triage: needs work`
-- [#491](https://github.com/Marvisak/VIctory/pull/491) GPU: remember pipelines whose creation crashed the process (VICTORY_PIPELINE_JOURNAL) — @desplmfao `triage: merge candidate`
 - [#2278](https://github.com/Marvisak/VIctory/pull/2278) GPU: a plain heap description is not read past its 16 bytes without checking they are mapped — @denkencar-sketch `triage: merge candidate`
 - [#3274](https://github.com/Marvisak/VIctory/pull/3274) GPU: a texture read knows its memory has no writer without the texture map's lock — @KainanP
 - [#3275](https://github.com/Marvisak/VIctory/pull/3275) GPU: draws find the views their tables hold without the view registry's lock — @KainanP
 - [#2914](https://github.com/Marvisak/VIctory/pull/2914) GPU: marked pages go back to title memory on several threads (#2826) — @kotekompotek `triage: merge candidate`
-- [#3243](https://github.com/Marvisak/VIctory/pull/3243) Loader: skip DIR64 relocation addresses that overflow u32 — @andrewpozdnakov7-jpg
 - [#2554](https://github.com/Marvisak/VIctory/pull/2554) Loader: guard null C++ exception pointers in crash::thrown and Rsp overflow/alignment in unwind_into — @reeledMarek `triage: merge candidate`
 - [#2053](https://github.com/Marvisak/VIctory/pull/2053) GPU: log the host GPU, and warn when it is not the one to run on — @rminzao `triage: merge candidate`
 - [#2117](https://github.com/Marvisak/VIctory/pull/2117) Shaders: compute reading lanes only within aligned groups declares no wave size — @rminzao `triage: merge candidate`
-- [#1939](https://github.com/Marvisak/VIctory/pull/1939) Shaders: truncate s_buffer_load terms to dword alignment independently — @ashrafsdrop `triage: merge candidate`
 - [#967](https://github.com/Marvisak/VIctory/pull/967) GPU: choose an adapter that can run the title, and name the ones that cannot — @zzm1234560621-prog `triage: needs rebase`
 - [#3259](https://github.com/Marvisak/VIctory/pull/3259) GPU: use smaller staging chunks after allocation failure — @yumaste
 - [#3235](https://github.com/Marvisak/VIctory/pull/3235) Shaders: the null-buffer test skips hosts whose view heap is capped — @Indy2l
 - [#3246](https://github.com/Marvisak/VIctory/pull/3246) GPU: a marked page's copy-back reads the title's page into one buffer per thread — @lhnizdo
-- [#3264](https://github.com/Marvisak/VIctory/pull/3264) Shaders/IR: give buffer_gl0_inv and buffer_gl1_inv no register effects — @fuzeofficlal
 - [#3262](https://github.com/Marvisak/VIctory/pull/3262) GPU: a page's saved bytes are read into an unzeroed buffer — @Creaa
-- [#3153](https://github.com/Marvisak/VIctory/pull/3153) Shaders: honor EXEC guard on v_interp_* writes to preserve inactive lanes — @reeledMarek
 - [#2553](https://github.com/Marvisak/VIctory/pull/2553) HLE: avoid data race in DirectStorage late page-list polling — @reeledMarek `triage: merge candidate`
 - [#970](https://github.com/Marvisak/VIctory/pull/970) GPU: aspect-aware concrete format resolution for typeless views (fixes #882, #876) — @pushkarreddyy `triage: needs rebase`
 - [#2371](https://github.com/Marvisak/VIctory/pull/2371) GPU: prefer high-performance DXGI adapter supporting FL 12.0 (fixes #1226) — @antikohza `triage: merge candidate`
@@ -1519,11 +1693,8 @@ main: `63bcca4` — update readme
 - [#1779](https://github.com/Marvisak/VIctory/pull/1779) GPU: view heaps on hosts capped below 2^21 descriptors — @wbkepler `triage: needs rebase`
 - [#2111](https://github.com/Marvisak/VIctory/pull/2111) GPU: the frame's wait for pipelines is one budget for all recording threads — @r4tedx `triage: merge candidate`
 - [#159](https://github.com/Marvisak/VIctory/pull/159) GPU: occlusion, statistics and timestamp queries run on the host — @r4tedx `triage: merge candidate`
-- [#3188](https://github.com/Marvisak/VIctory/pull/3188) GPU: skip host pipeline library serialisation when only early list changed — @reeledMarek
-- [#2511](https://github.com/Marvisak/VIctory/pull/2511) XGameSave: refuse an update when no version number is above the highest (#2497) — @Creaa `triage: merge candidate`
 - [#1890](https://github.com/Marvisak/VIctory/pull/1890) Shaders: console wave64 compute on 32-lane hosts (split waves) — @beamdotdev `triage: needs rebase`
 - [#2973](https://github.com/Marvisak/VIctory/pull/2973) Tests and fixes so the suite runs under Wine — @neonbyte1 `triage: merge candidate`
-- [#1218](https://github.com/Marvisak/VIctory/pull/1218) xtask: wine-test runs the Windows tests on a Linux host under Wine — @neonbyte1 `triage: needs work`
 - [#3260](https://github.com/Marvisak/VIctory/pull/3260) GPU: a removal report names the call that removed the device — @potatoe0100
 - [#2627](https://github.com/Marvisak/VIctory/pull/2627) Shaders: exclude masks widened past block reachability from Structured::active — @VastyViz `triage: needs work`
 - [#2435](https://github.com/Marvisak/VIctory/pull/2435) GPU: give screen passes dedicated pipeline workers and wait budget (fixes #2433) — @pushkarreddyy `triage: needs rebase`
@@ -1535,12 +1706,10 @@ main: `63bcca4` — update readme
 - [#3234](https://github.com/Marvisak/VIctory/pull/3234) GPU: pin descriptor view resources against concurrent Resource::Release — @fuzeofficlal
 - [#3225](https://github.com/Marvisak/VIctory/pull/3225) GPU: a command queue's SuspendX and ResumeX succeed — @JurajSimicevic
 - [#2442](https://github.com/Marvisak/VIctory/pull/2442) GPU: a texture flags unordered access only where a view can take it — @kotekompotek `triage: merge candidate`
-- [#3097](https://github.com/Marvisak/VIctory/pull/3097) Shaders: lower's tests in their own file, under the policy's size limit — @neonbyte1 `triage: merge candidate`
 - [#2685](https://github.com/Marvisak/VIctory/pull/2685) Shader tests: translate XMA integer log2 across both input words — @Dathinel `triage: needs work`
 - [#2655](https://github.com/Marvisak/VIctory/pull/2655) GPU: preserve wide float contrast in diagnostic captures — @andrewpozdnakov7-jpg `triage: merge candidate`
 - [#2666](https://github.com/Marvisak/VIctory/pull/2666) GPU diagnostics: end draw traces at every present — @andrewpozdnakov7-jpg `triage: merge candidate`
 - [#2673](https://github.com/Marvisak/VIctory/pull/2673) GPU: report the first differing captured render target — @necrobytes `triage: merge candidate`
-- [#1777](https://github.com/Marvisak/VIctory/pull/1777) GPU: size the view heap clamp from what the host takes (NVIDIA 1,000,000 cap) — @antoinerz1 `triage: merge candidate`
 - [#3242](https://github.com/Marvisak/VIctory/pull/3242) Shader tests: skip a fixed-wave pipeline the device lane counts rule out — @zzm1234560621-prog
 - [#1731](https://github.com/Marvisak/VIctory/pull/1731) GPU: occlusion queries measure on the host instead of reporting every draw visible — @fiestorra `triage: needs work`
 - [#1700](https://github.com/Marvisak/VIctory/pull/1700) GPU: say when a draw's render target has no host copy or lost its permission — @fiestorra `triage: needs work`
@@ -1558,7 +1727,6 @@ main: `63bcca4` — update readme
 - [#2832](https://github.com/Marvisak/VIctory/pull/2832) fix(gpu): add RTV/UAV format fallbacks and restrict format 67 promotion for placed views — @legayclightning22 `triage: needs work`
 - [#594](https://github.com/Marvisak/VIctory/pull/594) GPU: track texture subresource states — @broccolize `triage: merge candidate`
 - [#1335](https://github.com/Marvisak/VIctory/pull/1335) test(shader): translate random GFX10 programs on every test run — @Levichu51 `triage: merge candidate`
-- [#2629](https://github.com/Marvisak/VIctory/pull/2629) GPU diagnostics: sample pages the watch calls unchanged against title memory — @r4tedx `triage: merge candidate`
 - [#2398](https://github.com/Marvisak/VIctory/pull/2398) Shaders, GPU: link over-budget mesh and pixel shaders under D3D12's 32 KiB output limit — @Texbirds `triage: merge candidate`
 - [#2927](https://github.com/Marvisak/VIctory/pull/2927) docs: explain GPU timing overhead — @FR4NC7S `triage: needs work`
 - [#2803](https://github.com/Marvisak/VIctory/pull/2803) GPU: keep host pipeline caches per adapter — @yumaste `triage: merge candidate`
@@ -1567,7 +1735,6 @@ main: `63bcca4` — update readme
 - [#3194](https://github.com/Marvisak/VIctory/pull/3194) GPU: validate CopyTextureRegion subresources, source boxes, and destination bounds — @fuzeofficlal
 - [#3201](https://github.com/Marvisak/VIctory/pull/3201) GPU: validate texture SRV and UAV dimensions, ranges, planes, and swizzles — @fuzeofficlal
 - [#2874](https://github.com/Marvisak/VIctory/pull/2874) Shaders: refuse side effects in whole-wave sections — @yumaste `triage: merge candidate`
-- [#2846](https://github.com/Marvisak/VIctory/pull/2846) docs: fix the dangling HDR TODO reference — @kyle7908 `triage: merge candidate`
 - [#1272](https://github.com/Marvisak/VIctory/pull/1272) GPU: automatic texture mip-drop on E_OUTOFMEMORY and VICTORY_TEXTURE_MIP_DROP — @ESAT586 `triage: needs rebase`
 - [#2872](https://github.com/Marvisak/VIctory/pull/2872) GPU: committed host textures past the budget are evicted and kept, no… — @mitaka1959 `triage: needs work`
 - [#2837](https://github.com/Marvisak/VIctory/pull/2837) GPU diagnostics: name the first observed black frame accurately — @109User109 `triage: needs work`
@@ -1576,7 +1743,6 @@ main: `63bcca4` — update readme
 - [#3217](https://github.com/Marvisak/VIctory/pull/3217) GPU: snapshot RTV and DSV descriptors across command-list cuts — @fuzeofficlal
 - [#2838](https://github.com/Marvisak/VIctory/pull/2838) CLI: reject conflicting shader-info output modes — @109User109 `triage: merge candidate`
 - [#2849](https://github.com/Marvisak/VIctory/pull/2849) GPU: open guarded pages in runs, not one VirtualProtect at a time — @Therecalloftheonion `triage: needs work`
-- [#1569](https://github.com/Marvisak/VIctory/pull/1569) Shaders: lower v_swaprel_b32 — @piyonchu `triage: merge candidate`
 - [#2814](https://github.com/Marvisak/VIctory/pull/2814) docs: mention VICTORY_COPIES_IN_VIDEO_MEMORY in README Debugging table — @romeawayfromhome-rgb `triage: merge candidate`
 - [#2332](https://github.com/Marvisak/VIctory/pull/2332) GPU: the console's packed 4-bit colour target stands in as B5G5R5A1 — @fiestorra `triage: needs work`
 - [#2618](https://github.com/Marvisak/VIctory/pull/2618) XAsync: a result size of 0 when there is no result to take — @F1reworks10 `triage: merge candidate`
@@ -1586,8 +1752,6 @@ main: `63bcca4` — update readme
 - [#2348](https://github.com/Marvisak/VIctory/pull/2348) Shaders: lower v_cvt_f32_f64 — @Calvix2k `triage: needs rebase`
 - [#1630](https://github.com/Marvisak/VIctory/pull/1630) GPU: adapter choice and logging, presenter backoff, a texture-description ladder, and a display-deferral test a headless session can pass — @fiestorra `triage: needs work`
 - [#1702](https://github.com/Marvisak/VIctory/pull/1702) HLE: add VICTORY_NO_HOST_PAD to hide host gamepads — @Calvix2k `triage: needs rebase`
-- [#1554](https://github.com/Marvisak/VIctory/pull/1554) Shaders: the legacy MAD/MAC encodings are one fused multiply-add with flushed sources — @Calvix2k `triage: needs rebase`
-- [#2382](https://github.com/Marvisak/VIctory/pull/2382) Shaders: follow EXEC set from a scalar the section made constant — @Calvix2k `triage: needs rebase`
 - [#1791](https://github.com/Marvisak/VIctory/pull/1791) Shader tests: keep the FSPX dot4 test off folded constants — @Calvix2k `triage: proposed close`
 - [#1668](https://github.com/Marvisak/VIctory/pull/1668) Shaders: read inline floats as f32 bits in 16-bit integer ops — @Calvix2k `triage: needs rebase`
 - [#1686](https://github.com/Marvisak/VIctory/pull/1686) Shaders: lower pixel shader SV_Coverage input via dx.op.coverage — @Calvix2k `triage: needs rebase`
@@ -1599,15 +1763,12 @@ main: `63bcca4` — update readme
 - [#3213](https://github.com/Marvisak/VIctory/pull/3213) GPU: guard bindless texture tracking and made_copy against concurrent Resource::drop — @fuzeofficlal
 - [#3227](https://github.com/Marvisak/VIctory/pull/3227) GPU: keep fences alive while queues wait on them — @fuzeofficlal
 - [#1947](https://github.com/Marvisak/VIctory/pull/1947) HLE: a live range takes a guard page, and a mapped range is not a placeholder — @fiestorra `triage: needs work`
-- [#2426](https://github.com/Marvisak/VIctory/pull/2426) Build: a ship profile with fat LTO and one codegen unit — @Halfect `triage: needs work`
 - [#1727](https://github.com/Marvisak/VIctory/pull/1727) GPU: 1D textures are 2D on the host, one texel high (GBV id=940) — @Bullet18x `triage: needs rebase`
 - [#347](https://github.com/Marvisak/VIctory/pull/347) GPU: ask for an empty pipeline library with a null blob — @AugustoZFJ `triage: needs rebase`
 - [#3203](https://github.com/Marvisak/VIctory/pull/3203) Shader test: skip 64-bit image atomics where the format has none — @zzm1234560621-prog
-- [#2741](https://github.com/Marvisak/VIctory/pull/2741) PE: reject null IAT RVAs in non-empty import descriptors — @fuzeofficlal `triage: merge candidate`
 - [#182](https://github.com/Marvisak/VIctory/pull/182) Files: `..` in a title path stops at the virtual drive's root — @Maraco91 `triage: needs rebase`
 - [#2733](https://github.com/Marvisak/VIctory/pull/2733) Shaders, GPU: VICTORY_LOOP_CUTS=1 counts the lanes translated loops leave at the loop limit — @Exopus-0x65f7ad0 `triage: needs rebase`
 - [#1571](https://github.com/Marvisak/VIctory/pull/1571) GPU: add diagnostics for shader dependency wait times — @srijann07 `triage: merge candidate`
-- [#2749](https://github.com/Marvisak/VIctory/pull/2749) XTaskQueue: every queue using a port hears of a task submitted to it — @F1reworks10 `triage: merge candidate`
 - [#3133](https://github.com/Marvisak/VIctory/pull/3133) xmem: coalesce low-4 GiB guards on retry when no single guard fits — @fuzeofficlal
 - [#1372](https://github.com/Marvisak/VIctory/pull/1372) Loader: lazily NOP-patch clwb/monitorx on #UD, emulate rdpid, batch IAT protection, and content-hash cached DLLs — @wbkepler `triage: needs rebase`
 - [#2475](https://github.com/Marvisak/VIctory/pull/2475) GPU: reserve 2^18 dynamic slots on capped view heaps and trim fresh tables — @kais7654 `triage: needs rebase`
@@ -1615,7 +1776,6 @@ main: `63bcca4` — update readme
 - [#3205](https://github.com/Marvisak/VIctory/pull/3205) GPU: validate RTV and DSV dimensions, ranges, formats, and flags — @fuzeofficlal
 - [#3209](https://github.com/Marvisak/VIctory/pull/3209) GPU: sanitize plain D3D12 sampler descriptions before CreateSampler — @fuzeofficlal
 - [#2745](https://github.com/Marvisak/VIctory/pull/2745) HLE: succeed DisableThreadLibraryCalls for pseudo-module handles — @fuzeofficlal `triage: merge candidate`
-- [#1944](https://github.com/Marvisak/VIctory/pull/1944) Shaders: reject a dxbc part inside the header or part table — @imjustprism `triage: merge candidate`
 - [#2715](https://github.com/Marvisak/VIctory/pull/2715) Clear stale button and key state in GameInput output buffers — @VlREX `triage: merge candidate`
 - [#202](https://github.com/Marvisak/VIctory/pull/202) GPU: skip unmapped regions after a failed bulk read into host memory — @ifBars `triage: needs rebase`
 - [#2854](https://github.com/Marvisak/VIctory/pull/2854) CI: a check that did not run must not read as passing — @HailLucifer666 `triage: proposed close`
@@ -1625,12 +1785,10 @@ main: `63bcca4` — update readme
 - [#2310](https://github.com/Marvisak/VIctory/pull/2310) GPU diagnostics: breadcrumbs name the command a hung submission is stuck in (VICTORY_GPU_BREADCRUMBS) — @desplmfao `triage: merge candidate`
 - [#2742](https://github.com/Marvisak/VIctory/pull/2742) HLE: validate XMemMapPhysicalPages inputs before unmapping and roll back partial runs — @fuzeofficlal `triage: merge candidate`
 - [#3021](https://github.com/Marvisak/VIctory/pull/3021) Tests: the conformance title's GPU frame, cargo conformance and cargo demo (with a stress scale), on Windows and macOS — @0xkn0wh3r3 `triage: needs work`
-- [#3211](https://github.com/Marvisak/VIctory/pull/3211) GPU: append only newly covered bytes to write snapshots — @yumaste
 - [#3207](https://github.com/Marvisak/VIctory/pull/3207) HLE: fail DirectStorage startup when no worker can start — @yumaste
 - [#2903](https://github.com/Marvisak/VIctory/pull/2903) HLE: the title's idle and lowest threads run below normal — @0xkn0wh3r3 `triage: merge candidate`
 - [#3182](https://github.com/Marvisak/VIctory/pull/3182) HLE: cancel delayed task queue deliveries after termination — @fuzeofficlal
 - [#3127](https://github.com/Marvisak/VIctory/pull/3127) Shaders: v_cubesc/tc_f32 keep denormal coordinates, v_cubema_f32 of a zero is +0 — @Moon0755
-- [#2389](https://github.com/Marvisak/VIctory/pull/2389) GPU: streamed textures take video memory only for the levels the title holds (opt-in; 0.4-1.4 GB less on current main) — @desplmfao `triage: merge candidate`
 - [#2834](https://github.com/Marvisak/VIctory/pull/2834) GPU: a texture loses the unordered use its format cannot take, as its render target's — @kais7654 `triage: needs work`
 - [#2773](https://github.com/Marvisak/VIctory/pull/2773) GPU: a texture is made in the uses its format takes — @kais7654 `triage: needs work`
 - [#2735](https://github.com/Marvisak/VIctory/pull/2735) Formats: speed up BC7 BCPack decoding by 27% (and BC1/BC4 by 14-15%) — @brainbudt `triage: merge candidate`
@@ -1649,14 +1807,11 @@ main: `63bcca4` — update readme
 - [#2122](https://github.com/Marvisak/VIctory/pull/2122) Shaders: query a buffer's size through a handle of its own — @imjustprism `triage: merge candidate`
 - [#2088](https://github.com/Marvisak/VIctory/pull/2088) GPU: reuse loose windows that hold a range (#402), 256 KiB windows opt-in (VICTORY_LOOSE_WINDOW_KIB) — @desplmfao `triage: merge candidate`
 - [#1935](https://github.com/Marvisak/VIctory/pull/1935) XMem: recycle freed physical page numbers on allocation — @ashrafsdrop `triage: merge candidate`
-- [#223](https://github.com/Marvisak/VIctory/pull/223) Shaders: translate for the host's wave sizes — @r4tedx `triage: merge candidate`
-- [#2205](https://github.com/Marvisak/VIctory/pull/2205) Diagnostics: VICTORY_KEYS can hold a key longer than 0.2 s — @fiestorra `triage: merge candidate`
 - [#3195](https://github.com/Marvisak/VIctory/pull/3195) HLE: keep async status waits attached through provider cleanup — @andrewpozdnakov7-jpg
 - [#3129](https://github.com/Marvisak/VIctory/pull/3129) GPU: flush before depth-twin copies and coalesce duplicate transitions in ResourceBarrier — @fuzeofficlal
 - [#3135](https://github.com/Marvisak/VIctory/pull/3135) Shaders: a 64-bit texture add carries out of the low dword — @FoxxoOwO
 - [#3136](https://github.com/Marvisak/VIctory/pull/3136) GPU: reserve upload space only for dirty texture subresources — @yyc160
 - [#3138](https://github.com/Marvisak/VIctory/pull/3138) GPU: queries run on the host GPU — @FoxxoOwO
-- [#2906](https://github.com/Marvisak/VIctory/pull/2906) HLE: oleaut32 is not in the host pass-through list, so the title's BSTR ordinals do not resolve — @Jackster `triage: proposed close`
 - [#3140](https://github.com/Marvisak/VIctory/pull/3140) GPU: restrict texture resource states to legal direct-queue write and read combinations — @fuzeofficlal
 - [#1113](https://github.com/Marvisak/VIctory/pull/1113) Formats: lay out packed RGB textures as horizontal texel pairs — @Razdva122 `triage: needs work`
 - [#1178](https://github.com/Marvisak/VIctory/pull/1178) Diagnostics: trace a DirectStorage request from submission to decoder outcome — @Razdva122 `triage: needs rebase`
@@ -1666,12 +1821,9 @@ main: `63bcca4` — update readme
 - [#2761](https://github.com/Marvisak/VIctory/pull/2761) Shaders: the operand of a GWS instruction is read from the address field — @Moon0755 `triage: merge candidate`
 - [#2765](https://github.com/Marvisak/VIctory/pull/2765) Shaders: scratch with neither address names no register (GFX10.3 ST mode) — @Moon0755 `triage: merge candidate`
 - [#1621](https://github.com/Marvisak/VIctory/pull/1621) Shaders: bound the bytes one part's native blobs unpack to and hand out — @imjustprism `triage: merge candidate`
-- [#2723](https://github.com/Marvisak/VIctory/pull/2723) Shader: key every heap handle cache by element type (#177 on main, fixes the NVIDIA compute-pipeline crash) — @andyeox-systemd `triage: merge candidate`
 - [#1179](https://github.com/Marvisak/VIctory/pull/1179) Input: choose the loose controls diagram by active gamepad (stacked on #312) — @Razdva122 (draft) `triage: needs rebase`
-- [#2974](https://github.com/Marvisak/VIctory/pull/2974) GPU: reduce shader and pipeline RAM usage (Weak cache, deflate containers, 32 MiB DXIL cache) — @0xKaji `triage: needs work`
 - [#2659](https://github.com/Marvisak/VIctory/pull/2659) Loader (diagnostics): VICTORY_POKE writes through the page's protection — @kotekompotek `triage: merge candidate`
 - [#1832](https://github.com/Marvisak/VIctory/pull/1832) GPU: drop the unordered-access permission a format cannot carry, before any call names it — @fiestorra `triage: needs work`
-- [#2714](https://github.com/Marvisak/VIctory/pull/2714) Keep XMA input valid when looping back to the start of a buffer — @VlREX `triage: merge candidate`
 - [#2892](https://github.com/Marvisak/VIctory/pull/2892) tools: cargo xtask refusals <log> says what a run lost, and why — @HoLa-Lee `triage: needs work`
 - [#1703](https://github.com/Marvisak/VIctory/pull/1703) README: the GPU timing switch needs DRED for the per-command notes — @fiestorra `triage: needs work`
 - [#1892](https://github.com/Marvisak/VIctory/pull/1892) Tests: every GPU test module takes the shared lock, which diff_tests did not — @fiestorra `triage: needs work`
@@ -1679,7 +1831,6 @@ main: `63bcca4` — update readme
 - [#3190](https://github.com/Marvisak/VIctory/pull/3190) HLE: honor available disk space in storage prompts — @andrewpozdnakov7-jpg
 - [#3141](https://github.com/Marvisak/VIctory/pull/3141) GPU: flush queued segments before evaluating memory and fence waits — @fuzeofficlal
 - [#2776](https://github.com/Marvisak/VIctory/pull/2776) shader: lower non-sum wave prefix operations to DXIL — @JAEdotUK `triage: merge candidate`
-- [#2710](https://github.com/Marvisak/VIctory/pull/2710) Apply outstanding XMA sample skips to the final overlap — @VlREX `triage: merge candidate`
 - [#2971](https://github.com/Marvisak/VIctory/pull/2971) GPU: store HostHeap kept/made sparsely and allocate strides/marks lazily — @0xKaji `triage: needs work`
 - [#3185](https://github.com/Marvisak/VIctory/pull/3185) GPU: round fallback footprint size up to alignment — @reeledMarek
 - [#3186](https://github.com/Marvisak/VIctory/pull/3186) GPU: fall back to memory view heap for VIEW_STRIDES when no title heap is bound — @reeledMarek
@@ -1708,14 +1859,11 @@ main: `63bcca4` — update readme
 - [#3018](https://github.com/Marvisak/VIctory/pull/3018) HLE: share DirectStorage file opens and keep the host's error code — @Halfect `triage: merge candidate`
 - [#2864](https://github.com/Marvisak/VIctory/pull/2864) Shaders: live phi edges look up the earlier condition sets they cover — @Anzymanz `triage: merge candidate`
 - [#2642](https://github.com/Marvisak/VIctory/pull/2642) Check staged file type changes in the asset policy hook — @maxence468 `triage: merge candidate`
-- [#1959](https://github.com/Marvisak/VIctory/pull/1959) Shaders: LDS sub-dword writes, typed buffers at offsets and of some channels, typed loads by index — @RaghavVijayanand `triage: needs rebase`
 - [#1955](https://github.com/Marvisak/VIctory/pull/1955) Shaders: image stores of some channels, to mip 0, and to integer views — @RaghavVijayanand `triage: needs rebase`
 - [#2925](https://github.com/Marvisak/VIctory/pull/2925) Shaders: one console wave run as two host waves meets at barriers between its LDS phases (stacked on #2176) — @moe-miau `triage: needs work`
 - [#1885](https://github.com/Marvisak/VIctory/pull/1885) Shaders, GPU: one back edge per loop header, and a large stack for pipeline threads — @powplusplus `triage: needs rebase`
-- [#1956](https://github.com/Marvisak/VIctory/pull/1956) Shaders: cube face and multisampled image loads — @RaghavVijayanand `triage: needs rebase`
 - [#3174](https://github.com/Marvisak/VIctory/pull/3174) GPU: retry tracked texture uploads after a staging allocation fails — @andrewpozdnakov7-jpg
 - [#3176](https://github.com/Marvisak/VIctory/pull/3176) GPU: clamp viewport and scissor counts and normalize inverted scissor rects — @fuzeofficlal
-- [#385](https://github.com/Marvisak/VIctory/pull/385) Shaders: track every incoming edge of a lane-mask phi — @nathanbzrr `triage: merge candidate`
 - [#3109](https://github.com/Marvisak/VIctory/pull/3109) GPU: match host graphics pipelines to bound RTV formats — @fuzeofficlal `triage: needs work`
 - [#2529](https://github.com/Marvisak/VIctory/pull/2529) Xmem: honour 32-bit allocation alignment — @XratePirate `triage: proposed close`
 - [#2367](https://github.com/Marvisak/VIctory/pull/2367) GPU: select host DXGI adapter via VICTORY_ADAPTER and log GPU — @PanS4ge `triage: needs rebase`
@@ -1754,7 +1902,6 @@ main: `63bcca4` — update readme
 - [#1013](https://github.com/Marvisak/VIctory/pull/1013) perf(shader): speed up control-flow structurisation — @matheusfrta `triage: needs work`
 - [#2882](https://github.com/Marvisak/VIctory/pull/2882) GPU: heaps are bound again after a cut when ours stand in for both kinds (#2881) — @BastienRodz `triage: merge candidate`
 - [#2901](https://github.com/Marvisak/VIctory/pull/2901) GPU: return S_FALSE when private data is already absent — @andrewpozdnakov7-jpg `triage: merge candidate`
-- [#2490](https://github.com/Marvisak/VIctory/pull/2490) Shaders: lower root UAV accesses as ROVs in POPS pixel shaders — @reeledMarek `triage: needs work`
 - [#463](https://github.com/Marvisak/VIctory/pull/463) GPU: load an app-local D3D12 Agility SDK runtime when present — @Shaun-Fong `triage: needs rebase`
 - [#2136](https://github.com/Marvisak/VIctory/pull/2136) GPU: the skipped host copies are counted, and the last tracker of twin mappings opens both — @r4tedx `triage: needs rebase`
 - [#3064](https://github.com/Marvisak/VIctory/pull/3064) GPU: round depth-twin UNORM16 copies at the exact midpoint — @andrewpozdnakov7-jpg `triage: merge candidate`
@@ -1766,16 +1913,12 @@ main: `63bcca4` — update readme
 - [#2342](https://github.com/Marvisak/VIctory/pull/2342) Shaders: descriptors chosen by uniform trees of joins and selects — @RomainKH `triage: needs rebase`
 - [#2558](https://github.com/Marvisak/VIctory/pull/2558) Shaders: heap indices from data clamped before the root views they index — @RomainKH `triage: needs rebase`
 - [#2898](https://github.com/Marvisak/VIctory/pull/2898) GPU: rate-limit capped heap slot warning to once per 64K band — @alexandruiulian201-bot `triage: needs work`
-- [#2985](https://github.com/Marvisak/VIctory/pull/2985) GPU: a tracked texture write detiles and copies only the rows it touches (#1135) — @wwwwwwww3333333 `triage: merge candidate`
 - [#3055](https://github.com/Marvisak/VIctory/pull/3055) GPU: batch and parallelize descriptor heap syncs — @MeMako (draft) `triage: needs work`
 - [#1934](https://github.com/Marvisak/VIctory/pull/1934) GPU: resolve initial texture uploads and host_written at submission (#1891) — @zondy1i `triage: merge candidate`
 - [#3027](https://github.com/Marvisak/VIctory/pull/3027) Shaders: lower v_min3/v_max3/v_med3 to DXIL integer min/max — @Ingenioeren `triage: merge candidate`
 - [#2942](https://github.com/Marvisak/VIctory/pull/2942) Shaders/Lower: dense Value tables, FxHash maps, lazy get() mask checks, O(1) valu16 reject, and zero-alloc buffer/mask helpers — @RVZO6 `triage: merge candidate`
 - [#2941](https://github.com/Marvisak/VIctory/pull/2941) Shaders: encoding-gated fast scans, zero-alloc wave::simulate, and dense range::relative_bounds — @RVZO6 `triage: merge candidate`
-- [#2519](https://github.com/Marvisak/VIctory/pull/2519) HLE: optionally back physical page pools with temporary sparse files — @yyc160 `triage: needs work`
 - [#3115](https://github.com/Marvisak/VIctory/pull/3115) Shaders: half-local cross-lane operations run for wave64 on 32-lane hosts (FIND-7) — @Creaa `triage: needs work`
-- [#2766](https://github.com/Marvisak/VIctory/pull/2766) Shader tests: the descriptor-join tests build off Windows — @lcg007xd-c `triage: merge candidate`
-- [#2214](https://github.com/Marvisak/VIctory/pull/2214) Shaders: console flow for groups of several console waves on 32-lane hosts — @shawshanker18 (draft) `triage: needs rebase`
 - [#3122](https://github.com/Marvisak/VIctory/pull/3122) GPU: a capped view heap keeps room for its page table's view pairs — @Indy2l `triage: needs work`
 - [#2396](https://github.com/Marvisak/VIctory/pull/2396) GPU: wire DeserializeComputePipelineStateX to assemble ACCC — @makmatvey `triage: needs work`
 - [#2705](https://github.com/Marvisak/VIctory/pull/2705) GPU: opt-in video-memory side for host copies of title buffers — @MrEjecutor `triage: merge candidate`
@@ -1789,11 +1932,9 @@ main: `63bcca4` — update readme
 - [#2506](https://github.com/Marvisak/VIctory/pull/2506) HLE: GetModuleHandleEx finds the title's modules, not the host's — @cryst4lpepsi `triage: merge candidate`
 - [#3094](https://github.com/Marvisak/VIctory/pull/3094) docs: summarize cited design decisions in architecture doc — @romeawayfromhome-rgb `triage: needs work`
 - [#2427](https://github.com/Marvisak/VIctory/pull/2427) GPU: cut cold launch to the first screen from 49 s to 21 s — @imjustprism `triage: needs work`
-- [#1966](https://github.com/Marvisak/VIctory/pull/1966) Crash reports: keep them when stderr is closed — @imjustprism `triage: needs work`
 - [#3074](https://github.com/Marvisak/VIctory/pull/3074) Test victory config policy exit status through the CLI — @kyle7908 `triage: needs work`
 - [#2989](https://github.com/Marvisak/VIctory/pull/2989) Loader: verify OpenThread owner PID before reading thread stack — @fuzeofficlal `triage: merge candidate`
 - [#2441](https://github.com/Marvisak/VIctory/pull/2441) GPU: diagnostic 1440p present fallback for 4K primaries (#841) — @Xvania7 `triage: needs work`
-- [#1769](https://github.com/Marvisak/VIctory/pull/1769) Shaders: LDS accesses outside the program's allocation read 0 and drop their writes — @Impre-visible `triage: proposed close`
 - [#1547](https://github.com/Marvisak/VIctory/pull/1547) GPU: invalidate HOST_WRITTEN textures when title memory is written — @n-romanovich `triage: needs work`
 - [#2954](https://github.com/Marvisak/VIctory/pull/2954) Shaders: lower v_bfe_u32/v_bfe_i32 to one Ubfe/Ibfe — @Ingenioeren `triage: merge candidate`
 - [#3085](https://github.com/Marvisak/VIctory/pull/3085) GPU tests: a freed test pool keeps its addresses, and mark tests hold off submissions — @0xkn0wh3r3 `triage: merge candidate`
@@ -1801,11 +1942,9 @@ main: `63bcca4` — update readme
 - [#2176](https://github.com/Marvisak/VIctory/pull/2176) GPU+shader: translate wave64 programs for 32-lane host waves when WaveLaneCountMax < 64 — @n-romanovich `triage: needs work`
 - [#3107](https://github.com/Marvisak/VIctory/pull/3107) GPU: cache redundant render target binds on host command lists — @fuzeofficlal `triage: needs work`
 - [#3106](https://github.com/Marvisak/VIctory/pull/3106) GPU: retain page-table layout and copies for lists bound to a released view heap — @fuzeofficlal `triage: needs work`
-- [#2845](https://github.com/Marvisak/VIctory/pull/2845) docs: name the variables the tests on outside files read — @AurumCarlos `triage: needs work`
 - [#3082](https://github.com/Marvisak/VIctory/pull/3082) Shaders/Lower: sign-extend v_mad_i64_i32 literal, guard clamp/omod, and split v_mad_u64_u32 carry compare — @RVZO6 `triage: needs work`
 - [#2678](https://github.com/Marvisak/VIctory/pull/2678) victory doctor: a run's failures, each linked to the issues that report it — @shawshanker18 `triage: needs work`
 - [#1898](https://github.com/Marvisak/VIctory/pull/1898) GPU: dependency-aware two-stage shader translation and pipeline scheduling (#1509) — @nathanbzrr `triage: needs work`
-- [#2920](https://github.com/Marvisak/VIctory/pull/2920) Shaders: lanes of a wave reach group barriers together, as on the console — @lhnizdo `triage: needs work`
 - [#3023](https://github.com/Marvisak/VIctory/pull/3023) Shaders: s_cbranch_vccz/vccnz on a scalar VCC decide once for the wave (#2780, on #2836) — @wwwwwwww3333333 `triage: needs work`
 - [#3096](https://github.com/Marvisak/VIctory/pull/3096) GPU: reduce CPU overhead in submission preparation — @maksimkaosipov75-design `triage: merge candidate`
 - [#3079](https://github.com/Marvisak/VIctory/pull/3079) gpu: vectorize merge_writeback with 64-bit word chunks — @AdvaitPalve11 `triage: needs work`
@@ -1881,8 +2020,6 @@ main: `63bcca4` — update readme
 - [#1292](https://github.com/Marvisak/VIctory/pull/1292) Shaders: lower v_dot2_{i32_i16,u32_u16}, v_dot4_u32_u8, v_dot8_u32_u4, and saturating dot4 clamp — @ESAT586 `triage: needs work`
 - [#2994](https://github.com/Marvisak/VIctory/pull/2994) GPU: keep v0 as the leading vertex in CPU-expanded rectangles — @steven-seagull27 `triage: needs work`
 - [#2986](https://github.com/Marvisak/VIctory/pull/2986) GPU: use one warm-up key for reordered graphics shader stages — @andrewpozdnakov7-jpg `triage: needs work`
-- [#2961](https://github.com/Marvisak/VIctory/pull/2961) GPU: reject shader-visible RTV and DSV heap creation — @andrewpozdnakov7-jpg `triage: needs work`
-- [#2953](https://github.com/Marvisak/VIctory/pull/2953) Shaders: lower binary64 division fixup in DXIL — @andrewpozdnakov7-jpg `triage: merge candidate`
 - [#2917](https://github.com/Marvisak/VIctory/pull/2917) Shaders: round half add and subtract toward zero once — @andrewpozdnakov7-jpg `triage: merge candidate`
 - [#2922](https://github.com/Marvisak/VIctory/pull/2922) Shaders: the fused multiply-add probe binds a sampler heap — @0xkn0wh3r3 `triage: merge candidate`
 - [#2923](https://github.com/Marvisak/VIctory/pull/2923) Shaders: require EXEC coverage when tracing VALU address operands — @fuzeofficlal `triage: merge candidate`
@@ -1896,42 +2033,25 @@ main: `63bcca4` — update readme
 - [#2617](https://github.com/Marvisak/VIctory/pull/2617) HLE: hold DirectStorage reads behind held status entries and preserve sequence order — @fuzeofficlal `triage: merge candidate`
 - [#2608](https://github.com/Marvisak/VIctory/pull/2608) GPU: split and flush command list segments after texture read-backs — @fuzeofficlal `triage: merge candidate`
 - [#2610](https://github.com/Marvisak/VIctory/pull/2610) Shaders: derive TYPED_UAV_LOADS and ROVs flags from surviving calls — @fuzeofficlal `triage: merge candidate`
-- [#2622](https://github.com/Marvisak/VIctory/pull/2622) Shaders: a constant branch through a folded block drops its untaken phi entry — @BastienRodz `triage: merge candidate`
-- [#2662](https://github.com/Marvisak/VIctory/pull/2662) Shaders: O(|known|) BDD forced() sweep, read-only implies(), per-block reuse in finish(), and FxHash in meet_in() — @RVZO6 `triage: merge candidate`
-- [#2647](https://github.com/Marvisak/VIctory/pull/2647) Shaders: lower nearest-even binary64 rounding — @andrewpozdnakov7-jpg `triage: merge candidate`
-- [#171](https://github.com/Marvisak/VIctory/pull/171) Shaders: lower v_mad_u64_u32 and v_mad_i64_i32 — @n-romanovich `triage: merge candidate`
 - [#2680](https://github.com/Marvisak/VIctory/pull/2680) GPU: keep edge samples in odd-sized diagnostic PNGs — @andrewpozdnakov7-jpg `triage: merge candidate`
 - [#2890](https://github.com/Marvisak/VIctory/pull/2890) Linux build: main builds, lints and tests off Windows again (carries #2334, fixes #90) — @arogan178 `triage: proposed close`
 - [#2679](https://github.com/Marvisak/VIctory/pull/2679) GPU: make shared sRGB textures typeless for unordered access — @fuzeofficlal `triage: merge candidate`
 - [#2947](https://github.com/Marvisak/VIctory/pull/2947) GPU: reject unknown shader model feature requests — @andrewpozdnakov7-jpg `triage: needs work`
-- [#2664](https://github.com/Marvisak/VIctory/pull/2664) Shaders/IR: eliminate per-instruction/CFG Vec allocations and O(1) effects dedup — @RVZO6 `triage: merge candidate`
-- [#2943](https://github.com/Marvisak/VIctory/pull/2943) Shaders: pack half FMA NaNs directly — @Ingenioeren `triage: merge candidate`
 - [#2668](https://github.com/Marvisak/VIctory/pull/2668) Shaders: guard heap-direct texture read marks with EXEC — @fuzeofficlal `triage: merge candidate`
-- [#2938](https://github.com/Marvisak/VIctory/pull/2938) Shaders: lower RDNA2 lighting multiply in DXIL — @andrewpozdnakov7-jpg `triage: merge candidate`
 - [#2934](https://github.com/Marvisak/VIctory/pull/2934) README: say VICTORY_GPU_TIMING's times are the mode's, not a normal frame's (FIND-29) — @Jackster `triage: proposed close`
 - [#2931](https://github.com/Marvisak/VIctory/pull/2931) GPU: match failed feature-level query results — @andrewpozdnakov7-jpg `triage: needs work`
 - [#2928](https://github.com/Marvisak/VIctory/pull/2928) Shaders: a mesh primitive naming a vertex no lane writes is culled — @0xkn0wh3r3 `triage: needs work`
 - [#2860](https://github.com/Marvisak/VIctory/pull/2860) Net: the IP helper's echo requests and address resolution reach loopback only — @miatson `triage: needs work`
-- [#2823](https://github.com/Marvisak/VIctory/pull/2823) Shaders: the neg input modifier flips a NaN's sign too — @xKineticK `triage: merge candidate`
 - [#2720](https://github.com/Marvisak/VIctory/pull/2720) Preserve ambiguous legacy XGameSave migrations (FIND-23) — @leftmove `triage: needs work`
 - [#2704](https://github.com/Marvisak/VIctory/pull/2704) Round rectangle half-float attributes to even and preserve NaNs — @VlREX `triage: merge candidate`
 - [#2727](https://github.com/Marvisak/VIctory/pull/2727) GPU: reject overflowing rectangle vertex ranges — @fuzeofficlal `triage: merge candidate`
 - [#1964](https://github.com/Marvisak/VIctory/pull/1964) GPU: support 24-bit depth twins and per-plane active UAV tracking — @nathanbzrr `triage: needs work`
-- [#2724](https://github.com/Marvisak/VIctory/pull/2724) Shaders: texture reads at a computed table entry keep their read mark (#2722) — @BastienRodz `triage: merge candidate`
 - [#1065](https://github.com/Marvisak/VIctory/pull/1065) Shaders: use validator 1.8 for compute derivatives — @Halfect `triage: needs work`
-- [#2698](https://github.com/Marvisak/VIctory/pull/2698) Shaders: derive ATOMIC64_TYPED and ATOMIC64_HEAP from the atomics that are written — @Moon0755 `triage: merge candidate`
-- [#2713](https://github.com/Marvisak/VIctory/pull/2713) Shaders: lower binary64 ceiling and floor — @andrewpozdnakov7-jpg `triage: merge candidate`
-- [#2728](https://github.com/Marvisak/VIctory/pull/2728) Shaders: lower binary64 fractional parts — @andrewpozdnakov7-jpg `triage: merge candidate`
 - [#2763](https://github.com/Marvisak/VIctory/pull/2763) GPU: inherit typed formats in explicit RTV and DSV descriptions — @andrewpozdnakov7-jpg `triage: merge candidate`
-- [#2755](https://github.com/Marvisak/VIctory/pull/2755) Shaders: coalesce title-memory dirty marks within a wave — @brainbudt `triage: merge candidate`
-- [#2743](https://github.com/Marvisak/VIctory/pull/2743) Shaders: lower binary64 scaling with floating-point modes — @andrewpozdnakov7-jpg `triage: merge candidate`
-- [#2792](https://github.com/Marvisak/VIctory/pull/2792) fix(shader): allow untracked scalar lane masks in v_cndmask_b32 — @legayclightning22 `triage: merge candidate`
 - [#2900](https://github.com/Marvisak/VIctory/pull/2900) GPU: a list's upload fills can be shared among threads (VICTORY_FILL_WORKERS) — @0xkn0wh3r3 `triage: merge candidate`
 - [#2819](https://github.com/Marvisak/VIctory/pull/2819) Capture: preserve short words in tiny target logs — @andrewpozdnakov7-jpg `triage: merge candidate`
-- [#2768](https://github.com/Marvisak/VIctory/pull/2768) Shaders: decode and lower v_dot8_i32_i4 — @lcg007xd-c `triage: merge candidate`
 - [#2827](https://github.com/Marvisak/VIctory/pull/2827) Capture: save packed R10G10B10A2 presentation frames — @andrewpozdnakov7-jpg `triage: merge candidate`
 - [#2850](https://github.com/Marvisak/VIctory/pull/2850) GPU: refresh table CBVs on fresh_tables cache hits — @fuzeofficlal `triage: merge candidate`
-- [#2828](https://github.com/Marvisak/VIctory/pull/2828) Pipeline cache: verify content when accepting a racing publication — @andrewpozdnakov7-jpg `triage: proposed close`
 - [#2128](https://github.com/Marvisak/VIctory/pull/2128) GPU: populate unbound table slots with typed null descriptors — @fuzeofficlal `triage: merge candidate`
 - [#2548](https://github.com/Marvisak/VIctory/pull/2548) Shaders: lower v_mov_b32 abs/neg modifiers bitwise — @fuzeofficlal `triage: merge candidate`
 - [#2297](https://github.com/Marvisak/VIctory/pull/2297) GPU: a texture sampled before an in-list title memory copy is uploaded again after it — @denkencar-sketch `triage: needs work`
@@ -1939,33 +2059,23 @@ main: `63bcca4` — update readme
 - [#2857](https://github.com/Marvisak/VIctory/pull/2857) Shaders: a mesh program's PSV0 counts shared memory only when it has some — @kais7654 `triage: proposed close`
 - [#2331](https://github.com/Marvisak/VIctory/pull/2331) GPU: page-table writes go back beside those through views in one page — @oVolkra `triage: needs work`
 - [#2572](https://github.com/Marvisak/VIctory/pull/2572) docs: mention shader-test DXC variables in README — @romeawayfromhome-rgb `triage: merge candidate`
-- [#2605](https://github.com/Marvisak/VIctory/pull/2605) GPU: waits on memory that cannot be read are counted apart (#2604) — @BastienRodz `triage: merge candidate`
 - [#1693](https://github.com/Marvisak/VIctory/pull/1693) victory-shader: lower TFE image loads/samples/gathers via CheckAccessFullyMapped — @tjthebigbearcat-hub `triage: needs work`
 - [#2853](https://github.com/Marvisak/VIctory/pull/2853) Preserve pipeline cache retries and reject unmapped BVH nodes — @Lkxex `triage: needs work`
 - [#2587](https://github.com/Marvisak/VIctory/pull/2587) Shaders: bind a zero dword for empty root-constant slices — @fuzeofficlal `triage: merge candidate`
 - [#927](https://github.com/Marvisak/VIctory/pull/927) GameInput: held keys are reported in the order they were pressed, as documented — @BastienRodz `triage: merge candidate`
 - [#2797](https://github.com/Marvisak/VIctory/pull/2797) Loader: accept identical destination when concurrent publish rename fails — @fuzeofficlal `triage: merge candidate`
-- [#2784](https://github.com/Marvisak/VIctory/pull/2784) Shaders: build Halves def/phi table lazily as a compact Vec<Def> in io::raise — @RVZO6 `triage: merge candidate`
-- [#2782](https://github.com/Marvisak/VIctory/pull/2782) Shaders: read known FP16/FP64 rounding mode bits — @andrewpozdnakov7-jpg `triage: merge candidate`
-- [#2791](https://github.com/Marvisak/VIctory/pull/2791) Shaders: lower binary64 square root with 32-bit operations — @andrewpozdnakov7-jpg `triage: merge candidate`
 - [#402](https://github.com/Marvisak/VIctory/pull/402) GPU: find a buffer holding an address past many smaller ones; reuse loose windows that hold a range — @kxiserino `triage: needs rebase`
-- [#2799](https://github.com/Marvisak/VIctory/pull/2799) Shaders: lower binary64 reciprocal with 32-bit operations — @andrewpozdnakov7-jpg `triage: merge candidate`
-- [#2808](https://github.com/Marvisak/VIctory/pull/2808) Shaders: speed up DXBC container MD5 hashing by 16-43% — @brainbudt `triage: merge candidate`
-- [#2812](https://github.com/Marvisak/VIctory/pull/2812) shader: a comparison sampler replaces the reduction instead of OR-ing into it — @spy0eye-beep `triage: merge candidate`
 - [#2801](https://github.com/Marvisak/VIctory/pull/2801) GPU: integer render targets write unblended on the host (#2775) — @miatson `triage: merge candidate`
 - [#2804](https://github.com/Marvisak/VIctory/pull/2804) GPU tests: what marking written title pages costs, per way of marking (benchmark for #2167, #2175, #2465, #2755) — @0xkn0wh3r3 `triage: needs work`
 - [#2729](https://github.com/Marvisak/VIctory/pull/2729) GPU: keep rectangle corners consistent across vertex streams — @andrewpozdnakov7-jpg `triage: merge candidate`
 - [#2905](https://github.com/Marvisak/VIctory/pull/2905) GPU: no copy of a host texture onto itself — @0xkn0wh3r3 `triage: merge candidate`
 - [#1422](https://github.com/Marvisak/VIctory/pull/1422) GPU: ignore clear values on non-target textures and avoid caching failed host textures in PLACED_TEXTURES — @ESAT586 `triage: needs work`
-- [#2811](https://github.com/Marvisak/VIctory/pull/2811) Shaders: lower binary64 reciprocal square root with dwords — @andrewpozdnakov7-jpg `triage: merge candidate`
 - [#1489](https://github.com/Marvisak/VIctory/pull/1489) Shaders: lower image_gather4_c_lz and image_gather4_c_lz_o (MIMG 0x4f, 0x5f) — @AscilCH `triage: needs rebase`
 - [#2104](https://github.com/Marvisak/VIctory/pull/2104) Shaders: lower s_wqm_b32 and s_wqm_b64 in pure 32-bit DXIL — @geiyiliyabumo `triage: merge candidate`
 - [#2533](https://github.com/Marvisak/VIctory/pull/2533) Game: guarantee 8-byte alignment for pipeline stream subobjects and input elements — @reeledMarek `triage: merge candidate`
 - [#2333](https://github.com/Marvisak/VIctory/pull/2333) Shaders: buffer byte and half stores of a VGPR's high half (_d16_hi) — @TinkerBell-90 `triage: merge candidate`
 - [#2392](https://github.com/Marvisak/VIctory/pull/2392) HLE: a null or empty subkey opens the emulated OEM key itself (#765) — @KainanP `triage: merge candidate`
 - [#2443](https://github.com/Marvisak/VIctory/pull/2443) GPU: expose IDXGIObject on emulated DXGI interfaces — @Damokles2 `triage: merge candidate`
-- [#2524](https://github.com/Marvisak/VIctory/pull/2524) HLE: bounds-check all four bytes of ACP notification writes in audio::submit — @reeledMarek `triage: merge candidate`
-- [#2909](https://github.com/Marvisak/VIctory/pull/2909) GPU: reject empty query heaps at creation — @andrewpozdnakov7-jpg `triage: needs work`
 - [#1135](https://github.com/Marvisak/VIctory/pull/1135) GPU: detile only texture subresources affected by writes — @divyeshganta `triage: needs rebase`
 - [#2385](https://github.com/Marvisak/VIctory/pull/2385) Shaders: track s_add_u32 with src_scc in address high halves (#815) — @fuzeofficlal `triage: merge candidate`
 - [#2809](https://github.com/Marvisak/VIctory/pull/2809) Run: the title's warm-up starts itself, at load — @kais7654 `triage: needs work`
@@ -1973,7 +2083,6 @@ main: `63bcca4` — update readme
 - [#1285](https://github.com/Marvisak/VIctory/pull/1285) Shaders: fix 16-bit VALU SDWA placement/sext and inline float constants — @hamdog0203 `triage: needs rebase`
 - [#1985](https://github.com/Marvisak/VIctory/pull/1985) Shaders: compute exact dx.viewIdState and PSV0 input-output dependencies — @nathanbzrr `triage: needs work`
 - [#1059](https://github.com/Marvisak/VIctory/pull/1059) Loader: VICTORY_PATCH writes bytes into a loaded module after relocation — @Halfect `triage: merge candidate`
-- [#2657](https://github.com/Marvisak/VIctory/pull/2657) Shaders: scope DXIL bitcode liveness to reachable blocks and live phi edges — @Moon0755 `triage: merge candidate`
 - [#2445](https://github.com/Marvisak/VIctory/pull/2445) Loader: clamp VEH instruction reads to the faulting page in emulate_amd_only and sse4a — @Texbirds `triage: merge candidate`
 - [#2746](https://github.com/Marvisak/VIctory/pull/2746) GPU: with VICTORY_FPS set, a present waits for the next frame's deadline — @kais7654 `triage: needs rebase`
 - [#2320](https://github.com/Marvisak/VIctory/pull/2320) Preserve signed R16 contrast in PNG captures — @DoubleD17 `triage: merge candidate`
@@ -1982,7 +2091,6 @@ main: `63bcca4` — update readme
 - [#2444](https://github.com/Marvisak/VIctory/pull/2444) HLE: keep refilling XMA PCM buffer across zero-sample decode steps — @Texbirds `triage: merge candidate`
 - [#2246](https://github.com/Marvisak/VIctory/pull/2246) xtask: reject decimal byte arrays in the asset policy — @xiaotu030202 `triage: merge candidate`
 - [#2321](https://github.com/Marvisak/VIctory/pull/2321) Report effect databases in shader-info effects mode — @DoubleD17 `triage: merge candidate`
-- [#2520](https://github.com/Marvisak/VIctory/pull/2520) Shaders: walk a predecessor's live-out registers once instead of searching it per register — @liandraraiane `triage: merge candidate`
 - [#1868](https://github.com/Marvisak/VIctory/pull/1868) FidelityFX: write an RGB9E5 output NVIDIA cannot store to through an FP16 texture (fixes a device removal) — @marquezinii `triage: needs work`
 - [#2064](https://github.com/Marvisak/VIctory/pull/2064) Shaders: d16 buffer loads of floats truncate on every host — @0x00trace `triage: needs rebase`
 - [#1575](https://github.com/Marvisak/VIctory/pull/1575) Shaders: sweep typed buffer formats and f16 ALU against exact references — @DovisLe `triage: needs rebase`
@@ -1995,7 +2103,6 @@ main: `63bcca4` — update readme
 - [#2097](https://github.com/Marvisak/VIctory/pull/2097) Shaders: lower v_qsad_pk_u16_u8, v_mqsad_pk_u16_u8, and v_mqsad_u32_u8 in pure 32-bit DXIL — @geiyiliyabumo `triage: merge candidate`
 - [#2092](https://github.com/Marvisak/VIctory/pull/2092) Shaders: lower v_dot4_u32_u8 and v_dot8_u32_u4 in pure 32-bit DXIL — @geiyiliyabumo `triage: merge candidate`
 - [#2077](https://github.com/Marvisak/VIctory/pull/2077) Shaders: lower s_sext_i32_i8 and s_sext_i32_i16 in pure 32-bit DXIL — @geiyiliyabumo `triage: merge candidate`
-- [#2141](https://github.com/Marvisak/VIctory/pull/2141) HLE: registry lookups through kernelbase.dll reach the device-type overrides — @BastienRodz `triage: merge candidate`
 - [#2089](https://github.com/Marvisak/VIctory/pull/2089) hle: translate \??\ object-manager paths onto virtual drives — @Pradhyumna51 `triage: merge candidate`
 - [#1772](https://github.com/Marvisak/VIctory/pull/1772) HLE: handle verbatim/drive-root mounts and UNC/verbatim GetDiskFreeSpaceW roots — @n-romanovich `triage: merge candidate`
 - [#1975](https://github.com/Marvisak/VIctory/pull/1975) HLE: match rpcrt4 UuidFromString nil-UUID and canonical string rules — @mgunes1311-lab `triage: merge candidate`
@@ -2011,8 +2118,6 @@ main: `63bcca4` — update readme
 - [#1763](https://github.com/Marvisak/VIctory/pull/1763) GPU: refuse typed UAVs in unsupported formats regardless of family or castability — @n-romanovich `triage: needs work`
 - [#606](https://github.com/Marvisak/VIctory/pull/606) Shaders: ds_swizzle_b32 offsets from 0xC000 are the rotate and FFT modes — @upipibi `triage: merge candidate`
 - [#601](https://github.com/Marvisak/VIctory/pull/601) GPU: bound texture upload and capture slices to the allocated buffer — @AwsAli05 `triage: merge candidate`
-- [#559](https://github.com/Marvisak/VIctory/pull/559) GPU: track mip states for 2D color targets — @fuzeofficlal `triage: merge candidate`
-- [#511](https://github.com/Marvisak/VIctory/pull/511) Shaders: coalesce aligned constant-buffer loads — @aycow `triage: merge candidate`
 - [#509](https://github.com/Marvisak/VIctory/pull/509) GPU: add an opt-in execution performance census — @aycow `triage: needs work`
 - [#485](https://github.com/Marvisak/VIctory/pull/485) GPU: preserve compatible read states for read-only depth targets — @fuzeofficlal `triage: merge candidate`
 - [#457](https://github.com/Marvisak/VIctory/pull/457) fix(shader): accept overwritten VGPR inputs in counted indexed writes — @jeremygold02 `triage: proposed close`
@@ -2033,7 +2138,6 @@ main: `63bcca4` — update readme
 - [#2203](https://github.com/Marvisak/VIctory/pull/2203) Shaders/GPU: port experimental GTX compute and vertex fallback to current main — @ElSeba0811 (draft) `triage: needs rebase`
 - [#1759](https://github.com/Marvisak/VIctory/pull/1759) Shaders: lower numerical Wave32 mesh masks at uniform entry — @aycow `triage: needs work`
 - [#2325](https://github.com/Marvisak/VIctory/pull/2325) GPU: a resolve names the format of the host texture, not the console's id — @denkencar-sketch `triage: needs work`
-- [#1631](https://github.com/Marvisak/VIctory/pull/1631) Tests: allow prebuilt HLE probe DLL via VICTORY_HLE_PROBE_DLL — @fuzeofficlal `triage: merge candidate`
 - [#1449](https://github.com/Marvisak/VIctory/pull/1449) GPU: report host resources held by descriptor heap slots in diagnostics — @fuzeofficlal `triage: merge candidate`
 - [#1327](https://github.com/Marvisak/VIctory/pull/1327) Shaders: apply bitwise modifiers to v_cmp_class_f32 source operands — @fuzeofficlal `triage: merge candidate`
 - [#1256](https://github.com/Marvisak/VIctory/pull/1256) Shaders: decode cube-array slice and face in image lowering — @fuzeofficlal `triage: merge candidate`
@@ -2043,26 +2147,17 @@ main: `63bcca4` — update readme
 - [#956](https://github.com/Marvisak/VIctory/pull/956) GPU: support multi-argument ExecuteIndirect signatures with root constants — @MartinIndra02 `triage: needs rebase`
 - [#2018](https://github.com/Marvisak/VIctory/pull/2018) Docs: rustdoc builds the GPU crate again (shader_cache's private link) — @Gruzzberry `triage: merge candidate`
 - [#1212](https://github.com/Marvisak/VIctory/pull/1212) HLE: expand synthetic unit tests for apu.rs (1 -> 19 tests) — @geiyiliyabumo `triage: merge candidate`
-- [#166](https://github.com/Marvisak/VIctory/pull/166) Shaders: lower s_bitset{0,1}_b64, s_brev_b64 and s_bitreplicate_b64_b32 — @n-romanovich `triage: merge candidate`
 - [#105](https://github.com/Marvisak/VIctory/pull/105) Shaders: a loop that branches back to the entry instruction translates — @tedin7 `triage: merge candidate`
 - [#477](https://github.com/Marvisak/VIctory/pull/477) Shaders: fix DXIL validator UB on null error blobs, unchecked GetStatus, and COM/DLL handle leaks — @nathanbzrr `triage: merge candidate`
 - [#1395](https://github.com/Marvisak/VIctory/pull/1395) Shaders: lower s_bfe_u64, s_bfe_i64 and s_bfm_b64 — @AnoHunted `triage: merge candidate`
 - [#1794](https://github.com/Marvisak/VIctory/pull/1794) Shaders: support BVH a16 ray directions and unsorted box nodes — @ESAT586 `triage: merge candidate`
 - [#1193](https://github.com/Marvisak/VIctory/pull/1193) HLE: add synthetic unit tests for storage.rs and host.rs — @geiyiliyabumo `triage: merge candidate`
 - [#188](https://github.com/Marvisak/VIctory/pull/188) Loader: find TLS-array load candidates sixteen offsets at a time (8-9x faster scan) — @TG0000 `triage: merge candidate`
-- [#2195](https://github.com/Marvisak/VIctory/pull/2195) GPU tests: the library test's shaders compile with Wine's compiler too — @winne42 `triage: merge candidate`
 - [#1719](https://github.com/Marvisak/VIctory/pull/1719) DirectStorage: clear the factory out pointer on failure — @davutsimsekk `triage: merge candidate`
 - [#1505](https://github.com/Marvisak/VIctory/pull/1505) GPU: pipeline workers at the title's priority, not below it — @KevinPratap `triage: merge candidate`
-- [#2450](https://github.com/Marvisak/VIctory/pull/2450) Shader: check device removal before FMad readback — @Damokles2 `triage: merge candidate`
-- [#2249](https://github.com/Marvisak/VIctory/pull/2249) HLE: WSAConnectByList and GetAddrInfoExA fail where the host lacks them, not abort (Wine) — @desplmfao `triage: merge candidate`
 - [#1457](https://github.com/Marvisak/VIctory/pull/1457) DirectStorage: keep raw reads running while staging drains — @Luizbc2 `triage: merge candidate`
 - [#2274](https://github.com/Marvisak/VIctory/pull/2274) GPU: aliased textures copy only the subresources that have the same bytes per row — @denkencar-sketch `triage: merge candidate`
-- [#2793](https://github.com/Marvisak/VIctory/pull/2793) Shaders: signature rows of one register follow their name offsets — @Moon0755 `triage: merge candidate`
 - [#2802](https://github.com/Marvisak/VIctory/pull/2802) Shaders: emit UAV barrier fence for global flat stores and atomics — @fuzeofficlal `triage: merge candidate`
-- [#2789](https://github.com/Marvisak/VIctory/pull/2789) Shaders: ds_wrap_rtn_b32 reads both of its data operands — @lcg007xd-c `triage: merge candidate`
-- [#2798](https://github.com/Marvisak/VIctory/pull/2798) Shaders: a mesh program's PSV0 counts shared memory only when it has some — @Moon0755 `triage: merge candidate`
-- [#2480](https://github.com/Marvisak/VIctory/pull/2480) Shaders: BDD meet rejects a node held both ways and takes one condition as met — @liandraraiane `triage: merge candidate`
-- [#1701](https://github.com/Marvisak/VIctory/pull/1701) GPU: VICTORY_MODE overrides the reported console display mode — @Calvix2k `triage: merge candidate`
 - [#1540](https://github.com/Marvisak/VIctory/pull/1540) Shaders: guard both back edges when a conditional branch targets two … — @Texbirds `triage: merge candidate`
 - [#1732](https://github.com/Marvisak/VIctory/pull/1732) GPU: f32_to_half keeps NaN and rounds normals to nearest even (#843) — @moe-miau `triage: merge candidate`
 - [#237](https://github.com/Marvisak/VIctory/pull/237) HLE: offload async saves, reuse audio buffers, pin APU heap, and decouple input rumble/dialogs — @wbkepler `triage: needs rebase`
@@ -2079,7 +2174,6 @@ main: `63bcca4` — update readme
 - [#2619](https://github.com/Marvisak/VIctory/pull/2619) GPU: an opt-in constant stands in for one view a named program writes (VICTORY_AMBIENT) — @r4tedx `triage: needs work`
 - [#2557](https://github.com/Marvisak/VIctory/pull/2557) GameInput: deliver registered reading callbacks — @andrewpozdnakov7-jpg `triage: needs work`
 - [#2226](https://github.com/Marvisak/VIctory/pull/2226) GPU: title textures the GPU writes share their heap's memory on the host — @0xkn0wh3r3 `triage: merge candidate`
-- [#1942](https://github.com/Marvisak/VIctory/pull/1942) GameInput: answer IUnknown and own-IID queries on the COM objects (re-lands #1641) — @Calvix2k `triage: needs work`
 - [#1840](https://github.com/Marvisak/VIctory/pull/1840) Shaders: discover irreducible loops with iterative SCC decomposition — @VlREX `triage: needs work`
 - [#1224](https://github.com/Marvisak/VIctory/pull/1224) fix(hle): coalesce split placeholders when mapping physical pages — @matheusfrta `triage: needs work`
 - [#652](https://github.com/Marvisak/VIctory/pull/652) GPU: use selected mip extents for MSAA resolves — @fuzeofficlal `triage: merge candidate`
@@ -2101,9 +2195,7 @@ main: `63bcca4` — update readme
 - [#2774](https://github.com/Marvisak/VIctory/pull/2774) Shaders: validate raw fixtures and signed MAD64 with full-word regression — @LogicGrove `triage: proposed close`
 - [#2737](https://github.com/Marvisak/VIctory/pull/2737) GPU: copy depth twins directly instead of through a scratch — @Therecalloftheonion `triage: needs rebase`
 - [#2641](https://github.com/Marvisak/VIctory/pull/2641) Document how to run the pull request checks locally — @maxence468 `triage: proposed close`
-- [#2794](https://github.com/Marvisak/VIctory/pull/2794) Game: truncate oversized inflated stream to pack size in shaderpack::find — @GuckstduWeitaaa `triage: needs work`
 - [#2730](https://github.com/Marvisak/VIctory/pull/2730) docs: mention VICTORY_SEMANTICS_REPORT in README — @romeawayfromhome-rgb `triage: proposed close`
-- [#2718](https://github.com/Marvisak/VIctory/pull/2718) Report overlapping VICTORY_KEYS holds as one active key — @VlREX `triage: proposed close`
 - [#2601](https://github.com/Marvisak/VIctory/pull/2601) GPU: pin textures with pending host_writes against eviction — @fuzeofficlal `triage: merge candidate`
 - [#2815](https://github.com/Marvisak/VIctory/pull/2815) Experiment/pr2121 — @theDVNVS `triage: needs rebase`
 - [#2807](https://github.com/Marvisak/VIctory/pull/2807) Teste/series s 32gb — @gabztoo `triage: needs rebase`
@@ -2122,7 +2214,6 @@ main: `63bcca4` — update readme
 - [#1659](https://github.com/Marvisak/VIctory/pull/1659) shader: lower v_frexp_{exp,mant}_{f32,f16} in pure 32-bit DXIL — @geiyiliyabumo `triage: needs rebase`
 - [#1750](https://github.com/Marvisak/VIctory/pull/1750) GPU: a wait for a submission ends when the device is lost or the GPU stalls — @x3ero0 `triage: needs rebase`
 - [#2539](https://github.com/Marvisak/VIctory/pull/2539) Shaders: a select or carry-in on an untracked mask tests this lane's bit — @kais7654 `triage: needs rebase`
-- [#2456](https://github.com/Marvisak/VIctory/pull/2456) Shaders: name the adapter on translate --pipelines verdicts (FIND-3) — @makmatvey `triage: needs rebase`
 - [#2667](https://github.com/Marvisak/VIctory/pull/2667) GPU/HLE: pipelined startup reads and pooled small buffers, rebased onto main — @kais7654 `triage: proposed close`
 - [#2439](https://github.com/Marvisak/VIctory/pull/2439) GPU: zero blend and depth-stencil padding the pipeline library compares — @makmatvey `triage: needs rebase`
 - [#1852](https://github.com/Marvisak/VIctory/pull/1852) GPU: publish descriptor address snapshots before releasing writer lock — @VlREX `triage: needs rebase`
@@ -2141,7 +2232,6 @@ main: `63bcca4` — update readme
 - [#2632](https://github.com/Marvisak/VIctory/pull/2632) GPU: port DirectStorage staging and indirect draw improvements — @Lkxex `triage: needs work`
 - [#2100](https://github.com/Marvisak/VIctory/pull/2100) Shaders: lower v_cvt_pknorm_{i16,u16}_{f32,f16} in pure 32-bit DXIL — @geiyiliyabumo `triage: needs rebase`
 - [#2311](https://github.com/Marvisak/VIctory/pull/2311) GPU: programs that walk the BVH wait until the builder has run whole (NVIDIA device hang at world entry) — @Bullet18x `triage: needs rebase`
-- [#2631](https://github.com/Marvisak/VIctory/pull/2631) Shaders: s_cbranch_vccz/vccnz tests raw VCC, not VCC & EXEC — @dutch2005 `triage: proposed close`
 - [#2277](https://github.com/Marvisak/VIctory/pull/2277) HLE xmem: support MEM_COMMIT inside 64 KiB placeholder reservations — @Sidlik900 `triage: needs rebase`
 - [#2113](https://github.com/Marvisak/VIctory/pull/2113) Shaders: lower ds_inc_u32, ds_inc_rtn_u32, ds_dec_u32, and ds_dec_rtn_u32 in pure 32-bit DXIL — @geiyiliyabumo `triage: needs rebase`
 - [#2116](https://github.com/Marvisak/VIctory/pull/2116) Shaders: lower ds_rsub_u32 and ds_rsub_rtn_u32 in pure 32-bit DXIL — @geiyiliyabumo `triage: needs rebase`
@@ -2149,11 +2239,8 @@ main: `63bcca4` — update readme
 - [#2202](https://github.com/Marvisak/VIctory/pull/2202) shader: lower remaining packed dot products and clamped integer forms — @UnkwnDev `triage: needs rebase`
 - [#2681](https://github.com/Marvisak/VIctory/pull/2681) Shader tests: translate BCPack pixel-pair residual lookup — @Dathinel `triage: needs work`
 - [#2676](https://github.com/Marvisak/VIctory/pull/2676) Shader tests: translate the signed BCPack index residual sum — @Dathinel `triage: needs work`
-- [#2694](https://github.com/Marvisak/VIctory/pull/2694) Reject XMA frame starts outside the announcing packet — @VlREX `triage: merge candidate`
 - [#2588](https://github.com/Marvisak/VIctory/pull/2588) Decode RGB9E5 in diagnostic PNG captures — @DoubleD17 `triage: merge candidate`
 - [#2656](https://github.com/Marvisak/VIctory/pull/2656) Shader tests: translate BCPack's signed nibble split and check every input — @Dathinel `triage: needs work`
-- [#2690](https://github.com/Marvisak/VIctory/pull/2690) GPU: report default buffer alignment from GetDesc — @andrewpozdnakov7-jpg `triage: merge candidate`
-- [#2686](https://github.com/Marvisak/VIctory/pull/2686) Shaders: validate far-jump arithmetic and control-flow entries — @XeNS1 `triage: merge candidate`
 - [#1972](https://github.com/Marvisak/VIctory/pull/1972) Diagnostics: find, reproduce and skip pipelines the host's compiler c… — @J-DB0 `triage: needs rebase`
 - [#2581](https://github.com/Marvisak/VIctory/pull/2581) xtask: preserve filenames during asset-policy checks — @XeNS1 `triage: needs work`
 - [#2700](https://github.com/Marvisak/VIctory/pull/2700) Shader tests: translate XMA float samples to signed PCM16 — @Dathinel `triage: needs work`
@@ -2245,14 +2332,12 @@ main: `63bcca4` — update readme
 - [#2316](https://github.com/Marvisak/VIctory/pull/2316) GPU: VICTORY_FRAMETIME_DUMP writes the frame summary to a CSV — @ruvenesh `triage: needs rebase`
 - [#2093](https://github.com/Marvisak/VIctory/pull/2093) GPU: our compute shaders compiled by the build on Windows — @Deilach `triage: needs rebase`
 - [#430](https://github.com/Marvisak/VIctory/pull/430) DirectStorage: Close completes what was submitted — @marquezinii `triage: needs rebase`
-- [#2516](https://github.com/Marvisak/VIctory/pull/2516) GPU capture: decode XR-biased RGB before image scaling — @andrewpozdnakov7-jpg `triage: merge candidate`
 - [#319](https://github.com/Marvisak/VIctory/pull/319) GPU: end a late flip wait on the tick it missed, not the next — @xmvo `triage: needs rebase`
 - [#250](https://github.com/Marvisak/VIctory/pull/250) GPU & CLI: configurable/uncapped FPS limit, high-res pacing, high-refresh modes, and tearing swapchain — @wbkepler `triage: needs rebase`
 - [#130](https://github.com/Marvisak/VIctory/pull/130) Profile: opt-in VICTORY_PROFILE (frame times, memory, caches, loads; frames.csv, a Perfetto trace and an on-screen overlay) — @Sunkiller-qc `triage: needs rebase`
 - [#1661](https://github.com/Marvisak/VIctory/pull/1661) GPU: route non-overlapping CopyMemoryToMemoryX through Step::Copy and scope invalidation to written ranges — @anlnimus `triage: needs rebase`
 - [#1648](https://github.com/Marvisak/VIctory/pull/1648) GPU: mesh shaders emulated as compute + unpack vertex on SM 6.6 cards without a mesh tier — @yoraudev `triage: needs rebase`
 - [#1646](https://github.com/Marvisak/VIctory/pull/1646) Shaders: fold constant bin/cmp/select/cast ops and identity ops at emit time — @adamdotpy `triage: needs rebase`
-- [#32](https://github.com/Marvisak/VIctory/pull/32) GPU: fence waits, direct memory-write wakes, queue timeline and host list pool — @AndyLatimer `triage: needs rebase`
 - [#1613](https://github.com/Marvisak/VIctory/pull/1613) GPU: render targets keep their slots (null views for targets the host cannot bind), and no RTV or clear without the render-target use — @AgneyaK `triage: needs rebase`
 - [#1587](https://github.com/Marvisak/VIctory/pull/1587) Shaders: ballot divergent-loop masks at reconverged reads (#1498) — @Ctrl-Alt-Haze `triage: needs rebase`
 - [#1084](https://github.com/Marvisak/VIctory/pull/1084) Shaders: a select or carry-in on an untracked mask tests this lane's bit — @undeadhuman37 `triage: needs rebase`
@@ -2290,9 +2375,7 @@ main: `63bcca4` — update readme
 - [#1341](https://github.com/Marvisak/VIctory/pull/1341) Shaders: lower v_ldexp_f32 (VOP3 0x362) — @AscilCH `triage: needs rebase`
 - [#1923](https://github.com/Marvisak/VIctory/pull/1923) GPU: run submissions asynchronously on a host fence timeline (rebase of #595) — @slatefield `triage: needs rebase`
 - [#2106](https://github.com/Marvisak/VIctory/pull/2106) GPU: reject non-power-of-two alignments in allocate_upload — @fuzeofficlal `triage: merge candidate`
-- [#2066](https://github.com/Marvisak/VIctory/pull/2066) Net: forward zero-address datagram disconnects — @fuzeofficlal `triage: needs work`
 - [#1992](https://github.com/Marvisak/VIctory/pull/1992) docs: update architecture scheme — @IWillFall1337 `triage: proposed close`
-- [#1428](https://github.com/Marvisak/VIctory/pull/1428) GPU: guard OMSetRenderTargets handle expansion on empty, null, or oversized calls — @fuzeofficlal `triage: merge candidate`
 - [#1994](https://github.com/Marvisak/VIctory/pull/1994) Shaders: floor, ceil and fract read denormals as zeros — @0x00trace `triage: merge candidate`
 - [#1469](https://github.com/Marvisak/VIctory/pull/1469) Shaders: lower binary64 class comparisons — @Luizbc2 `triage: needs rebase`
 - [#2139](https://github.com/Marvisak/VIctory/pull/2139) HLE: implement synchronous XGameSave slots and unfiltered blob enumeration — @fuzeofficlal `triage: merge candidate`
@@ -2314,14 +2397,12 @@ main: `63bcca4` — update readme
 - [#275](https://github.com/Marvisak/VIctory/pull/275) GPU: atomic adaptive PSO wait budget and non-blocking pipeline library saves — @wbkepler `triage: needs rebase`
 - [#517](https://github.com/Marvisak/VIctory/pull/517) CLI: report incomplete shader directory scans — @Dathinel `triage: needs work`
 - [#1770](https://github.com/Marvisak/VIctory/pull/1770) Descriptor tests: take the capped heap's design into account — @kais7654 `triage: needs work`
-- [#1434](https://github.com/Marvisak/VIctory/pull/1434) Loader: match title DLL filenames ignoring ASCII case — @fuzeofficlal `triage: merge candidate`
 - [#1704](https://github.com/Marvisak/VIctory/pull/1704) FidelityFX: answer the upscale calls with DLSS through Streamline (stacked on #1868) — @marquezinii `triage: needs work`
 - [#1814](https://github.com/Marvisak/VIctory/pull/1814) PE tests: cover ImportLibrary::parse short imports and archive errors — @n-romanovich `triage: proposed close`
 - [#1827](https://github.com/Marvisak/VIctory/pull/1827) HLE: enumerate the current installation for XPackageKind::Game — @n-romanovich `triage: needs work`
 - [#1156](https://github.com/Marvisak/VIctory/pull/1156) Loader: continue past a title's int3 asserts, for finding the next blocker — @adamdotpy `triage: needs rebase`
 - [#1822](https://github.com/Marvisak/VIctory/pull/1822) Speech: the title's narration plays through the host's SAPI voice — @kais7654 `triage: needs work`
 - [#1432](https://github.com/Marvisak/VIctory/pull/1432) HLE: set ERROR_PROC_NOT_FOUND for missing pseudo-module exports — @fuzeofficlal `triage: merge candidate`
-- [#541](https://github.com/Marvisak/VIctory/pull/541) GPU: retain D3D12 object names in private data — @broccolize `triage: merge candidate`
 - [#1715](https://github.com/Marvisak/VIctory/pull/1715) FidelityFX: DLSS frame generation on frames the title upscales (stacked on #1704) — @marquezinii `triage: needs work`
 - [#673](https://github.com/Marvisak/VIctory/pull/673) Make translate failure examples stable across workers — @timorjay `triage: merge candidate`
 - [#1584](https://github.com/Marvisak/VIctory/pull/1584) GPU: add opt-in idle shader cache trimming — @srijann07 `triage: merge candidate`
@@ -2336,7 +2417,6 @@ main: `63bcca4` — update readme
 - [#1741](https://github.com/Marvisak/VIctory/pull/1741) Docs: AGENTS.md for AI agents working on VIctory — @ThiagoAlexsander `triage: needs work`
 - [#1568](https://github.com/Marvisak/VIctory/pull/1568) Shaders: model 64-bit carry sums and f16 reductions in whole-wave sections — @MartinIndra02 `triage: needs rebase`
 - [#1692](https://github.com/Marvisak/VIctory/pull/1692) [BUNDLE] GPU diagnostics: 3 PRs, #669 #1251 #602 (rebuilt on main 70564ae) — @MamaLeVrai `triage: proposed close`
-- [#321](https://github.com/Marvisak/VIctory/pull/321) GPU: honour scheduled frame-event offsets — @Quat3rnion `triage: needs rebase`
 - [#1593](https://github.com/Marvisak/VIctory/pull/1593) [BUNDLE] Shader translation speed: 4 PRs, #288 #369 #1033 #1180 (rebuilt on main 70564ae) — @MamaLeVrai `triage: proposed close`
 - [#1542](https://github.com/Marvisak/VIctory/pull/1542) [BUNDLE] GPU fixes 4: 3 PRs, #1082 #1173 #1265 (rebuilt on main 70564ae) — @MamaLeVrai `triage: proposed close`
 - [#1511](https://github.com/Marvisak/VIctory/pull/1511) [BUNDLE] DXIL emission and container robustness: 3 PRs, #343 #1303 #477 (rebuilt on main 70564ae) — @MamaLeVrai `triage: proposed close`
@@ -2414,10 +2494,8 @@ main: `63bcca4` — update readme
 - [#660](https://github.com/Marvisak/VIctory/pull/660) Shaders: drop a wave64 mask whose low dword is seen with two high dwords — @coderanonymus `triage: needs work`
 - [#1363](https://github.com/Marvisak/VIctory/pull/1363) [BUNDLE] XAsync, kernel, lifecycle and DirectStorage HLE: #114 #122 #247 #1098 #186 #373 #512 #451 #1080 #430 #577 #1238 — @MamaLeVrai `triage: needs rebase`
 - [#626](https://github.com/Marvisak/VIctory/pull/626) GPU: fall back to standard root signature flags when host runtime rejects 0xC01/0xC00 — @LAKSHYA-cmd-tech `triage: proposed close`
-- [#590](https://github.com/Marvisak/VIctory/pull/590) HLE: reject duplicate blob changes in one save update — @Quat3rnion `triage: needs work`
 - [#1336](https://github.com/Marvisak/VIctory/pull/1336) Shaders: fix RPO resource tracking, SMEM alignment, raw VCC branch, and readlane/writelane semantics (#1249) — @wbkepler `triage: needs rebase`
 - [#1331](https://github.com/Marvisak/VIctory/pull/1331) GPU: rebind replaced descriptor heaps by host identity — @EatCodeSleep2 `triage: needs rebase`
-- [#512](https://github.com/Marvisak/VIctory/pull/512) HLE: resolve ordinals on pseudo-module handles — @Quat3rnion `triage: needs work`
 - [#1313](https://github.com/Marvisak/VIctory/pull/1313) Shaders: return zero for unused image query extents — @EatCodeSleep2 `triage: needs rebase`
 - [#1298](https://github.com/Marvisak/VIctory/pull/1298) GPU: replace stale descriptors on null CBV writes — @EatCodeSleep2 `triage: needs rebase`
 - [#1295](https://github.com/Marvisak/VIctory/pull/1295) Shaders: decode 16-bit integer inline float constants as f32 bits — @WALID1618Y `triage: needs rebase`
@@ -2434,9 +2512,7 @@ main: `63bcca4` — update readme
 - [#943](https://github.com/Marvisak/VIctory/pull/943) GPU: use VirtualQuery region fallback in copy_mapped and write_mapped — @MartinIndra02 `triage: needs rebase`
 - [#697](https://github.com/Marvisak/VIctory/pull/697) Shader: backward dead-code elimination in DXIL bitcode emission — @wbkepler `triage: needs rebase`
 - [#656](https://github.com/Marvisak/VIctory/pull/656) Input: report the character each held key types — @lameloball2813-ui `triage: needs rebase`
-- [#574](https://github.com/Marvisak/VIctory/pull/574) HLE: write at-rest gamepad state for non-pad readings — @Quat3rnion `triage: needs rebase`
 - [#98](https://github.com/Marvisak/VIctory/pull/98) Shaders: model v_permlane16_b32 in whole-wave sections — @tedin7 `triage: needs rebase`
-- [#443](https://github.com/Marvisak/VIctory/pull/443) Audio: keep XMA frames split across rolling inputs — @Quat3rnion `triage: needs rebase`
 - [#312](https://github.com/Marvisak/VIctory/pull/312) HLE: SDL3 gamepad backend for the gameinput shim — @DaviTostes `triage: needs rebase`
 - [#310](https://github.com/Marvisak/VIctory/pull/310) Policy: resolve cache paths inside Windows AppContainer — @melon0918 `triage: needs rebase`
 - [#120](https://github.com/Marvisak/VIctory/pull/120) Shaders: lower s_absdiff_i32, s_sext_i32_i8/i16 and s_pack_ll/lh/hh_b32_b16 — @tedin7 `triage: needs rebase`
@@ -2487,12 +2563,9 @@ main: `63bcca4` — update readme
 - [#575](https://github.com/Marvisak/VIctory/pull/575) GPU: release resources the CPU is done with behind the queue — @Len1k `triage: needs rebase`
 - [#292](https://github.com/Marvisak/VIctory/pull/292) Shader: lower WQM QuadAny, clamp LDS accesses, and guard loop budgets & barriers — @wbkepler `triage: needs rebase`
 - [#228](https://github.com/Marvisak/VIctory/pull/228) XGameSave: a failed create leaves a null handle, as documented — @Dufftwt `triage: needs work`
-- [#290](https://github.com/Marvisak/VIctory/pull/290) HLE tests: cover Windows path rules on every host — @Quat3rnion `triage: needs rebase`
 - [#279](https://github.com/Marvisak/VIctory/pull/279) GPU: name the commands at a DRED stop, and dump translated shaders — @ALFREDOHDEZ `triage: needs rebase`
-- [#278](https://github.com/Marvisak/VIctory/pull/278) GPU: answer format-info and virtual-address feature queries — @Quat3rnion `triage: needs rebase`
 - [#269](https://github.com/Marvisak/VIctory/pull/269) Shaders: scalars leave divergent loops and branches as the wave's last path left them — @TheHoracio `triage: needs rebase`
 - [#113](https://github.com/Marvisak/VIctory/pull/113) GitHub: rebase issue forms and PR template on main — @Quat3rnion `triage: needs work`
-- [#544](https://github.com/Marvisak/VIctory/pull/544) HLE: report queue termination after running callbacks — @Quat3rnion `triage: needs rebase`
 - [#542](https://github.com/Marvisak/VIctory/pull/542) Shaders: keep buffer offsets below 2 GiB (NVIDIA + vkd3d-proton world device loss) — @gingertonik `triage: needs rebase`
 - [#261](https://github.com/Marvisak/VIctory/pull/261) GPU: copy-back puts back only what shaders wrote, in two more cases — @Maraco91 `triage: needs rebase`
 - [#537](https://github.com/Marvisak/VIctory/pull/537) GPU: name the switch when a removal has no device-removed data — @coderanonymus `triage: needs rebase`
@@ -2500,7 +2573,6 @@ main: `63bcca4` — update readme
 - [#242](https://github.com/Marvisak/VIctory/pull/242) GPU: make ExecuteIndirect clamping countBuffer-aware and non-destructive — @wbkepler `triage: needs rebase`
 - [#234](https://github.com/Marvisak/VIctory/pull/234) HLE: overlapped DirectStorage I/O and persistent xmem section views — @wbkepler `triage: needs rebase`
 - [#236](https://github.com/Marvisak/VIctory/pull/236) XAsync: a canceled pending call's work touches neither freed state nor the next call — @Dufftwt `triage: needs rebase`
-- [#503](https://github.com/Marvisak/VIctory/pull/503) HLE: pin a call's task queue at XAsyncBegin — @Quat3rnion `triage: needs rebase`
 - [#498](https://github.com/Marvisak/VIctory/pull/498) shader: lower v_movrelsd_2_b32 and v_swaprel_b32 — @NolanCotter `triage: needs rebase`
 - [#222](https://github.com/Marvisak/VIctory/pull/222) apu: warn when the host has no audio output device — @a55uka `triage: needs rebase`
 - [#216](https://github.com/Marvisak/VIctory/pull/216) Loader & HLE: harden VEH crash handler, PE prep/exports/TLS, and allow oleaut32 — @wbkepler `triage: needs rebase`
@@ -2515,7 +2587,6 @@ main: `63bcca4` — update readme
 - [#123](https://github.com/Marvisak/VIctory/pull/123) GPU: refuse raw buffer views that do not start on 16 bytes — @9hvn9yt2vk-netizen `triage: needs rebase`
 - [#427](https://github.com/Marvisak/VIctory/pull/427) GPU: say in device-removed reports which user data is a table — @GamingRipperDoc `triage: needs rebase`
 - [#425](https://github.com/Marvisak/VIctory/pull/425) Game: validate DXBC containers in SGD5 records — @enzoduarte1 `triage: needs rebase`
-- [#112](https://github.com/Marvisak/VIctory/pull/112) Build: Linux workspace, contributor setup and CI — @Quat3rnion `triage: needs rebase`
 - [#420](https://github.com/Marvisak/VIctory/pull/420) GPU: include root-selected entries in rebuilt descriptor tables — @FIocker `triage: needs rebase`
 - [#92](https://github.com/Marvisak/VIctory/pull/92) Shaders: lower v_add_nc_i32, v_sub_nc_i32, v_mul_lo_i32 and the signed 16-bit add and sub — @tedin7 `triage: needs rebase`
 - [#416](https://github.com/Marvisak/VIctory/pull/416) shader: implement v_cvt_f32_f64 instruction lowering — @bitzin-dev `triage: needs rebase`
