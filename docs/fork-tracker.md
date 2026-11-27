@@ -30,3 +30,4 @@
 | 2 | Сборка и запуск на ПК (Windows, игра на B:) | — | — | план |
 | 3 | FPS в мире (сейчас 2–4) | `claude/project-thread-5e9x96` (AnyXboxX "lot 5" mix, see `docs/fps-mix.md`) | 2026-11-24: AnyXboxX (LooperSalty) runs fxceless `7b0f736` + PRs #63 #71 #32 #82 #83 #81 #77, 5.4 fps / best image on RTX 4070 SUPER; lot 4 (#63 #71 #32 + `VICTORY_RELAY=2`) 6.6 fps. Not on PC yet. | в работе |
 | 4 | Тени / RT-освещение (сейчас чёрные) | — | — | план |
+| 5 | FPS: Vice-Tay base + DoubleGhosty fixes for cool_fox (60 fps claim = cutscenes only; TeK MP = private CGBJ fork) | oceansde012/cool_fox PR #3 (`claude/project-thread-0yibfz`); report `reports/fps60-tek-2026-11-27.md` in project files | 2026-11-27: Marvisak main 63bcca43 (no new commits since 26 Nov 00:27); fxceless main 9a9091d1 (masked patch, in-place constants, GPU detile: other lineage, Codex study queued). Not found upstream: frame-rate switch, Vice-Tay ports. | в работе |
