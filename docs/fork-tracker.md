@@ -30,3 +30,4 @@
 | 2 | Сборка и запуск на ПК (Windows, игра на B:) | — | — | план |
 | 3 | FPS в мире (сейчас 2–4) | `claude/project-thread-5e9x96` (AnyXboxX "lot 5" mix, see `docs/fps-mix.md`) | 2026-11-24: AnyXboxX (LooperSalty) runs fxceless `7b0f736` + PRs #63 #71 #32 #82 #83 #81 #77, 5.4 fps / best image on RTX 4070 SUPER; lot 4 (#63 #71 #32 + `VICTORY_RELAY=2`) 6.6 fps. Not on PC yet. | в работе |
 | 4 | Тени / RT-освещение (сейчас чёрные) | — | — | план |
+| 5 | VIctory-Fast (maren-halv) review for fps | report `reports/victory-fast-2026-11-28.md` (project files) | 2026-11-28: base = cool_fox f4b48ad; 40+/34+ fps are FSR 1080p->1440p on RX 9070 XT; native 30 fps measured with local-lights pass skipped; overlaps our cool_fox PRs #5/#7/#10; new candidates: GPU_ONLY_COPYBACK, 11b1d4c, 7da8eb5, 7c90c19, 79a92c7 | разобрано |
