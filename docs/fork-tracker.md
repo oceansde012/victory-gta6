@@ -30,3 +30,4 @@
 | 2 | Сборка и запуск на ПК (Windows, игра на B:) | — | — | план |
 | 3 | FPS в мире (сейчас 2–4) | `claude/project-thread-5e9x96` (AnyXboxX "lot 5" mix, see `docs/fps-mix.md`) | 2026-11-24: AnyXboxX (LooperSalty) runs fxceless `7b0f736` + PRs #63 #71 #32 #82 #83 #81 #77, 5.4 fps / best image on RTX 4070 SUPER; lot 4 (#63 #71 #32 + `VICTORY_RELAY=2`) 6.6 fps. Not on PC yet. | в работе |
 | 4 | Тени / RT-освещение (сейчас чёрные) | — | — | план |
+| 5 | foxhound (readmet3xt-lab, cool_fox-based) review: drop causes, ports | cool_fox PR #15 (`VICTORY_PLACED_NORMAL`, off) | 2026-11-28: `normal_placed`/`PLACED_NORMAL` 0 hits in Marvisak/VIctory and fxceless/victory-fork; SAMPLER_ORDER already in fxceless main 9e90746 (port from there). Report: project file `reports/foxhound-2026-11-28.md` | в работе |
