@@ -30,3 +30,4 @@
 | 2 | Сборка и запуск на ПК (Windows, игра на B:) | — | — | план |
 | 3 | FPS в мире (сейчас 2–4) | `claude/project-thread-5e9x96` (AnyXboxX "lot 5" mix, see `docs/fps-mix.md`) | 2026-11-24: AnyXboxX (LooperSalty) runs fxceless `7b0f736` + PRs #63 #71 #32 #82 #83 #81 #77, 5.4 fps / best image on RTX 4070 SUPER; lot 4 (#63 #71 #32 + `VICTORY_RELAY=2`) 6.6 fps. Not on PC yet. | в работе |
 | 4 | Тени / RT-освещение (сейчас чёрные) | — | — | план |
+| 5 | Vice-Tay memory fixes (placed-view leak #27, slots on land, snapshot pool #41, PLACED_RAW #34) | cool_fox `claude/project-thread-9gm7kk` = cool_fox PR #14 | 2026-11-28: checked Vice-Tay main fe7c6e5 + open PRs; #27 series not in base or cool_fox PRs 2-13 (only in vlad/vt-all). Report: project files reports/vicetay-memory-2026-11-28.md. | в работе (PC tests + long run pending) |
